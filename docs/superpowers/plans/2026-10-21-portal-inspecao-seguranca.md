@@ -1,6 +1,6 @@
 # Portal de Inspeção de Segurança — Plano de Implementação
 
-> **Para trabalhadores agênticos:** SUB-SKILL OBRIGATÓRIA: use `superpowers:subagent-driven-development` (recomendado) ou `superpowers:executing-plans` para implementar este plano tarefa por tarefa. Os passos usam caixas de seleção (`- [ ]`) para acompanhamento.
+> **Para trabalhadores agênticos:** SUB-SKILL OBRIGATÓRIA: use `superpowers:subagent-driven-development` (recomendado) ou `superpowers:executing-plans` para implementar este plano tarefa por tarefa. Os passos usam caixas de seleção (`- [x]`) para acompanhamento.
 
 **Objetivo:** Entregar um portal web interno para criar formulários versionados, programar e executar inspeções de segurança, tratar não conformidades e acompanhar indicadores por escopo organizacional.
 
@@ -46,31 +46,31 @@
 **Interfaces:**
 - Produz: scripts raiz `dev`, `build`, `lint`, `typecheck`, `test`, `test:e2e`; endpoints `GET /api/health/live` e `GET /api/health/ready`.
 
-- [ ] **Passo 1: Escrever testes de fumaça que falham**
+- [x] **Passo 1: Escrever testes de fumaça que falham**
 
   Testar que a API retorna `200` em `/health/live`, que `/health/ready` informa PostgreSQL, Redis e MinIO, e que a página inicial renderiza o nome do portal.
 
-- [ ] **Passo 2: Executar os testes e confirmar a falha**
+- [x] **Passo 2: Executar os testes e confirmar a falha**
 
   Executar: `pnpm test --filter api --filter web`
 
   Esperado: falha porque aplicações, rotas e página ainda não existem.
 
-- [ ] **Passo 3: Criar workspace, aplicações e configuração compartilhada**
+- [x] **Passo 3: Criar workspace, aplicações e configuração compartilhada**
 
   Fixar Node.js `24.x`, TypeScript `6.x`, NestJS `12.x`, Next.js `16.x` e MikroORM `7.2.x`; configurar aliases, lint, formatação e variáveis validadas.
 
-- [ ] **Passo 4: Criar infraestrutura local e health checks**
+- [x] **Passo 4: Criar infraestrutura local e health checks**
 
   Definir PostgreSQL, Redis e MinIO com volumes nomeados, health checks e credenciais apenas via ambiente. O readiness deve testar dependências sem expor segredos.
 
-- [ ] **Passo 5: Verificar a fundação**
+- [x] **Passo 5: Verificar a fundação**
 
   Executar: `docker compose -f infra/compose.yaml up -d && pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 
   Esperado: todos os serviços saudáveis e comandos concluídos sem erro.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "chore: scaffold inspection portal workspace"`
 
@@ -86,29 +86,29 @@
 **Interfaces:**
 - Produz: `BaseEntity { id, createdAt, updatedAt }`; `AuditService.record(input: AuditRecordInput, em?: EntityManager): Promise<void>`; migrações reproduzíveis.
 
-- [ ] **Passo 1: Escrever testes de persistência e auditoria que falham**
+- [x] **Passo 1: Escrever testes de persistência e auditoria que falham**
 
   Cobrir UUIDs, timestamps UTC, rollback transacional e evento de auditoria com ator, ação, recurso, identificador, requestId e alterações sanitizadas.
 
-- [ ] **Passo 2: Confirmar as falhas**
+- [x] **Passo 2: Confirmar as falhas**
 
   Executar: `pnpm --filter api test database.integration-spec audit.service.spec`
 
-- [ ] **Passo 3: Implementar configuração MikroORM e base transacional**
+- [x] **Passo 3: Implementar configuração MikroORM e base transacional**
 
   Configurar driver PostgreSQL, migrations, naming strategy, RequestContext por requisição e EntityManager isolado em jobs.
 
-- [ ] **Passo 4: Implementar auditoria append-only**
+- [x] **Passo 4: Implementar auditoria append-only**
 
   Impedir update/delete comum de eventos e remover de diffs campos como senha, token, cookie e conteúdo binário.
 
-- [ ] **Passo 5: Gerar e testar a primeira migração**
+- [x] **Passo 5: Gerar e testar a primeira migração**
 
   Executar banco vazio → migrate up → migrate down → migrate up.
 
   Esperado: schema reproduzível e testes aprovados.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "feat: add persistence and audit foundation"`
 

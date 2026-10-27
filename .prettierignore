@@ -1,0 +1,9 @@
+node_modules/
+.turbo/
+**/dist/
+**/.next/
+coverage/
+pnpm-lock.yaml
+docs/superpowers/
+**/next-env.d.ts
+**/.snapshot-*.json

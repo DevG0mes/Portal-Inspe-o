@@ -1,0 +1,11 @@
+:root {
+  --background: #eef3f7;
+  --surface: #ffffff;
+  --text: #182e40;
+  --muted: #4b6273;
+  --brand: #12547a;
+  --notice: #755000;
+  --border: #cedae3;
+  --font-heading: 'Bahnschrift', 'Arial Narrow', sans-serif;
+  --font-body: 'Segoe UI', Arial, sans-serif;
+}
