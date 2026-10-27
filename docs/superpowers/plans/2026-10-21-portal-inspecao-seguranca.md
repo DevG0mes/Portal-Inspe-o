@@ -124,29 +124,29 @@
 **Interfaces:**
 - Produz: `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/auth/change-password`, `GET /api/auth/me`; `AuthenticatedPrincipal { userId, role, sessionId, mustChangePassword }`.
 
-- [ ] **Passo 1: Escrever testes que falham para login e sessão**
+- [x] **Passo 1: Escrever testes que falham para login e sessão**
 
   Cobrir credenciais válidas, resposta genérica para credenciais inválidas, Argon2id, cookie HttpOnly/SameSite/Secure por ambiente, bloqueio temporário, revogação e troca obrigatória de senha.
 
-- [ ] **Passo 2: Confirmar as falhas**
+- [x] **Passo 2: Confirmar as falhas**
 
   Executar: `pnpm --filter api test auth && pnpm --filter api test:e2e -- auth.e2e-spec`
 
-- [ ] **Passo 3: Implementar entidades e serviço de autenticação**
+- [x] **Passo 3: Implementar entidades e serviço de autenticação**
 
   Usar sessão opaca armazenada como hash, rotação após login e revogação por usuário. Nunca retornar hash de senha ou token em DTOs.
 
-- [ ] **Passo 4: Implementar endpoints e guard global**
+- [x] **Passo 4: Implementar endpoints e guard global**
 
   Permitir anonimamente apenas health e login. Se `mustChangePassword` for verdadeiro, permitir somente `/auth/me`, troca de senha e logout.
 
-- [ ] **Passo 5: Verificar segurança e contratos**
+- [x] **Passo 5: Verificar segurança e contratos**
 
   Executar: `pnpm --filter api test && pnpm --filter api test:e2e`
 
   Esperado: casos válidos e ataques de enumeração/reuso cobertos.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "feat: add local authentication and sessions"`
 

@@ -1,38 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MikroORM } from '@mikro-orm/postgresql';
 import { RequestContext } from '@mikro-orm/core';
-import { loadEnvironment } from '@portal/config';
-import { createDatabaseOptions } from '../src/database/mikro-orm.config.js';
 import { AuditEvent } from '../src/audit/audit-event.entity.js';
 import { AuditService } from '../src/audit/audit.service.js';
 import { TransactionService } from '../src/database/transaction.service.js';
 import { createApplication } from '../src/app.js';
+import { createTestDatabase } from './helpers/test-database.js';
 
-process.loadEnvFile('.env');
-const environment = loadEnvironment(process.env);
-// Every schema/migration mutation targets a database created by this suite only.
-const databaseName = `portal_test_${randomUUID().replaceAll('-', '')}`;
-const admin = new Pool({ connectionString: environment.DATABASE_URL });
-const testUrl = new URL(environment.DATABASE_URL);
-testUrl.pathname = `/${databaseName}`;
+let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let orm: MikroORM | undefined;
-let created = false;
 
 beforeAll(async () => {
-  await admin.query(`CREATE DATABASE "${databaseName}"`);
-  created = true;
-  orm = await MikroORM.init(createDatabaseOptions(testUrl.toString()));
-  await orm.migrator.up();
+  database = await createTestDatabase();
+  orm = database.orm;
 });
 
 afterAll(async () => {
-  await orm?.close(true);
-  if (created && /^portal_test_[a-f0-9]{32}$/.test(databaseName)) {
-    await admin.query(`DROP DATABASE "${databaseName}"`);
-  }
-  await admin.end();
+  await database?.close();
 });
 
 describe('persistence and append-only audit', () => {
@@ -145,8 +130,8 @@ describe('persistence and append-only audit', () => {
     expect(await em.fork().count(AuditEvent, { id })).toBe(1);
   });
 
-  it('replays the first migration after a down/up cycle on the isolated test database', async () => {
-    await orm!.migrator.down();
+  it('replays the migration chain after a down/up cycle on the isolated test database', async () => {
+    await orm!.migrator.down({ to: 0 });
     await orm!.migrator.up();
     expect(await orm!.em.fork().count(AuditEvent, {})).toBe(0);
   });

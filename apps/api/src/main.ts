@@ -15,7 +15,10 @@ async function bootstrap() {
   };
   let app;
   try {
-    app = await createApplication(infrastructure.checks, close, database);
+    app = await createApplication(infrastructure.checks, close, database, {
+      secureCookies: environment.NODE_ENV === 'production',
+      origin: environment.APP_ORIGIN,
+    });
     await app.listen(environment.API_PORT, environment.API_HOST);
   } catch (error) {
     if (app) await app.close();

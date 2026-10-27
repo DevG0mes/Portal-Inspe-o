@@ -1,5 +1,9 @@
 # Progresso — plano: docs/superpowers/plans/2026-10-21-portal-inspecao-seguranca.md
 
+## Estado atual
+
+Tarefas 1, 2 e 3 concluídas. Próxima etapa: tarefa 4, organização, usuários e autorização por unidade/setor. API de autenticação disponível; a tela de login continua prevista para a tarefa 6.
+
 ## Retomada em 27/10/2026
 
 - Histórico inicial: `f4d9493` (especificação), `41b97ea` (plano). Não havia aplicações ou manifestos de dependências.
@@ -75,3 +79,29 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - HTTP real na API compilada: `/api/health/live` e `/api/health/ready` retornaram `ok`.
 - Verificação final: 20 testes aprovados (8 unitários/interface, 4 HTTP, 8 de integração); lint, tipos e formatação aprovados. Reconstrução do MinIO por digest aprovada.
 - Snapshots automáticos de migração desativados durante a execução; arquivos temporários antigos ignorados para não poluir o controle de versão.
+
+## Tarefa 3 — identidade, autenticação e sessões
+
+- Criados usuários e sessões, contratos compartilhados, DTOs estritos, serviço Argon2id e guard global. Apenas saúde e login são públicos.
+- Login retorna principal seguro e cookie opaco HttpOnly/SameSite=Strict. Banco mantém apenas SHA-256 do identificador da sessão. Cookie Secure em produção, com origem HTTPS validada na configuração.
+- Implementados login, me, logout, logout geral e troca de senha. Contas com troca obrigatória só podem consultar o principal, trocar a senha ou sair. Sessões de usuários inativos ou vencidas são rejeitadas.
+- Falhas de login são serializadas por bloqueio de linha no PostgreSQL e auditadas na mesma transação. Uma falha é lançada somente depois de confirmar a transação, preservando contadores e histórico.
+- Login com cookie anterior rotaciona a sessão; troca de senha revoga todas as sessões antigas e cria outra. Reset administrativo revoga sessões e exige troca posterior; sem endpoint público de reset nesta etapa.
+- Incluído bootstrap local único de administrador, protegido por advisory lock e permitido apenas com tabela de usuários vazia. Não foi criado administrador real nem definida senha padrão.
+- Ruling: limites iniciais de 5 falhas/15 minutos, sessão absoluta de 8 horas e novas senhas de 15–128 caracteres; centralizados e documentados para revisão corporativa na implantação. Argon2id usa memória de 19 MiB, 2 iterações e paralelismo 1.
+- Ruling: `/auth/logout-all` acrescentado para atender ao encerramento remoto das sessões do próprio usuário previsto na especificação. Requer troca de senha concluída.
+- Ruling: JSON obrigatório e verificação de Origin/Fetch Metadata nas alterações reforçam a proteção de cookies e do login. APP_ORIGIN define a origem permitida; clientes operacionais sem Origin permanecem possíveis.
+- Ruling: BaseEntity.id recebeu tipo explícito string para representar o contrato público sem depender da inferência restrita de UUID do Node.js. Validação de identificadores externos permanece nos DTOs.
+- Extraído helper compartilhado de bancos temporários locais, usado pela autenticação, bootstrap e suíte de persistência. Testes de migração fazem down/up da cadeia completa apenas no banco temporário.
+- A verificação de drift detectou default de perfil e regra de atualização da FK divergentes; a migração 002 foi corrigida antes de aplicação no banco do portal. O schema final corresponde às entidades.
+- Revisão independente: nenhum ajuste obrigatório. Documentação operacional em `docs/development/authentication.md`.
+
+### Evidências da tarefa 3 em 27/10/2026
+
+- Testes novos de senha, DTOs, HTTP e bootstrap falharam inicialmente pela ausência dos módulos, antes da implementação.
+- `pnpm test`: 13 testes aprovados.
+- `pnpm test:e2e`: 21 testes aprovados, incluindo autenticação real, concorrência de login, cookies, CSRF, reset e bootstrap simultâneo.
+- `pnpm test:integration`: 8 testes aprovados, incluindo alinhamento de schema e ciclo integral de migrações.
+- `pnpm lint`, `pnpm typecheck`, `pnpm format:check` e `pnpm build`: aprovados.
+- `pnpm --filter @portal/api db:migrate`: migração 002 aplicada ao banco local.
+- API compilada reiniciada; health ready retornou os três serviços up. `/api/auth/me` sem cookie retornou 401 e Cache-Control no-store.

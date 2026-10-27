@@ -3,7 +3,7 @@ import { EntitySchema } from '@mikro-orm/core';
 
 /** Shared identity and UTC instants; domain entities retain their own lifecycle rules. */
 export abstract class BaseEntity {
-  id = randomUUID();
+  id: string = randomUUID();
   createdAt = new Date();
   updatedAt = new Date(this.createdAt);
 }

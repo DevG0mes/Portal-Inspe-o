@@ -10,6 +10,14 @@ const valid = {
 };
 
 describe('environment configuration', () => {
+  it('requires HTTPS origin in production for secure session cookies', () => {
+    expect(() => loadEnvironment({ ...valid, APP_ORIGIN: 'ftp://portal.psi.test' })).toThrow();
+    expect(() => loadEnvironment({ ...valid, NODE_ENV: 'production' })).toThrow();
+    expect(
+      loadEnvironment({ ...valid, NODE_ENV: 'production', APP_ORIGIN: 'https://portal.psi.test' })
+        .APP_ORIGIN,
+    ).toBe('https://portal.psi.test');
+  });
   it('rejects missing credentials before starting services', () => {
     expect(() => loadEnvironment({})).toThrow();
   });

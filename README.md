@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. A fundação, a persistência e a auditoria estão implementadas e validadas na branch `codex/portal-foundation`. Autenticação e funcionalidades de negócio ainda não estão disponíveis. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório começou com a especificação e um plano de 14 tarefas. Fundação, persistência, auditoria e API de autenticação estão implementadas na branch `codex/portal-foundation`. A tela de login e as funcionalidades de inspeção ainda não estão disponíveis. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 
@@ -64,9 +64,12 @@ pnpm format:check
 
 Os testes HTTP sobem uma API real em porta temporária, com sondagens controladas. `test:integration` exige o Compose saudável e verifica serviços reais, armazenamento, transações, migrações e isolamento de requisições. Seus recursos temporários são removidos ao final, sem apagar os volumes ou tabelas do banco local do portal.
 
+Os testes HTTP de autenticação também usam PostgreSQL real em banco temporário. Para criar a primeira conta administrativa e testar os endpoints, siga [o guia de autenticação](docs/development/authentication.md). Não há senha padrão nem cadastro público.
+
 ## Documentação
 
 - [Especificação funcional](docs/superpowers/specs/2026-10-21-portal-inspecao-seguranca-design.md).
 - [Plano de implementação](docs/superpowers/plans/2026-10-21-portal-inspecao-seguranca.md).
 - [Convenções de código](docs/development/conventions.md).
+- [Autenticação e primeiro administrador](docs/development/authentication.md).
 - [Progresso e decisões](docs/development/progress.md).
