@@ -11,6 +11,8 @@ import { HealthController } from './health/health.controller.js';
 import { HealthService, type HealthChecks } from './health/health.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import type { AuthOptions } from './auth/auth.types.js';
+import { IdentityModule } from './identity/identity.module.js';
+import { OrganizationModule } from './organization/organization.module.js';
 
 /** Compose without opening a port, allowing HTTP tests and production to share setup. */
 export async function createApplication(
@@ -24,7 +26,13 @@ export async function createApplication(
 ) {
   @Module({
     imports: database
-      ? [DatabaseModule.register(database), AuditModule, AuthModule.register(authOptions)]
+      ? [
+          DatabaseModule.register(database),
+          AuditModule,
+          AuthModule.register(authOptions),
+          IdentityModule,
+          OrganizationModule,
+        ]
       : [],
     controllers: [HealthController],
     providers: [

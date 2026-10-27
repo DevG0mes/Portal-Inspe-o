@@ -164,27 +164,27 @@
 - Consome: `AuthenticatedPrincipal`, `AuditService.record`.
 - Produz: `AccessPolicy.assertUnitSector(principal, unitId, sectorId): Promise<void>`; CRUD paginado de usuários, unidades, setores e vínculos.
 
-- [ ] **Passo 1: Escrever matriz de autorização que falha**
+- [x] **Passo 1: Escrever matriz de autorização que falha**
 
   Cobrir os três perfis, múltiplos vínculos, setor pertencente a outra unidade, usuário inativo e o foco de revisão `unidade permitida + setor não permitido = 403`.
 
-- [ ] **Passo 2: Confirmar as falhas**
+- [x] **Passo 2: Confirmar as falhas**
 
   Executar: `pnpm --filter api test organization access-policy && pnpm --filter api test:e2e -- access-scope.e2e-spec`
 
-- [ ] **Passo 3: Implementar modelo organizacional e consultas paginadas**
+- [x] **Passo 3: Implementar modelo organizacional e consultas paginadas**
 
   Garantir unicidade de setor dentro da unidade e impedir vínculo incompatível entre unidade e setor.
 
-- [ ] **Passo 4: Implementar política central de acesso**
+- [x] **Passo 4: Implementar política central de acesso**
 
   Aplicar filtros de escopo na consulta SQL/MikroORM, não após carregar dados. Administrador ignora o filtro de escopo, mas continua auditado.
 
-- [ ] **Passo 5: Implementar administração de usuários e vínculos**
+- [x] **Passo 5: Implementar administração de usuários e vínculos**
 
   Desativação revoga sessões; redefinição de senha marca troca obrigatória; remoção de vínculo não altera registros históricos.
 
-- [ ] **Passo 6: Verificar e commit**
+- [x] **Passo 6: Verificar e commit**
 
   Executar: `pnpm --filter api test && pnpm --filter api test:e2e`
 

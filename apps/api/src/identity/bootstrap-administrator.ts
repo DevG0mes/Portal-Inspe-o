@@ -18,7 +18,7 @@ export async function bootstrapAdministrator(database: MikroORM, input: unknown)
   const digest = await new PasswordService().hash(parsed.data.password);
   return database.em.fork().transactional(async (em) => {
     // There may be no rows to lock yet. A transaction-scoped advisory lock serializes bootstrap.
-    await em.getConnection().execute('select pg_advisory_xact_lock(27061003)');
+    await em.execute('select pg_advisory_xact_lock(27061003)');
     if ((await em.count(User, {})) !== 0)
       throw new ConflictException('O cadastro inicial já foi realizado.');
     const user = new User();

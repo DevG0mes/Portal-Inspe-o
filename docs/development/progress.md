@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Tarefas 1, 2 e 3 concluídas. Próxima etapa: tarefa 4, organização, usuários e autorização por unidade/setor. API de autenticação disponível; a tela de login continua prevista para a tarefa 6.
+Tarefas 1 a 4 concluídas. Próxima etapa: tarefa 5, modelos de formulário, regras e versionamento. APIs de autenticação e administração disponíveis; as telas continuam previstas para a tarefa 6.
 
 ## Retomada em 27/10/2026
 
@@ -105,3 +105,25 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - `pnpm lint`, `pnpm typecheck`, `pnpm format:check` e `pnpm build`: aprovados.
 - `pnpm --filter @portal/api db:migrate`: migração 002 aplicada ao banco local.
 - API compilada reiniciada; health ready retornou os três serviços up. `/api/auth/me` sem cookie retornou 401 e Cache-Control no-store.
+
+## Tarefa 4 — organização, usuários e autorização por escopo
+
+- Criados módulos `access` e `organization`, administração em `identity`, contratos públicos e migração 003. Estrutura, vínculos e política de autorização têm serviços separados.
+- AccessPolicy consulta perfil/estado atuais; filtros de escopo entram na consulta antes de contar e paginar. Unidade permitida sem setor explicitamente autorizado retorna 403. Administrador tem acesso global auditado; combinações operacionais ainda precisam ser válidas e ativas.
+- Ruling: vínculos separados em UnitMembership e SectorMembership. O setor depende de vínculo explícito de unidade; um grant de unidade não libera todos os setores. A migração valida compatibilidade e impede reapontar relacionamentos existentes.
+- CRUD paginado de usuários, unidades, setores e vínculos; exclusões são desativações lógicas. Nomes normalizados têm unicidade por unidade para setores. DTOs estritos e resumos explícitos não expõem credenciais.
+- Desativação, alteração de perfil ou e-mail revogam sessões. Reset administrativo integrado ao endpoint protegido, com troca obrigatória posterior. Não foi criado cadastro público nem um usuário real.
+- Ruling: revogar o vínculo de unidade desativa seus grants de setor; reativar apenas esse vínculo não restaura automaticamente os setores revogados. Identificadores, datas de criação e eventos de auditoria são preservados.
+- Ruling: impedir remoção do último administrador ativo, inclusive sob concorrência, para preservar acesso administrativo ao sistema.
+- Testes concorrentes descobriram que locks adquiridos por `em.getConnection().execute` não estavam vinculados à transação. Corrigidos UsersService e o bootstrap anterior para usar `em.execute`. Um teste com latência controlada reproduziu a criação duplicada no bootstrap antigo e comprovou a correção.
+- Revisão independente encontrou atualização perdida de vínculos lidos antes do lock. Dois testes HTTP determinísticos reproduziram resposta true com estado false no banco. Corrigido com refresh do próprio vínculo após os locks; refresh do pai mantido. Revisão posterior confirmou o ajuste sem achados pendentes.
+- A migração 003 e o schema das entidades passaram na suíte de drift e no ciclo integral de down/up em banco temporário.
+
+### Evidências da tarefa 4 em 27/10/2026
+
+- Testes novos de DTO e matriz de acesso falharam antes da implementação.
+- `pnpm test`: 16 testes aprovados.
+- `pnpm test:e2e`: 42 testes aprovados, incluindo 21 de escopo/usuários, concorrência e revogação.
+- `pnpm test:integration`: 8 testes aprovados.
+- `pnpm lint`, `pnpm typecheck`, `pnpm format:check` e `pnpm build`: aprovados.
+- Total: 66 testes. Migração 003 aplicada ao banco local. API compilada reiniciada; health ready retornou PostgreSQL, Redis e MinIO up. As rotas de usuários, unidades e setores retornaram 401 sem sessão.

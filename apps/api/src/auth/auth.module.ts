@@ -15,6 +15,7 @@ export class AuthModule {
   static register(options: AuthOptions): DynamicModule {
     return {
       module: AuthModule,
+      global: true,
       imports: [AuditModule],
       controllers: [AuthController],
       providers: [

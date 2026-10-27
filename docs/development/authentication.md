@@ -2,7 +2,7 @@
 
 ## Estado
 
-A tarefa 3 implementa a API de autenticação local. A tela de login pertence à tarefa 6. Não há cadastro público nem endpoint anônimo de redefinição de senha. A administração de usuários e vínculos pertence à tarefa 4.
+A tarefa 3 implementa a API de autenticação local. A tela de login pertence à tarefa 6. Não há cadastro público nem endpoint anônimo de redefinição de senha. As APIs de administração de usuários e vínculos foram adicionadas na tarefa 4; veja [organização e escopos](organization.md).
 
 ## Preparação
 
@@ -55,7 +55,7 @@ O guard global exige sessão em todas as rotas não marcadas explicitamente como
 - Credenciais inválidas, usuário desconhecido, conta inativa e bloqueio retornam a mesma resposta 401. Contas desconhecidas também executam verificação Argon2id.
 - Sessão opaca com 32 bytes aleatórios; apenas SHA-256 do identificador é persistido. Validade absoluta de 8 horas, sem renovação silenciosa ilimitada.
 - Login com um cookie anterior revoga aquela sessão e emite outra. Troca de senha revoga todas as sessões anteriores e cria uma nova. Logout geral revoga todas as sessões do próprio usuário.
-- A redefinição administrativa exige administrador ativo com troca de senha concluída, revoga sessões e força nova troca no próximo login. O serviço está pronto para o módulo de administração; não há endpoint público de reset.
+- A redefinição administrativa exige administrador ativo com troca de senha concluída, revoga sessões e força nova troca no próximo login. Está disponível em `POST /api/users/:id/reset-password`, protegido pelo perfil de administrador; não há endpoint anônimo de reset.
 
 Os tempos e limites estão centralizados em `apps/api/src/auth/auth.policy.ts`. São decisões técnicas iniciais para o MVP e devem ser reavaliados com a política corporativa na implantação.
 

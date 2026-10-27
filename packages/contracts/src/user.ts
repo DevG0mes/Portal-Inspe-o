@@ -8,4 +8,5 @@ export interface UserSummary {
   email: string;
   role: UserRole;
   isActive: boolean;
+  mustChangePassword: boolean;
 }

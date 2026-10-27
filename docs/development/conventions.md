@@ -17,6 +17,8 @@
 - Persistir instantes em UTC; apresentar datas e números em `pt-BR` com timezone definido pelo domínio.
 - Usar importações ESM com extensão `.js` no backend, inclusive no código TypeScript.
 - Encerrar conexões em shutdown e limitar tempo de operações externas.
+- SQL que precisa participar de uma transação usa `em.execute`. Consultas pela conexão bruta não recebem automaticamente o contexto transacional do EntityManager; não usá-las para adquirir locks de casos de uso.
+- Aplicar filtros organizacionais em SQL antes de contar e paginar resultados. Operações de unidade/setor devem reutilizar `AccessPolicy`.
 
 ## Validação
 

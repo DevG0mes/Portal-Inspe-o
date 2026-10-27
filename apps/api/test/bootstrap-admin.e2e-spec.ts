@@ -14,6 +14,17 @@ afterAll(async () => {
 });
 
 it('creates exactly one initial administrator even when bootstrap commands overlap', async () => {
+  // Controlled database latency keeps both commands overlapping after their initial read.
+  await database.orm.em
+    .fork()
+    .execute(
+      `create function test_slow_bootstrap() returns trigger language plpgsql as $$ begin perform pg_sleep(1); return new; end; $$;`,
+    );
+  await database.orm.em
+    .fork()
+    .execute(
+      'create trigger test_slow_bootstrap before insert on portal_user for each row execute function test_slow_bootstrap();',
+    );
   const attempts = await Promise.allSettled([
     bootstrapAdministrator(database.orm, {
       email: `admin-${randomUUID()}@psi.test`,
