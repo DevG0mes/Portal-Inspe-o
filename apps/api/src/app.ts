@@ -16,6 +16,7 @@ import { IdentityModule } from './identity/identity.module.js';
 import { OrganizationModule } from './organization/organization.module.js';
 import { FormsModule } from './forms/forms.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
+import { InspectionsModule } from './inspections/inspections.module.js';
 
 /** Compose without opening a port, allowing HTTP tests and production to share setup. */
 export async function createApplication(
@@ -37,6 +38,7 @@ export async function createApplication(
           OrganizationModule,
           FormsModule,
           SchedulesModule,
+          InspectionsModule,
         ]
       : [],
     controllers: [HealthController],

@@ -2,7 +2,27 @@
 
 ## Estado atual
 
-Tarefas 1 a 8 concluídas. Próxima etapa: tarefa 9, execução de inspeções, uploads e não conformidades. Programações e atribuições já são materializadas pelo worker.
+Tarefas 1 a 8 concluídas. Tarefa 9 em andamento: núcleo HTTP de execução de inspeções implementado; interface de preenchimento e evidências ainda pendentes. Programações e atribuições já são materializadas pelo worker.
+
+## Tarefa 9 — núcleo de execução em 28/10/2026
+
+- Criados contratos, DTOs estritos, módulo HTTP e entidades Inspection/InspectionSubmission. Migração 202610280003 adiciona chaves, índices e triggers que impedem UPDATE/DELETE/TRUNCATE das conclusões.
+- Ruling: a tarefa 9 é entregue em incrementos verificáveis; este incremento cobre o núcleo de execução. Interface, observações e infraestrutura de evidências permanecem explicitamente pendentes — evita misturar uma alteração transacional com transporte binário e UX de uploads — custo: a execução ainda não está disponível pela interface nesta entrega.
+- Ruling: responsáveis compartilham uma inspeção por atribuição, iniciada somente a partir do horário da ocorrência; atraso não bloqueia execução. Cancelamento impede nova inspeção. Criador ou responsável pode editar; gestores/administradores podem consultar e reabrir dentro do escopo, sem assumir automaticamente a autoria das respostas.
+- Avulsa fixa a versão publicada sob lock do modelo; atribuída usa a versão já materializada. Nova publicação não altera inspeções existentes.
+- Salvamento de rascunho aceita conteúdo incompleto, exige IDs únicos/conhecidos e revisão otimista. Conclusão recalcula regras no servidor, valida respostas visíveis e grava apenas respostas aceitas; estado, revisão, conclusão, ocorrências e auditoria são confirmados na mesma transação.
+- Ruling: ocorrências são congeladas na conclusão e identificadas por `(submissionId, questionId)`; a etapa de planos de ação deverá referenciá-las, sem recalcular o histórico — custo: não há recurso de tratamento de ocorrência neste incremento.
+- Repetir conclusão com revisão de origem e ciclo iguais retorna o mesmo resultado. Reabertura exige papel atual de gestor/administrador, revisão e motivo; incrementa ciclo e preserva conclusões anteriores. Solicitação antiga não pode concluir um novo ciclo.
+- Revisão independente encontrou corrida de autorização durante espera por locks. Teste real com desativação concorrente da unidade reproduziu 201 indevido; passou a 403 após locks compartilhados usuário→unidade→setor, refresh e revalidação. Inspeção/atribuição usam locks exclusivos; segunda revisão sem bloqueadores.
+- Documentação dos contratos, permissões, histórico e itens pendentes em `docs/development/inspections.md`. Tarefa 9 ainda não marcada como concluída no plano.
+
+### Evidências deste incremento da tarefa 9
+
+- Testes HTTP iniciais falharam com 404 antes da implementação; os dez cenários novos passaram após implementação e correção de concorrência.
+- `pnpm test`: 56 aprovados. `pnpm test:e2e`: 72 aprovados. `pnpm test:integration`: 9 aprovados, incluindo drift vazio e ciclo completo down/up em banco temporário.
+- Browser: 21 dos 22 cenários passaram na rodada completa. O primeiro cenário desktop atingiu o limite total de 60 s depois de consumir cerca de 57 s na navegação inicial, conforme trace. Repetição isolada passou em 10,6 s; os 22 cenários distintos ficaram verificados. Sem alteração nos timeouts ou no código de autenticação.
+- Total: 159 testes/cenários distintos aprovados, considerando a repetição isolada. Lint, tipos, formatação e build aprovados. Segunda revisão independente sem bloqueadores.
+- Migração 202610280003 aplicada ao banco local. API compilada reiniciada; readiness retornou PostgreSQL/Redis/MinIO up e a nova rota respondeu 401 sem sessão. Nenhuma conta real, senha padrão ou envio externo foi criado.
 
 ## Retomada em 27/10/2026
 
