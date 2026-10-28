@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Tarefas 1 a 4 concluídas. Próxima etapa: tarefa 5, modelos de formulário, regras e versionamento. APIs de autenticação e administração disponíveis; as telas continuam previstas para a tarefa 6.
+Tarefas 1 a 5 concluídas. Próxima etapa: tarefa 6, estrutura visual, autenticação e administração básica. A API de formulários está disponível; o construtor visual pertence à tarefa 7.
 
 ## Retomada em 27/10/2026
 
@@ -127,3 +127,26 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - `pnpm test:integration`: 8 testes aprovados.
 - `pnpm lint`, `pnpm typecheck`, `pnpm format:check` e `pnpm build`: aprovados.
 - Total: 66 testes. Migração 003 aplicada ao banco local. API compilada reiniciada; health ready retornou PostgreSQL, Redis e MinIO up. As rotas de usuários, unidades e setores retornaram 401 sem sessão.
+
+## Tarefa 5 — formulários, regras e versionamento em 28/10/2026
+
+- Criados contratos compartilhados, entidades FormTemplate/FormVersion, migração 202610280001 e módulo forms com serviços separados de ciclo do modelo, versões e motor puro.
+- Snapshots têm seções e perguntas ordenadas em arrays, IDs estáveis, TEXT/NUMBER/DATE/SELECT/YES_NO_NA, obrigatoriedade, opções, condições e não conformidades configuráveis.
+- Motor determinístico valida datas, números, seleção, referências anteriores, referências removidas, ciclos e tipos de predicado. Respostas ocultas não influenciam visibilidade posterior nem ocorrências; resultados enviados pelo cliente não são aceitos.
+- Ruling: rascunhos incompletos podem ser salvos sob validação estrutural. Publicação exige validação semântica completa. Isso permite autosave no futuro construtor sem publicar conteúdo inválido.
+- Ruling: condições combinadas por AND e operadores EQ/NEQ/IN, com referências somente a perguntas anteriores. SELECT é seleção simples por ID; NO/NA geram ocorrências somente se configurados.
+- Revisão otimista compartilhada pelas gravações/publicações/arquivamentos e lock de linha obtido antes de ler o estado mutável. Duas publicações ou autosave/publicação da mesma revisão produzem um sucesso e um 409.
+- Publicação cria snapshot imutável, número sequencial, hash estável, autor e instante. Novo rascunho é cópia da última versão. Triggers rejeitam UPDATE/DELETE/TRUNCATE de versões publicadas.
+- Ruling: modelos publicados permanecem PUBLISHED durante a edição de novo rascunho; hasDraft indica o trabalho pendente. Arquivamento preserva versões e bloqueia novas alterações. Versões históricas permanecem legíveis aos perfis autenticados; modelos não contêm dados de inspeção e são globais nesta etapa.
+- Histórico administrativo paginado usa somente metadados e projeção SQL sem snapshots. Conteúdo completo é obtido por versão específica. Hash ordena chaves de objeto e preserva ordem de arrays.
+- Limite JSON ajustado a 2 MiB; teste real de 500 perguntas comprova aceitação além do limite padrão anterior de 100 KiB.
+- Revisão independente não encontrou bloqueadores. Um caso Unicode reproduziu expansão da chave lowercase de um nome válido; name_key de formulários passou a text, preservando o limite do nome exibido. Teste passou de 500 para 201. Entidades e migração foram ajustadas antes da aplicação local.
+- Uma revisão automática de permissão expirou antes de executar a validação. A repetição autorizada funcionou; não houve contorno de sandbox ou ação rejeitada por risco.
+
+### Evidências da tarefa 5
+
+- Testes novos de motor e versões falharam inicialmente pela ausência dos módulos antes da implementação.
+- `pnpm test`: 27 testes aprovados.
+- `pnpm test:e2e`: 55 testes aprovados, incluindo 13 do ciclo de formulários.
+- `pnpm test:integration`: 8 testes aprovados, incluindo drift de schema e ciclo completo de migrações em banco temporário.
+- Total: 90 testes. Lint, tipos, formatação e build aprovados. Migração 202610280001 aplicada ao banco local. API compilada reiniciada; health ready retornou os três serviços up e o catálogo de formulários retornou 401 sem sessão. Revisão posterior confirmou os ajustes de Unicode e projeção de histórico sem achados pendentes.

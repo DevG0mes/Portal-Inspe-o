@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. Fundação, persistência, auditoria, autenticação e APIs de administração de usuários e organização estão implementadas na branch `codex/portal-foundation`. A tela de login e as funcionalidades de inspeção ainda não estão disponíveis. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. As telas operacionais e a execução de inspeções ainda não estão disponíveis. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 
@@ -73,4 +73,5 @@ Os testes HTTP de autenticação também usam PostgreSQL real em banco temporár
 - [Convenções de código](docs/development/conventions.md).
 - [Autenticação e primeiro administrador](docs/development/authentication.md).
 - [Organização, usuários e permissões](docs/development/organization.md).
+- [Formulários, regras e versões](docs/development/forms.md).
 - [Progresso e decisões](docs/development/progress.md).

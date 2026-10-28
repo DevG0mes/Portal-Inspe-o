@@ -10,6 +10,9 @@ import { unitSchema } from '../organization/unit.entity.js';
 import { sectorSchema } from '../organization/sector.entity.js';
 import { unitMembershipSchema, sectorMembershipSchema } from '../organization/membership.entity.js';
 import { Migration202610270003 } from './migrations/Migration202610270003.js';
+import { Migration202610280001 } from './migrations/Migration202610280001.js';
+import { formTemplateSchema } from '../forms/entities/form-template.entity.js';
+import { formVersionSchema } from '../forms/entities/form-version.entity.js';
 
 /** Explicit entities and migration classes work identically from source and compiled ESM. */
 export function createDatabaseOptions(clientUrl: string) {
@@ -24,11 +27,18 @@ export function createDatabaseOptions(clientUrl: string) {
       sectorSchema,
       unitMembershipSchema,
       sectorMembershipSchema,
+      formTemplateSchema,
+      formVersionSchema,
     ],
     extensions: [Migrator],
     migrations: {
       snapshot: false,
-      migrationsList: [Migration202610270001, Migration202610270002, Migration202610270003],
+      migrationsList: [
+        Migration202610270001,
+        Migration202610270002,
+        Migration202610270003,
+        Migration202610280001,
+      ],
       transactional: true,
       allOrNothing: true,
     },

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { RequestContext } from '@mikro-orm/core';
@@ -13,6 +14,7 @@ import { AuthModule } from './auth/auth.module.js';
 import type { AuthOptions } from './auth/auth.types.js';
 import { IdentityModule } from './identity/identity.module.js';
 import { OrganizationModule } from './organization/organization.module.js';
+import { FormsModule } from './forms/forms.module.js';
 
 /** Compose without opening a port, allowing HTTP tests and production to share setup. */
 export async function createApplication(
@@ -32,6 +34,7 @@ export async function createApplication(
           AuthModule.register(authOptions),
           IdentityModule,
           OrganizationModule,
+          FormsModule,
         ]
       : [],
     controllers: [HealthController],
@@ -42,10 +45,11 @@ export async function createApplication(
   })
   class AppModule {}
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn'],
     abortOnError: false,
   });
+  app.useBodyParser('json', { limit: '2mb' });
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: authOptions.origin,

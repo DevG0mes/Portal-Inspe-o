@@ -202,27 +202,27 @@
 **Interfaces:**
 - Produz: `RuleEngine.evaluate(version: FormVersionSnapshot, answers: AnswerInput[]): EvaluationResult`; endpoints administrativos de rascunho, pré-visualização, publicação e arquivamento; endpoint de leitura de versão publicada.
 
-- [ ] **Passo 1: Escrever testes que falham para tipos e regras**
+- [x] **Passo 1: Escrever testes que falham para tipos e regras**
 
   Cobrir texto, número, data, seleção, sim/não/não aplicável, obrigatoriedade, opções inválidas, condição em pergunta posterior, ciclo, referência removida e resposta que gera não conformidade.
 
-- [ ] **Passo 2: Escrever testes que falham para versionamento**
+- [x] **Passo 2: Escrever testes que falham para versionamento**
 
   Publicar v1, editar novo rascunho, publicar v2 e provar que o snapshot v1 permanece byte a byte equivalente.
 
-- [ ] **Passo 3: Implementar entidades e motor de regras puro**
+- [x] **Passo 3: Implementar entidades e motor de regras puro**
 
   Separar avaliação de regras de persistência. O resultado deve informar perguntas visíveis, erros de validação e ocorrências de não conformidade determinísticas.
 
-- [ ] **Passo 4: Implementar workflow de rascunho e publicação**
+- [x] **Passo 4: Implementar workflow de rascunho e publicação**
 
   Publicação ocorre em transação, valida grafo e cria snapshot imutável com número sequencial por modelo.
 
-- [ ] **Passo 5: Verificar histórico e concorrência**
+- [x] **Passo 5: Verificar histórico e concorrência**
 
   Testar duas publicações concorrentes: uma vence e a outra recebe conflito `409`, sem números duplicados.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "feat: add versioned conditional forms"`
 
