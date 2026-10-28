@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Tarefas 1 a 7 concluídas. Próxima etapa: tarefa 8, programação de inspeções e recorrências. Autenticação, administração e construtor visual estão integrados à API.
+Tarefas 1 a 8 concluídas. Próxima etapa: tarefa 9, execução de inspeções, uploads e não conformidades. Programações e atribuições já são materializadas pelo worker.
 
 ## Retomada em 27/10/2026
 
@@ -190,3 +190,25 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - `pnpm test:browser`: 18 cenários aprovados, 9 desktop e 9 celular. Inclui os fluxos anteriores, v1/v2 imutáveis, autosave/retry, conflito com modal, tipos seleção/número/data, revisão na API, arquivamento e autorização. Total: 128 testes/cenários.
 - Axe WCAG A/AA sem violações nas telas exercitadas; viewport móvel sem overflow horizontal. Captura da prévia móvel examinada. Auditoria premium estrita sem apontamentos; lint, tipos, formatação e build aprovados.
 - Limites: testes móveis usam Edge com viewport/touch simulado; homologação em aparelho físico e produção continuam posteriores. Cópia local de conflito fica apenas na memória da aba e é perdida se o usuário confirmar seu descarte; não há cache offline, merge automático ou force overwrite.
+
+## Tarefa 8 — programação e recorrências em 28/10/2026
+
+- Criados contratos públicos e calendário puro em `packages/scheduling`, módulo schedules, quatro entidades relacionais e migração 202610280002. API para criação, consulta, atualização de nome/situação, candidatos elegíveis e atribuições com filtros/paginação no SQL.
+- Ruling: cada ocorrência é compartilhada entre os responsáveis selecionados; haverá uma inspeção vinculada na etapa seguinte. Configuração de calendário/formulário/escopo/responsáveis fica fixa após criação para não reescrever atribuições; nome/situação são editáveis com revisão otimista. Mudança da configuração exige nova programação. Custo: administrador cria substituição quando precisar mudar calendário.
+- Frequências única/diária/semanal/mensal, vigência inclusiva, dia mensal limitado ao fim do mês sem perder âncora, timezone IANA America/Sao_Paulo e prazo em horas reais. Horário inicial inexistente é rejeitado; slot recorrente inexistente é pulado, e horário repetido escolhe primeiro instante.
+- Cursor persistido e transação com lock da programação/constraint única de ocorrência. Versão publicada fixada na materialização; retries não duplicam atribuição nem responsáveis. Pausa cancela apenas ocorrências futuras; retomada revalida acesso/configuração e restaura ocorrências existentes quando apropriado.
+- Worker BullMQ real importa entrypoint servidor da API sem abrir HTTP. Varre até 100 cursores a cada 30 segundos e antecipa sete dias, recuperando backlog. JobId inclui revisão operacional; chave de domínio permanece estável. Jobs falhados ainda ativos são retomados pela varredura; erro de configuração suspende a programação com auditoria.
+- Escopo de gestores e colaboradores aplicado antes da contagem. Candidatos retornam apenas id/nome elegíveis no setor. Validação trava usuários/unidade/setor e revalida o papel após refresh; revogação não é ignorada. Administrador mantém acesso global auditado.
+- Telas de programação, revisão, pausa/retomada e atribuições próximas/pendentes/vencidas/canceladas; seleção remota paginada, campos e diálogos comuns. Nome não salvo bloqueia mudança de situação. Criação substitui sua entrada de histórico, preservando beforeunload no detalhe. Sem botão fictício de execução.
+- Testes do calendário e processador falharam pela ausência dos módulos. Revisão independente identificou retrocesso/travamento do cursor, jobs retidos bloqueando retomada/recuperação, perda de nome ao alterar situação, rebaixamento concorrente e Voltar após criação. Reproduzidos em testes e corrigidos; revisão posterior sem bloqueadores.
+- Integração real Redis/PostgreSQL confirma duplicatas concorrentes, restauração com job concluído e recuperação de job falhado sem duplicar ocorrência. Teste de perfil passou de resposta indevida 200 para 403 após revalidação. Migração alinhada ao ORM e ciclo completo down/up aprovado.
+- Teste antigo de TRUNCATE de versões passou a usar CASCADE no banco temporário para alcançar o trigger de imutabilidade, pois a nova FK de atribuições já bloqueia TRUNCATE simples. O trigger continua rejeitando a operação e preservando os dados.
+- Browser runner agora inicia worker em fila aleatória exclusiva e remove somente essa fila após encerrar seus processos; filas/dados do portal permanecem isolados. Corrigida a automação para aguardar dados da tabela e considerar as sete ocorrências diárias, em vez de exigir uma única linha.
+
+### Evidências da tarefa 8
+
+- `pnpm test`: 56 aprovados; `pnpm test:e2e`: 62 aprovados; `pnpm test:integration`: 9 aprovados.
+- `pnpm test:browser`: 22 cenários aprovados (11 desktop, 11 celular). Rodada focada posterior: 4 cenários aprovados, incluindo formulário preenchido com axe. Total: 149 testes/cenários distintos.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Sem violações WCAG A/AA nas telas exercitadas. Captura móvel do cadastro preenchido examinada visualmente.
+- Migração 202610280002 aplicada ao banco local; API/web reiniciados e worker iniciado. Health ready: PostgreSQL/Redis/MinIO up; Redis confirmou um worker e scheduler registrado. `/schedules` sem sessão redireciona a `/login`.
+- Limites: execução/respostas/evidências pertencem à etapa 9. Validação móvel automatizada usa viewport/touch no Edge; homologação física e implantação de produção continuam posteriores. Não há envio de mensagens externas nem contas/senhas padrão criadas.

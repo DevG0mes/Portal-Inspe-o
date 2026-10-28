@@ -18,6 +18,8 @@ Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Componentes e compo
 
 ## Canonical UI Map
 
+Programações: `features/schedules` estende listas, campos, seleção remota e confirmações comuns. Busca e filtros usam envio explícito/URL; seleção de formulário publicado e responsáveis usa paginação do servidor. Data/hora são controles nativos e todos os instantes exibidos seguem São Paulo. Troca de unidade/setor limpa responsáveis com aviso prévio no campo. Nome pendente bloqueia pausa/retomada até salvar. Criação substitui sua entrada de histórico para manter a proteção do Voltar por beforeunload no detalhe. Lista de atribuições oferece atualização explícita para novas ocorrências do worker. Nunca mostrar botão de execução até existir o fluxo correspondente.
+
 Construtor: `features/form-builder` é o proprietário do editor e de seu autosave serializado (700 ms, suspenso durante composição IME). `features/form-preview` renderiza respostas; avaliação e validação usam o motor puro compartilhado `@portal/form-engine`, e a prévia enviada à API confirma o rascunho salvo. Seções/perguntas são ordenadas por botões acessíveis, sem drag obrigatório. Remoções exigem confirmação e não deixam referências quebradas. Conflitos interrompem gravações; conteúdo local permanece copiável até recarregar com confirmação. Publicação/arquivamento são explícitos. Falha de gravação conserva a edição e exige tentativa manual.
 
 Campos DATE da prévia usam input date nativo (popup, teclado e formato visual do sistema), transportando YYYY-MM-DD. Busca do catálogo usa envio explícito; estado/página/busca são restituíveis na URL. Os demais contratos de formulário, diálogo, avisos, hidratação e proteção de saída continuam comuns.

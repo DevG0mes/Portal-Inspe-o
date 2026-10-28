@@ -13,6 +13,13 @@ import { Migration202610270003 } from './migrations/Migration202610270003.js';
 import { Migration202610280001 } from './migrations/Migration202610280001.js';
 import { formTemplateSchema } from '../forms/entities/form-template.entity.js';
 import { formVersionSchema } from '../forms/entities/form-version.entity.js';
+import {
+  scheduleSchema,
+  scheduleResponsibleSchema,
+  assignmentSchema,
+  assignmentResponsibleSchema,
+} from '../schedules/schedule.entity.js';
+import { Migration202610280002 } from './migrations/Migration202610280002.js';
 
 /** Explicit entities and migration classes work identically from source and compiled ESM. */
 export function createDatabaseOptions(clientUrl: string) {
@@ -29,6 +36,10 @@ export function createDatabaseOptions(clientUrl: string) {
       sectorMembershipSchema,
       formTemplateSchema,
       formVersionSchema,
+      scheduleSchema,
+      scheduleResponsibleSchema,
+      assignmentSchema,
+      assignmentResponsibleSchema,
     ],
     extensions: [Migrator],
     migrations: {
@@ -38,6 +49,7 @@ export function createDatabaseOptions(clientUrl: string) {
         Migration202610270002,
         Migration202610270003,
         Migration202610280001,
+        Migration202610280002,
       ],
       transactional: true,
       allOrNothing: true,

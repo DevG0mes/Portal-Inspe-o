@@ -14,6 +14,8 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
   const [error, setError] = useState<unknown>();
   const links = [
     ['/dashboard', 'Visão geral'],
+    ['/assignments', 'Atribuições'],
+    ...(role !== 'COLLABORATOR' ? [['/schedules', 'Programações']] : []),
     ...(role === 'ADMIN'
       ? [
           ['/users', 'Usuários'],

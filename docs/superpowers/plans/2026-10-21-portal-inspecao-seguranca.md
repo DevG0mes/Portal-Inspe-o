@@ -313,25 +313,25 @@
 **Interfaces:**
 - Produz: `RecurrenceService.materialize(scheduleId, occurrenceAt, idempotencyKey): Promise<InspectionAssignment>`; CRUD de programação e lista de atribuições do colaborador.
 
-- [ ] **Passo 1: Escrever testes de recorrência que falham**
+- [x] **Passo 1: Escrever testes de recorrência que falham**
 
   Cobrir ocorrência única, diária/semanal/mensal, vigência, prazo, timezone America/Sao_Paulo e repetição da mesma chave sem duplicata.
 
-- [ ] **Passo 2: Implementar programação e materialização idempotente**
+- [x] **Passo 2: Implementar programação e materialização idempotente**
 
   Usar restrição única de banco para `(scheduleId, occurrenceAt)` e transação para criação da atribuição.
 
-- [ ] **Passo 3: Implementar processador BullMQ**
+- [x] **Passo 3: Implementar processador BullMQ**
 
   Jobs podem repetir após falha; resultado funcional continua exatamente uma ocorrência.
 
-- [ ] **Passo 4: Implementar telas de programação e lista de atribuições**
+- [x] **Passo 4: Implementar telas de programação e lista de atribuições**
 
   Gestor só seleciona formulários, responsáveis e escopos autorizados; colaborador vê próximas, pendentes e vencidas.
 
-- [ ] **Passo 5: Verificar e commit**
+- [x] **Passo 5: Verificar e commit**
 
-  Executar: `pnpm --filter api test schedules && pnpm --filter worker test && pnpm --filter web test:e2e -- schedules.spec.ts`
+  Executar: `pnpm test && pnpm test:e2e && pnpm test:integration && pnpm build && pnpm test:browser`
 
   `git commit -m "feat: add inspection scheduling and recurrence"`
 

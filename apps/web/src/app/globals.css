@@ -918,3 +918,52 @@ dialog::backdrop {
   resize: none;
   min-height: 240px;
 }
+.schedule-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.responsible-list {
+  padding: 0;
+  list-style: none;
+  margin-bottom: 28px;
+}
+.responsible-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.schedule-summary {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+}
+.schedule-summary dt {
+  color: var(--muted);
+}
+.schedule-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.badge.overdue {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.schedule-summary + p {
+  max-width: 72ch;
+}
+.card + .editor {
+  margin-top: 24px;
+}
+@media (max-width: 760px) {
+  .schedule-date-grid,
+  .schedule-summary {
+    grid-template-columns: 1fr;
+  }
+  .schedule-summary dd {
+    margin-bottom: 12px;
+  }
+}

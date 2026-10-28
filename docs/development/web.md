@@ -25,7 +25,7 @@ Abra `http://127.0.0.1:3000/login`. Os scripts carregam `.env` da raiz. Desenvol
 
 ## BFF e cookies
 
-O navegador chama `/api` na origem do frontend. O catchall Next tem upstream fixo e permite somente auth/users/organization/forms, com segmentos validados, JSON até 2 MiB, timeout de 10 segundos e sem seguir redirects. Encaminha apenas o cookie de sessão validado e os cabeçalhos necessários. Mutações exigem Origin exata e rejeitam Sec-Fetch-Site cross-site. A API mantém autenticação, autorização, auditoria e transações.
+O navegador chama `/api` na origem do frontend. O catchall Next tem upstream fixo e permite somente auth/users/organization/forms/schedules, com segmentos validados, JSON até 2 MiB, timeout de 10 segundos e sem seguir redirects. Encaminha apenas o cookie de sessão validado e os cabeçalhos necessários. Mutações exigem Origin exata e rejeitam Sec-Fetch-Site cross-site. A API mantém autenticação, autorização, auditoria e transações.
 
 Na API, `portal_session` mantém Path=/api. No frontend, o BFF mapeia Set-Cookie para Path=/, preservando HttpOnly, SameSite e Secure. Isso permite SSR sem expor o segredo ao JavaScript. Na emissão/remoção também expira a versão antiga de Path=/api, evitando duplicidade. A leitura rejeita cookies duplicados/malformados. Nenhum token é persistido em Web Storage ou registrado em logs.
 
@@ -39,4 +39,4 @@ Dashboard mostra contagens reais no escopo da API. Construtor visual, inspeçõe
 
 ## Verificação
 
-`pnpm test:browser` exige `pnpm build` e Compose saudável. Cria e migra banco local `portal_test_<uuid>`, gera senhas aleatórias para contas fictícias e inicia API3101/web3100. Ao terminar encerra seus processos e remove seu banco temporário. Nunca usa contas do portal. Portas 3100/3101 precisam estar livres. Usa Edge instalado no Windows; em outros ambientes, instale Chromium com `pnpm --filter @portal/web exec playwright install chromium`. Capturas/trace ficam em `test-results/`, ignorado pelo Git. Axe e largura móvel são verificados nos mesmos fluxos. O auditor premium verifica contratos estáticos; não substitui o navegador.
+`pnpm test:browser` exige `pnpm build` e Compose saudável. Cria e migra banco local `portal_test_<uuid>`, gera senhas aleatórias para contas fictícias e inicia API3101/web3100 e worker com fila exclusiva aleatória. Ao terminar encerra seus processos e remove seu banco e sua fila temporários. Nunca usa contas do portal. Portas 3100/3101 precisam estar livres. Usa Edge instalado no Windows; em outros ambientes, instale Chromium com `pnpm --filter @portal/web exec playwright install chromium`. Capturas/trace ficam em `test-results/`, ignorado pelo Git. Axe e largura móvel são verificados nos mesmos fluxos. O auditor premium verifica contratos estáticos; não substitui o navegador.

@@ -277,7 +277,8 @@ describe('form lifecycle and immutable history', () => {
     await expect(em.execute('delete from form_version where id = ?', [version.id])).rejects.toThrow(
       /immutable/i,
     );
-    await expect(em.execute('truncate form_version')).rejects.toThrow(/immutable/i);
+    // New assignment FKs would reject plain TRUNCATE before reaching the immutability trigger.
+    await expect(em.execute('truncate form_version cascade')).rejects.toThrow(/immutable/i);
   });
 
   it('accepts a realistically large form within the configured JSON body limit', async () => {

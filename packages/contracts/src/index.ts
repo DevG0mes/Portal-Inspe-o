@@ -9,3 +9,4 @@ export * from './user.js';
 export * from './access.js';
 export * from './organization.js';
 export * from './forms.js';
+export * from './schedules.js';

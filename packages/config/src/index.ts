@@ -15,6 +15,11 @@ const schema = z
       .url()
       .refine((value) => ['postgres:', 'postgresql:'].includes(new URL(value).protocol)),
     REDIS_URL: z.url().refine((value) => ['redis:', 'rediss:'].includes(new URL(value).protocol)),
+    SCHEDULE_QUEUE_NAME: z
+      .string()
+      .regex(/^[a-zA-Z0-9_-]{1,100}$/)
+      .default('inspection-schedules'),
+    SCHEDULE_POLL_MS: z.coerce.number().int().min(1000).max(300000).default(30000),
     MINIO_ENDPOINT: z.string().min(1),
     MINIO_PORT: port.default(9000),
     MINIO_USE_SSL: z

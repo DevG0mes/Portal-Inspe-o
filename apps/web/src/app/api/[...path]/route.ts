@@ -7,7 +7,7 @@ const MAX_BODY = 2 * 1024 * 1024;
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   if (
-    !['auth', 'users', 'organization', 'forms'].includes(path[0] ?? '') ||
+    !['auth', 'users', 'organization', 'forms', 'schedules'].includes(path[0] ?? '') ||
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
   )
     return new NextResponse(null, { status: 404 });

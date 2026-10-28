@@ -12,6 +12,7 @@
   "dependencies": {
     "@portal/contracts": "workspace:*",
     "@portal/form-engine": "workspace:*",
+    "@portal/scheduling": "workspace:*",
     "@portal/ui": "workspace:*",
     "next": "16.4.3",
     "react": "19.3.1",

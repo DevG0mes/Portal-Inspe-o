@@ -14,6 +14,7 @@ export function RemotePicker({
   onChange,
   error,
   disabled,
+  activeOnly = true,
 }: {
   id: string;
   label: string;
@@ -22,6 +23,7 @@ export function RemotePicker({
   onChange: (id: string, name: string) => void;
   error?: string;
   disabled?: boolean;
+  activeOnly?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
@@ -29,7 +31,7 @@ export function RemotePicker({
   const [selectedName, setSelectedName] = useState('');
   const [revision, setRevision] = useState(0);
   const resource = useResource<Paginated<UnitSummary>>(
-    `${endpoint}${endpoint.includes('?') ? '&' : '?'}isActive=true&pageSize=10&page=${page}&q=${encodeURIComponent(search)}`,
+    `${endpoint}${endpoint.includes('?') ? '&' : '?'}${activeOnly ? 'isActive=true&' : ''}pageSize=10&page=${page}&q=${encodeURIComponent(search)}`,
     revision,
   );
   const rows = resource.data?.data ?? [];

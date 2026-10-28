@@ -2,6 +2,12 @@
   "name": "@portal/api",
   "private": true,
   "type": "module",
+  "exports": {
+    "./scheduling": {
+      "types": "./dist/schedules/runtime.d.ts",
+      "default": "./dist/schedules/runtime.js"
+    }
+  },
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/main.ts",
     "build": "tsc -p tsconfig.json",
@@ -20,6 +26,7 @@
     "@portal/config": "workspace:*",
     "@portal/contracts": "workspace:*",
     "@portal/form-engine": "workspace:*",
+    "@portal/scheduling": "workspace:*",
     "argon2": "0.45.1",
     "ioredis": "5.8.2",
     "minio": "8.0.6",

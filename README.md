@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. O construtor visual permite editar, simular e publicar versões de formulários. Programação e execução de inspeções são as próximas etapas. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. O construtor visual permite editar, simular e publicar versões de formulários. Programações únicas/recorrentes e atribuições já são materializadas pelo worker. A execução de inspeções é a próxima etapa. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 
@@ -43,6 +43,7 @@ packages/
   config/       Validação tipada de variáveis de ambiente
   contracts/    Contratos públicos compartilhados, sem persistência
   form-engine/  Validação e avaliação pura de formulários, API e prévia
+  scheduling/   Calendário e contratos puros de recorrência
   ui/           Componentes e tokens visuais compartilhados
   testing/      Utilitários reutilizáveis de teste
 infra/          Serviços locais e configuração operacional
@@ -78,4 +79,5 @@ Os testes HTTP de autenticação também usam PostgreSQL real em banco temporár
 - [Formulários, regras e versões](docs/development/forms.md).
 - [Construtor visual e recuperação de conflitos](docs/development/form-builder.md).
 - [Interface, sessão e testes de navegador](docs/development/web.md).
+- [Programação, recorrência e worker](docs/development/scheduling.md).
 - [Progresso e decisões](docs/development/progress.md).

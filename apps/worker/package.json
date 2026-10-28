@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@portal/config": "workspace:*",
+    "@portal/api": "workspace:*",
+    "@portal/scheduling": "workspace:*",
     "bullmq": "5.65.0",
     "ioredis": "5.8.2"
   },
