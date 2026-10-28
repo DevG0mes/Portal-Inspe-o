@@ -708,3 +708,213 @@ dialog::backdrop {
     outline-color: Highlight;
   }
 }
+/* The builder extends the operational inspection sheet, with one document scroll. */
+.create-form {
+  margin-bottom: 28px;
+}
+.create-form fieldset {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.create-form .field {
+  flex: 1 1 280px;
+  margin-bottom: 0;
+}
+.create-form fieldset > .button {
+  margin-top: 28px;
+}
+.builder-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--brand);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.builder-toolbar p,
+.builder-toolbar .actions {
+  margin: 0;
+}
+.builder-editor {
+  margin-bottom: 28px;
+}
+.builder-section {
+  border-top: 3px solid var(--brand);
+  padding-top: 24px;
+  margin-top: 28px;
+}
+.builder-item-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.builder-item-heading h2,
+.builder-item-heading h3,
+.builder-item-heading .actions {
+  margin: 0;
+}
+.builder-item-heading .button {
+  font-size: 13px;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.question-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand);
+  padding: 24px;
+  margin: 20px 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.question-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+.question-settings .field {
+  flex: 1 1 240px;
+}
+.check-label,
+.choice-list label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+}
+.check-label input,
+.choice-list input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+.builder-options,
+.builder-rules {
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: var(--radius);
+}
+.builder-options legend,
+.builder-rules legend {
+  padding: 0 8px;
+  font-weight: 600;
+}
+.builder-rules {
+  background: var(--background);
+}
+.option-row,
+.rule-value {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.option-row .field,
+.rule-value .field {
+  flex: 1 1 180px;
+}
+.option-row > .button,
+.rule-value > .button {
+  margin-top: 28px;
+}
+.rule-card {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+.predicate-editor {
+  margin: 16px 0;
+}
+.choice-list {
+  padding: 0 0 16px;
+}
+.version-history {
+  margin-top: 28px;
+}
+.preview-section {
+  margin: 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  max-width: 760px;
+}
+.form-preview h2 {
+  margin-top: 16px;
+}
+.preview-findings {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--brand-soft);
+  border-left: 4px solid var(--brand);
+}
+.historical-version {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.historical-version .form-preview {
+  margin-top: 20px;
+}
+.conflict-panel {
+  margin-bottom: 24px;
+}
+.conflict-panel textarea {
+  width: 100%;
+  font: inherit;
+  padding: 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--muted);
+}
+.conflict-panel summary {
+  cursor: pointer;
+  padding: 12px 0;
+  color: var(--brand);
+}
+.conflict-panel label {
+  display: block;
+  margin: 12px 0;
+}
+.page-heading > a {
+  display: block;
+  margin-bottom: 16px;
+}
+@media (max-width: 760px) {
+  .question-card {
+    padding: 16px;
+  }
+  .builder-editor {
+    padding: 16px;
+  }
+  .builder-rules,
+  .builder-options {
+    padding: 12px;
+  }
+  .builder-toolbar {
+    padding: 16px;
+  }
+  .builder-toolbar .actions {
+    width: 100%;
+  }
+  .builder-toolbar .button {
+    flex: 1 1 140px;
+  }
+  .builder-item-heading .actions {
+    gap: 8px;
+  }
+}
+.resize-none {
+  resize: none;
+  min-height: 240px;
+}

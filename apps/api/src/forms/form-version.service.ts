@@ -60,6 +60,7 @@ export class FormVersionService {
           },
           em,
         );
+        await em.populate(version, ['publishedBy']);
         return versionView(version);
       }),
     );
@@ -70,7 +71,11 @@ export class FormVersionService {
       number = parseVersionNumber(rawNumber),
       em = this.entityManager.fork();
     await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
-    const version = await em.findOne(FormVersion, { template: id, number });
+    const version = await em.findOne(
+      FormVersion,
+      { template: id, number },
+      { populate: ['publishedBy'] },
+    );
     if (!version) throw new NotFoundException('Versão publicada não encontrada.');
     return versionView(version);
   }
@@ -85,7 +90,16 @@ export class FormVersionService {
       { template: id },
       {
         orderBy: { number: 'desc' },
-        fields: ['id', 'template', 'number', 'contentHash', 'publishedAt', 'publishedBy'],
+        fields: [
+          'id',
+          'template',
+          'number',
+          'contentHash',
+          'publishedAt',
+          'publishedBy.id',
+          'publishedBy.name',
+        ],
+        populate: ['publishedBy'],
         limit: query.pageSize,
         offset: (query.page - 1) * query.pageSize,
       },

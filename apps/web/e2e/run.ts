@@ -105,7 +105,7 @@ try {
   await ready('http://127.0.0.1:3100/login', web);
   const runner = start(
     resolve(root, 'apps/web/node_modules/@playwright/test/cli.js'),
-    ['test', '--config', resolve(root, 'apps/web/playwright.config.ts')],
+    ['test', '--config', resolve(root, 'apps/web/playwright.config.ts'), ...process.argv.slice(2)],
     root,
     true,
   );

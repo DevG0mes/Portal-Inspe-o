@@ -3,8 +3,8 @@
   "sourceRoots": ["apps/web/src", "packages/ui/src"],
   "locale": "pt-BR",
   "canonicalMap": "UX-CONTRACT.md",
-  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
-  "ownership": { "Select/Listbox": "native" },
+  "requiredCapabilities": ["Select/Listbox", "Date", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": { "Select/Listbox": "native", "Date": "native" },
   "requiredCommands": ["unit", "e2e", "accessibility"],
   "commands": {
     "unit": "pnpm test",

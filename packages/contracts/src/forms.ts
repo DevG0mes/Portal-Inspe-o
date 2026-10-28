@@ -82,5 +82,6 @@ export interface FormVersionView {
   contentHash: string;
   publishedAt: string;
   publishedById: string;
+  publishedByName: string;
 }
 export type FormVersionSummary = Omit<FormVersionView, 'snapshot'>;

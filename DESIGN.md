@@ -38,3 +38,7 @@ Barra lateral azul com navegação por perfil e foco âmbar. Menu móvel em flux
 ## Estados e acessibilidade
 
 Tokens `--danger`/`--danger-soft` representam falha; `--success`/`--success-soft` representam confirmação; rótulos acompanham cores. Campos e botões têm altura mínima de 44px. Diálogos usam modalidade nativa, Escape e restauração de foco. Contraste AA, reduced-motion e forced-colors. `premium-ui.json` registra fontes e comandos de verificação.
+
+## Construtor de fichas
+
+O construtor continua a referência de ficha operacional: seções numeradas e perguntas em cartões com faixa azul, numeradas pela ordem real. A barra de ações informa a situação do rascunho e a revisão confirmada; não fica sobre os campos. Uma única rolagem de documento, com controles quebrando linha no celular. Condições e regras têm agrupamentos/legendas visíveis e fundo de apoio. Prévia usa os mesmos campos e separa respostas de ocorrências simuladas. Conteúdo local de conflito usa textarea somente leitura, altura suficiente, sem redimensionamento e com rolagem. Nenhuma fonte, cor ou biblioteca visual paralela foi adicionada.

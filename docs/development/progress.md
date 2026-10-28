@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Tarefas 1 a 6 concluídas. Próxima etapa: tarefa 7, construtor visual de formulários. A interface de autenticação e administração básica está integrada à API.
+Tarefas 1 a 7 concluídas. Próxima etapa: tarefa 8, programação de inspeções e recorrências. Autenticação, administração e construtor visual estão integrados à API.
 
 ## Retomada em 27/10/2026
 
@@ -171,3 +171,22 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - `pnpm test:e2e`: 55 testes aprovados, incluindo 13 do ciclo de formulários.
 - `pnpm test:integration`: 8 testes aprovados, incluindo drift de schema e ciclo completo de migrações em banco temporário.
 - Total: 90 testes. Lint, tipos, formatação e build aprovados. Migração 202610280001 aplicada ao banco local. API compilada reiniciada; health ready retornou os três serviços up e o catálogo de formulários retornou 401 sem sessão. Revisão posterior confirmou os ajustes de Unicode e projeção de histórico sem achados pendentes.
+
+## Tarefa 7 — construtor visual em 28/10/2026
+
+- Catálogo administrativo em `/admin/forms`, criação e filtros paginados. Editor de seções, perguntas, opções, condições EQ/NEQ/IN e regras de ocorrência, com IDs estáveis. Ordenação por botões, sem exigir drag. Remoções e mudanças destrutivas têm confirmação; dependências inválidas impedem reordenação/remoção.
+- Autosave serializado de 700 ms, suspenso durante IME, com geração local e revisão do servidor. Respostas antigas não substituem digitação nova. Falha exige retry explícito; 409 interrompe gravações e preserva JSON local para copiar antes de recarregar com confirmação. DirtyGuard comum protege alterações pendentes.
+- Ruling: extraído o motor puro existente para `packages/form-engine`, consumido pela API e pela prévia. Evita validação divergente no cliente. A fachada de RuleEngine mantém a composição Nest; API segue autoridade de publicação/avaliação. Sem dependência do browser em Nest ou persistência.
+- Prévia imediata com motor compartilhado e conferência explícita da revisão salva na API. Respostas simuladas não criam inspeção nem persistem no banco. Tipos TEXT/NUMBER/DATE/SELECT/YES_NO_NA mantêm valores tipados. DATE usa controle nativo conforme contrato atualizado.
+- Publicação confirma snapshot imutável; novo rascunho não muda a versão corrente. Histórico paginado com autor legível e data/hora em America/Sao_Paulo. Consulta/simulação de v1/v2 e arquivamento preservam conteúdo. DTO inclui publishedByName com projeção apenas de id/nome do autor; sem migração de schema.
+- Ruling: o nome administrativo permanece definido na criação, seguindo a API; o título do snapshot é editável por versão. Não foi inventado endpoint de renomeação.
+- Testes do modelo/autosave falharam pela ausência dos módulos, depois passaram. Erros estruturados por campo e nome do autor também tiveram RED→GREEN.
+- Revisão independente encontrou sentinel vazio em IN, colisão de IDs de opções ao duplicar referências externas, mudança destrutiva sem confirmação e modal bloqueado ao surgir 409. Todos reproduzidos em testes; corrigidos. O último foi reproduzido com 409 real em duas abas, desktop/celular, e corrigido desmontando confirmações locais ao entrar em conflito e focando a recuperação. Revisão posterior sem bloqueadores.
+- Documentação: `form-builder.md`, `forms.md`, `DESIGN.md`, `UX-CONTRACT.md` e manifesto premium atualizados. Seleção/diálogos/avisos/campos seguem os proprietários existentes.
+
+### Evidências da tarefa 7
+
+- `pnpm test`: 47 testes aprovados. `pnpm test:e2e`: 55 aprovados. `pnpm test:integration`: 8 aprovados.
+- `pnpm test:browser`: 18 cenários aprovados, 9 desktop e 9 celular. Inclui os fluxos anteriores, v1/v2 imutáveis, autosave/retry, conflito com modal, tipos seleção/número/data, revisão na API, arquivamento e autorização. Total: 128 testes/cenários.
+- Axe WCAG A/AA sem violações nas telas exercitadas; viewport móvel sem overflow horizontal. Captura da prévia móvel examinada. Auditoria premium estrita sem apontamentos; lint, tipos, formatação e build aprovados.
+- Limites: testes móveis usam Edge com viewport/touch simulado; homologação em aparelho físico e produção continuam posteriores. Cópia local de conflito fica apenas na memória da aba e é perdida se o usuário confirmar seu descarte; não há cache offline, merge automático ou force overwrite.

@@ -1,7 +1,9 @@
+import type { DefinitionIssue } from '@portal/contracts';
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly requestId?: string,
+    public readonly definitionErrors: DefinitionIssue[] = [],
   ) {
     super(
       status === 401
@@ -24,7 +26,26 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...options.headers },
   });
-  if (!response.ok)
-    throw new ApiError(response.status, response.headers.get('x-request-id') ?? undefined);
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const issues =
+      body &&
+      typeof body === 'object' &&
+      'definitionErrors' in body &&
+      Array.isArray(body.definitionErrors)
+        ? body.definitionErrors
+            .filter(
+              (issue): issue is DefinitionIssue =>
+                !!issue &&
+                typeof issue === 'object' &&
+                typeof issue.path === 'string' &&
+                issue.path.length < 400 &&
+                typeof issue.code === 'string' &&
+                issue.code.length < 80,
+            )
+            .slice(0, 1000)
+        : [];
+    throw new ApiError(response.status, response.headers.get('x-request-id') ?? undefined, issues);
+  }
   return response.status === 204 ? (undefined as T) : (response.json() as Promise<T>);
 }

@@ -279,25 +279,25 @@
 - Consome: endpoints e contratos de formulários da Tarefa 5.
 - Produz: editor de seções/perguntas/opções, editor de condições, pré-visualização e publicação com tratamento de conflito.
 
-- [ ] **Passo 1: Escrever testes que falham para o construtor**
+- [x] **Passo 1: Escrever testes que falham para o construtor**
 
   Cobrir inclusão, ordenação, edição, duplicação e remoção; bloquear dependência posterior/cíclica; exibir validação de publicação por campo.
 
-- [ ] **Passo 2: Implementar editor de conteúdo**
+- [x] **Passo 2: Implementar editor de conteúdo**
 
   Manter IDs estáveis no rascunho e autosave com debounce, indicador de estado e proteção contra perda de alterações.
 
-- [ ] **Passo 3: Implementar regras e pré-visualização**
+- [x] **Passo 3: Implementar regras e pré-visualização**
 
   A pré-visualização usa o mesmo formato de regra do backend, mas a publicação sempre depende da validação definitiva da API.
 
-- [ ] **Passo 4: Implementar publicação e histórico**
+- [x] **Passo 4: Implementar publicação e histórico**
 
   Mostrar versões, autor, data e estado; em `409`, recarregar dados e orientar o administrador sem sobrescrever silenciosamente.
 
-- [ ] **Passo 5: Verificar e commit**
+- [x] **Passo 5: Verificar e commit**
 
-  Executar: `pnpm --filter web test && pnpm --filter web test:e2e -- form-builder.spec.ts`
+  Executar: `pnpm test && pnpm build && pnpm --filter @portal/web test:browser form-builder.spec.ts`
 
   `git commit -m "feat: add versioned form builder UI"`
 

@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. Construtor visual e execução de inspeções são as próximas etapas. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. O construtor visual permite editar, simular e publicar versões de formulários. Programação e execução de inspeções são as próximas etapas. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 
@@ -42,6 +42,7 @@ apps/
 packages/
   config/       Validação tipada de variáveis de ambiente
   contracts/    Contratos públicos compartilhados, sem persistência
+  form-engine/  Validação e avaliação pura de formulários, API e prévia
   ui/           Componentes e tokens visuais compartilhados
   testing/      Utilitários reutilizáveis de teste
 infra/          Serviços locais e configuração operacional
@@ -75,5 +76,6 @@ Os testes HTTP de autenticação também usam PostgreSQL real em banco temporár
 - [Autenticação e primeiro administrador](docs/development/authentication.md).
 - [Organização, usuários e permissões](docs/development/organization.md).
 - [Formulários, regras e versões](docs/development/forms.md).
+- [Construtor visual e recuperação de conflitos](docs/development/form-builder.md).
 - [Interface, sessão e testes de navegador](docs/development/web.md).
 - [Progresso e decisões](docs/development/progress.md).

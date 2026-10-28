@@ -18,6 +18,10 @@ Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Componentes e compo
 
 ## Canonical UI Map
 
+Construtor: `features/form-builder` é o proprietário do editor e de seu autosave serializado (700 ms, suspenso durante composição IME). `features/form-preview` renderiza respostas; avaliação e validação usam o motor puro compartilhado `@portal/form-engine`, e a prévia enviada à API confirma o rascunho salvo. Seções/perguntas são ordenadas por botões acessíveis, sem drag obrigatório. Remoções exigem confirmação e não deixam referências quebradas. Conflitos interrompem gravações; conteúdo local permanece copiável até recarregar com confirmação. Publicação/arquivamento são explícitos. Falha de gravação conserva a edição e exige tentativa manual.
+
+Campos DATE da prévia usam input date nativo (popup, teclado e formato visual do sistema), transportando YYYY-MM-DD. Busca do catálogo usa envio explícito; estado/página/busca são restituíveis na URL. Os demais contratos de formulário, diálogo, avisos, hidratação e proteção de saída continuam comuns.
+
 | Capability     | Canonical owner                                  | Source of truth               | Allowed variants             | Verification                           |
 | -------------- | ------------------------------------------------ | ----------------------------- | ---------------------------- | -------------------------------------- |
 | Select/Listbox | packages/ui/src/index.tsx                        | UX-CONTRACT.md                | native, remote paginated     | apps/web/e2e/auth-admin.spec.ts        |
@@ -25,3 +29,4 @@ Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Componentes e compo
 | Scrollbar      | apps/web/src/app/globals.css                     | DESIGN.md                     | document                     | browser narrow viewport, forced-colors |
 | Toast          | Notice in packages/ui                            | UX-CONTRACT.md                | inline success, error        | auth-form.test.tsx, auth-admin.spec.ts |
 | CRUD           | features/admin                                   | API contracts, UX-CONTRACT.md | paginated, soft deactivation | apps/web/e2e/auth-admin.spec.ts        |
+| Date           | packages/ui Input in features/form-preview       | UX-CONTRACT.md                | native                       | apps/web/e2e/form-builder.spec.ts      |

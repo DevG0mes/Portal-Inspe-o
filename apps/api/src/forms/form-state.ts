@@ -14,10 +14,9 @@ export const templateSummary = (template: FormTemplate): FormTemplateSummary => 
   hasDraft: template.draftSnapshot !== null,
 });
 export const versionSummary = (
-  version: Pick<
-    FormVersion,
-    'id' | 'template' | 'number' | 'contentHash' | 'publishedAt' | 'publishedBy'
-  >,
+  version: Pick<FormVersion, 'id' | 'template' | 'number' | 'contentHash' | 'publishedAt'> & {
+    publishedBy: { id: string; name: string };
+  },
 ): FormVersionSummary => ({
   id: version.id,
   templateId: version.template.id,
@@ -25,6 +24,7 @@ export const versionSummary = (
   contentHash: version.contentHash,
   publishedAt: version.publishedAt.toISOString(),
   publishedById: version.publishedBy.id,
+  publishedByName: version.publishedBy.name,
 });
 export const versionView = (version: FormVersion): FormVersionView => ({
   ...versionSummary(version),

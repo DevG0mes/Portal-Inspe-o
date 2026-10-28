@@ -19,6 +19,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
           ['/users', 'Usuários'],
           ['/units', 'Unidades'],
           ['/sectors', 'Setores'],
+          ['/admin/forms', 'Formulários'],
         ]
       : []),
     ['/account', 'Minha conta'],
@@ -42,8 +43,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
         <Link className="wordmark" href="/dashboard">
           <span>PSI ENERGY</span>
           <strong>
-            Portal de
-            <br />
+            Portal de <br />
             Segurança
           </strong>
         </Link>

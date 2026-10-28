@@ -19,6 +19,7 @@
     "@nestjs/platform-express": "12.3.2",
     "@portal/config": "workspace:*",
     "@portal/contracts": "workspace:*",
+    "@portal/form-engine": "workspace:*",
     "argon2": "0.45.1",
     "ioredis": "5.8.2",
     "minio": "8.0.6",

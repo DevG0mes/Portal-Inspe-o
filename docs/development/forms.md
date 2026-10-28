@@ -2,12 +2,12 @@
 
 ## Estado e responsabilidades
 
-A tarefa 5 entrega a API e o motor de regras. O construtor visual pertence à tarefa 7, e a execução de inspeções à tarefa 9. Os contratos em `packages/contracts/src/forms.ts` serão usados por essas etapas.
+A tarefa 5 entrega a API e o motor de regras; a tarefa 7 integra o construtor visual em `/admin/forms`. A execução de inspeções pertence à tarefa 9. Os contratos em `packages/contracts/src/forms.ts` são compartilhados por essas etapas.
 
 - `FormTemplateService`: catálogo, criação, rascunhos, pré-visualização e arquivamento.
 - `FormVersionService`: publicação transacional, histórico e leitura de versões.
-- `RuleEngine`: avaliação pura e determinística, sem banco ou transporte HTTP.
-- `definition-validation.ts`: validação de conteúdo, opções e dependências.
+- `packages/form-engine`: avaliação pura e determinística compartilhada pela API e pela prévia, sem banco, Nest ou transporte HTTP. A fachada `rule-engine.service.ts` preserva a composição do módulo Nest.
+- `packages/form-engine/src/definition-validation.ts`: validação de conteúdo, opções e dependências.
 - `snapshot.ts`: hash estável, sem alterar a ordem de seções ou perguntas.
 
 ## Três números diferentes
