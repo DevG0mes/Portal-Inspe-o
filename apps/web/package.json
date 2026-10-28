@@ -3,21 +3,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "node --env-file=../../.env node_modules/next/dist/bin/next dev --hostname 127.0.0.1",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "start": "next start --hostname 127.0.0.1"
+    "start": "node --env-file=../../.env node_modules/next/dist/bin/next start --hostname 127.0.0.1",
+    "test:browser": "tsx e2e/run.ts"
   },
   "dependencies": {
+    "@portal/contracts": "workspace:*",
+    "@portal/ui": "workspace:*",
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "@portal/ui": "workspace:*"
+    "server-only": "0.0.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "@testing-library/react": "16.3.0",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@testing-library/react": "16.3.0",
-    "jsdom": "27.2.0"
+    "jsdom": "27.2.0",
+    "tsx": "4.20.6"
   }
 }

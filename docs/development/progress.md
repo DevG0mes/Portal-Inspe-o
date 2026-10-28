@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Tarefas 1 a 5 concluídas. Próxima etapa: tarefa 6, estrutura visual, autenticação e administração básica. A API de formulários está disponível; o construtor visual pertence à tarefa 7.
+Tarefas 1 a 6 concluídas. Próxima etapa: tarefa 7, construtor visual de formulários. A interface de autenticação e administração básica está integrada à API.
 
 ## Retomada em 27/10/2026
 
@@ -20,6 +20,27 @@ Tarefas 1 a 5 concluídas. Próxima etapa: tarefa 6, estrutura visual, autentica
 - Compose local não é configuração de produção; credenciais de exemplo devem ser substituídas.
 - O worker inicial usa BullMQ diretamente e apenas prepara a fila; a composição NestJS e os processadores serão adicionados com os jobs de domínio. Não há consumo silencioso de jobs ainda não implementados.
 - A sondagem MinIO usa `/minio/health/ready` com cancelamento real de HTTP. Ela verifica disponibilidade do serviço; autorização de buckets e uploads será validada na tarefa de arquivos.
+
+## Tarefa 6 — interface e administração em 28/10/2026
+
+- Login, erro genérico, troca de senha obrigatória/opcional, logout e encerramento de sessões integrados à API. Proteção SSR e navegação por perfil; sem segredo de sessão em Web Storage.
+- Shell responsivo, dashboard com contagens reais e administração de usuários, unidades, setores e vínculos múltiplos. Listas/filtros/paginação consultam a API; escolhas remotas também são paginadas. Desativação, permissões e vínculos têm confirmação; histórico preservado.
+- Ruling: `features/admin` centraliza o CRUD semelhante de usuários/unidades/setores em lugar de duplicar pastas por recurso; vínculos têm componente próprio. `features/shared` contém comportamentos recorrentes e `packages/ui` mantém elementos visuais/tokens. Custo: uma alteração comum exige verificar os três recursos.
+- Ruling: BFF Next com upstream privado e cookie HttpOnly em Path=/ na origem web permite SSR. API mantém Path=/api; emissão pelo BFF limpa a variante antiga. JSON, origem, tamanho, timeout e segmentos validados. Testes de duplicidade e fronteira impedem ampliação acidental.
+- Ruling: entradas de formulário pela lista usam navegação por documento para proteger o Voltar com beforeunload. Links internos usam confirmação do aplicativo. Busca de pessoas fica em memória por privacidade; página/situação/perfil retornam por whitelist na URL. Custo: busca é limpa ao abrir outro documento.
+- Contratos de setores/vínculos agora incluem nomes das unidades/setores, populados pelo ORM, para evitar consultas individuais por linha. Sem migração de schema.
+- `DESIGN.md`, `UX-CONTRACT.md`, manifesto premium e guia `web.md` documentam identidade, comportamento e responsabilidades.
+- Testes de login e mapeadores falharam antes da implementação. Revisão independente identificou submit acidental ao paginar, reenvio de perfil antigo, saída ausente da troca obrigatória e perda ao Voltar. Corrigidos; paginação e PATCH têm testes reproduzindo RED→GREEN. Revisão posterior não encontrou novos bloqueadores.
+- Browser detectou corrida entre busca e substituição de rota ao abrir um vínculo. Busca na primeira página não substitui a rota; entradas por documento também evitam a corrida. Uma falha da automação aguardava load após cancelar beforeunload; o teste passou a acionar history.back e verificar o diálogo e o conteúdo preservado, sem aguardar navegação que foi cancelada.
+- Browser móvel expôs interação antes de hidratar a página. Formulários agora desabilitam campos no SSR até os handlers estarem prontos, e declaram method=post para nunca ter fallback GET de credenciais. Teste SSR RED→GREEN e revisão independente confirmaram a correção.
+
+### Evidências da tarefa 6
+
+- `pnpm test`: 34 testes aprovados; `pnpm test:e2e`: 55 aprovados; `pnpm test:integration`: 8 aprovados.
+- `pnpm test:browser`: 10 cenários aprovados (5 desktop, 5 celular), incluindo autenticação, troca obrigatória, restrição por perfil, CRUD, duas unidades/dois setores, paginação, vazio, falha/retry, Escape/foco, descarte/Voltar e fronteira BFF. Axe WCAG A/AA sem violações nas telas exercitadas; largura sem overflow horizontal. Total: 107 testes/cenários.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Capturas desktop/móvel examinadas visualmente. Revisão final sem bloqueadores.
+- API local reiniciada com build atual: PostgreSQL/Redis/MinIO up. Interface local respondeu 200 em `/login` na porta 3000. Nenhuma conta real ou senha padrão criada; bootstrap administrativo permanece explícito no guia de autenticação.
+- Limite: navegador automatizado usa Edge desktop com viewport/touch móvel; validação em aparelho físico e implantação de produção pertencem à homologação. Edição explícita concorrente do mesmo campo cadastral segue última gravação da API.
 
 ## Dependências entre tarefas
 

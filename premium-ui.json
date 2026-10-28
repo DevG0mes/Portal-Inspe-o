@@ -1,0 +1,18 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["apps/web/src", "packages/ui/src"],
+  "locale": "pt-BR",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": { "Select/Listbox": "native" },
+  "requiredCommands": ["unit", "e2e", "accessibility"],
+  "commands": {
+    "unit": "pnpm test",
+    "e2e": "pnpm test:browser",
+    "accessibility": "pnpm test:browser"
+  },
+  "evidence": {
+    "crudFullFlow": "apps/web/e2e/auth-admin.spec.ts",
+    "failurePaths": "apps/web/e2e/auth-admin.spec.ts"
+  }
+}

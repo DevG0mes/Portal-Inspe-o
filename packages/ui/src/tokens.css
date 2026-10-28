@@ -6,6 +6,15 @@
   --brand: #12547a;
   --notice: #755000;
   --border: #cedae3;
+  --brand-dark: #0c3149;
+  --brand-soft: #e6f0f6;
+  --danger: #a02828;
+  --danger-soft: #fff0ee;
+  --success: #22603c;
+  --success-soft: #e8f4eb;
+  --overlay: #0c314970;
+  --focus-on-dark: #ffd180;
+  --radius: 6px;
   --font-heading: 'Bahnschrift', 'Arial Narrow', sans-serif;
   --font-body: 'Segoe UI', Arial, sans-serif;
 }

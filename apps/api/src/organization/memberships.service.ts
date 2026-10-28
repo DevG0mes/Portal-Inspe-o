@@ -34,6 +34,7 @@ export class MembershipsService {
       ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
     };
     const [rows, total] = await em.findAndCount(UnitMembership, filter, {
+      populate: ['unit'],
       limit: query.pageSize,
       offset: (query.page - 1) * query.pageSize,
       orderBy: { createdAt: 'asc', id: 'asc' },
@@ -68,7 +69,7 @@ export class MembershipsService {
       ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
     };
     const [rows, total] = await em.findAndCount(SectorMembership, filter, {
-      populate: ['unitMembership'],
+      populate: ['unitMembership.unit', 'sector'],
       limit: query.pageSize,
       offset: (query.page - 1) * query.pageSize,
       orderBy: { createdAt: 'asc', id: 'asc' },
@@ -95,7 +96,7 @@ export class MembershipsService {
     const id = parseId(rawId),
       em = this.entityManager.fork();
     await this.access.assertAdministrator(actor, em);
-    const grant = await em.findOne(UnitMembership, id);
+    const grant = await em.findOne(UnitMembership, id, { populate: ['unit'] });
     if (!grant) throw new NotFoundException('Vínculo não encontrado.');
     await this.audit.record(
       {
@@ -107,6 +108,7 @@ export class MembershipsService {
       },
       em,
     );
+    await em.populate(grant, ['unit']);
     return unitMembershipSummary(grant);
   }
 
@@ -114,7 +116,9 @@ export class MembershipsService {
     const id = parseId(rawId),
       em = this.entityManager.fork();
     await this.access.assertAdministrator(actor, em);
-    const grant = await em.findOne(SectorMembership, id, { populate: ['unitMembership'] });
+    const grant = await em.findOne(SectorMembership, id, {
+      populate: ['unitMembership.unit', 'sector'],
+    });
     if (!grant) throw new NotFoundException('Vínculo não encontrado.');
     await this.audit.record(
       {
@@ -126,6 +130,7 @@ export class MembershipsService {
       },
       em,
     );
+    await em.populate(grant, ['unitMembership.unit', 'sector']);
     return sectorMembershipSummary(grant);
   }
 
@@ -163,6 +168,7 @@ export class MembershipsService {
         },
         em,
       );
+      await em.populate(grant, ['unit']);
       return unitMembershipSummary(grant);
     });
   }
@@ -217,6 +223,7 @@ export class MembershipsService {
         },
         em,
       );
+      await em.populate(grant, ['unitMembership.unit', 'sector']);
       return sectorMembershipSummary(grant);
     });
   }
@@ -261,6 +268,7 @@ export class MembershipsService {
         },
         em,
       );
+      await em.populate(grant, ['unit']);
       return unitMembershipSummary(grant);
     });
   }
@@ -275,7 +283,9 @@ export class MembershipsService {
       input = parseActivePatch(raw);
     return this.entityManager.fork().transactional(async (em) => {
       await this.access.assertAdministrator(actor, em);
-      const grant = await em.findOne(SectorMembership, id, { populate: ['unitMembership'] });
+      const grant = await em.findOne(SectorMembership, id, {
+        populate: ['unitMembership.unit', 'sector'],
+      });
       if (!grant) throw new NotFoundException('Vínculo não encontrado.');
       const user = await em.findOneOrFail(User, grant.unitMembership.user.id, {
         lockMode: LockMode.PESSIMISTIC_WRITE,
@@ -307,6 +317,7 @@ export class MembershipsService {
         },
         em,
       );
+      await em.populate(grant, ['unitMembership.unit', 'sector']);
       return sectorMembershipSummary(grant);
     });
   }

@@ -240,29 +240,29 @@
 - Consome: contratos de autenticação, usuários e organização.
 - Produz: shell responsivo com navegação por perfil, formulários acessíveis e cliente API tipado que preserva cookies e erros de domínio.
 
-- [ ] **Passo 1: Escrever testes de interface que falham**
+- [x] **Passo 1: Escrever testes de interface que falham**
 
   Cobrir login, erro genérico, troca obrigatória, navegação por perfil, tabelas paginadas e associação a múltiplas unidades/setores.
 
-- [ ] **Passo 2: Criar design tokens e componentes básicos**
+- [x] **Passo 2: Criar design tokens e componentes básicos**
 
   Implementar botão, campo, seleção, modal, tabela, badge, alerta, skeleton e feedback de erro com foco visível e navegação por teclado.
 
-- [ ] **Passo 3: Implementar autenticação e shell**
+- [x] **Passo 3: Implementar autenticação e shell**
 
   Usar renderização no servidor quando apropriado, sem armazenar segredo de sessão em localStorage.
 
-- [ ] **Passo 4: Implementar telas administrativas de usuários e organização**
+- [x] **Passo 4: Implementar telas administrativas de usuários e organização**
 
   Incluir estados vazio, carregando, erro, confirmação e sucesso; respeitar paginação e filtros da API.
 
-- [ ] **Passo 5: Verificar responsividade e acessibilidade**
+- [x] **Passo 5: Verificar responsividade e acessibilidade**
 
-  Executar: `pnpm --filter web test && pnpm --filter web test:e2e -- auth-admin.spec.ts`
+  Executar: `pnpm test && pnpm build && pnpm test:browser`
 
   Esperado: fluxos passam em viewport móvel e desktop sem violações críticas de acessibilidade.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "feat: add portal shell and user administration"`
 

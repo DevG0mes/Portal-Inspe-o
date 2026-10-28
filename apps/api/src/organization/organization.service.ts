@@ -120,6 +120,7 @@ export class OrganizationService {
       Sector,
       { $and: [scope, filter] },
       {
+        populate: ['unit'],
         limit: query.pageSize,
         offset: (query.page - 1) * query.pageSize,
         orderBy: { name: 'asc', id: 'asc' },
@@ -132,7 +133,7 @@ export class OrganizationService {
     const id = parseId(rawId),
       em = this.entityManager.fork();
     const scope = await this.access.sectorFilter(actor, requestId, em);
-    const sector = await em.findOne(Sector, { $and: [{ id }, scope] });
+    const sector = await em.findOne(Sector, { $and: [{ id }, scope] }, { populate: ['unit'] });
     if (!sector) throw new ForbiddenException('Setor não permitido.');
     return sectorSummary(sector);
   }
@@ -182,6 +183,7 @@ export class OrganizationService {
         await this.access.assertAdministrator(actor, em);
         const sector = await em.findOne(Sector, id, { lockMode: LockMode.PESSIMISTIC_WRITE });
         if (!sector) throw new NotFoundException('Setor não encontrado.');
+        await em.populate(sector, ['unit']);
         const before = sectorSummary(sector);
         if (input.name !== undefined) {
           sector.name = input.name;

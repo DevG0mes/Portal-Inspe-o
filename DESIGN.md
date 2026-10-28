@@ -2,7 +2,7 @@
 
 ## Contexto
 
-Produto operacional interno, em português brasileiro, para colaboradores em inspeções pelo celular e gestores no computador. Priorizar legibilidade, clareza de estado e facilidade de preenchimento. A primeira página apenas identifica um ambiente ainda em preparação.
+Produto operacional interno, em português brasileiro, para colaboradores em inspeções pelo celular e gestores no computador. Priorizar legibilidade, clareza de estado e facilidade de preenchimento. Login e administração usam a mesma identidade operacional.
 
 ## Identidade inicial
 
@@ -29,4 +29,12 @@ Modelo B: `packages/ui/src/tokens.css` é a fonte única dos valores de execuç�
 | Estado de preparação | `--notice`     | rótulo de estado       |
 | Divisórias           | `--border`     | cabeçalho e ficha      |
 
-Mapa canônico atual: estilos globais e scrollbar pertencem a `globals.css`; tokens a `@portal/ui`. Tabelas, formulários, seleção, notificações e CRUD ainda não existem e exigirão contratos antes da implementação. Nenhuma biblioteca de componentes ou preferência de marca foi fornecida.
+Mapa canônico: estilos globais, layout responsivo e scrollbar pertencem a `globals.css`; tokens e componentes básicos a `@portal/ui`; comportamento em `features/shared`. Consulte `UX-CONTRACT.md` para formulários, tabelas, seleção, notificações e CRUD. Sem biblioteca externa de componentes.
+
+## Aplicação
+
+Barra lateral azul com navegação por perfil e foco âmbar. Menu móvel em fluxo, conteúdo em uma coluna. Tabelas viram fichas no celular, preservando rótulos, status e ações. Dados pessoais longos quebram linha. Sem imagens decorativas, fontes externas ou indicadores fictícios.
+
+## Estados e acessibilidade
+
+Tokens `--danger`/`--danger-soft` representam falha; `--success`/`--success-soft` representam confirmação; rótulos acompanham cores. Campos e botões têm altura mínima de 44px. Diálogos usam modalidade nativa, Escape e restauração de foco. Contraste AA, reduced-motion e forced-colors. `premium-ui.json` registra fontes e comandos de verificação.

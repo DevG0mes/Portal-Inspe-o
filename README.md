@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. As telas operacionais e a execução de inspeções ainda não estão disponíveis. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. Construtor visual e execução de inspeções são as próximas etapas. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 
@@ -26,11 +26,11 @@ pnpm --filter @portal/api db:migrate
 pnpm dev
 ```
 
-A API e o worker carregam `.env` da raiz por seus scripts de desenvolvimento. A interface ainda não consome variáveis de ambiente. A infraestrutura só publica portas em loopback; este Compose é de desenvolvimento, não uma implantação de produção. Não remova volumes para solucionar erros: eles contêm os dados locais.
+A API, o worker e a interface carregam `.env` da raiz por seus scripts de desenvolvimento. A infraestrutura só publica portas em loopback; este Compose é de desenvolvimento, não uma implantação de produção. Não remova volumes para solucionar erros: eles contêm os dados locais.
 
 A primeira construção do MinIO compila o código oficial e pode levar alguns minutos. A revisão do código e os digests das imagens base estão fixados em `infra/minio/Dockerfile`, porque as imagens da comunidade não estão disponíveis nos registros originalmente usados. Consulte [o registro operacional](docs/development/database.md) para migrações e testes reais.
 
-Endereços locais: interface em `http://127.0.0.1:3000`, API em `http://127.0.0.1:3001/api` e console do armazenamento em `http://127.0.0.1:9001`. A interface inicial ainda não oferece login.
+Endereços locais: interface em `http://127.0.0.1:3000`, API em `http://127.0.0.1:3001/api` e console do armazenamento em `http://127.0.0.1:9001`. A interface oferece login em `/login`; crie o primeiro administrador seguindo o guia abaixo.
 
 ## Estrutura
 
@@ -60,6 +60,7 @@ pnpm test:e2e
 pnpm test:integration
 pnpm build
 pnpm format:check
+pnpm test:browser
 ```
 
 Os testes HTTP sobem uma API real em porta temporária, com sondagens controladas. `test:integration` exige o Compose saudável e verifica serviços reais, armazenamento, transações, migrações e isolamento de requisições. Seus recursos temporários são removidos ao final, sem apagar os volumes ou tabelas do banco local do portal.
@@ -74,4 +75,5 @@ Os testes HTTP de autenticação também usam PostgreSQL real em banco temporár
 - [Autenticação e primeiro administrador](docs/development/authentication.md).
 - [Organização, usuários e permissões](docs/development/organization.md).
 - [Formulários, regras e versões](docs/development/forms.md).
+- [Interface, sessão e testes de navegador](docs/development/web.md).
 - [Progresso e decisões](docs/development/progress.md).
