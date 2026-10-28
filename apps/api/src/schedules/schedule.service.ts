@@ -7,6 +7,7 @@ import { AccessPolicy } from '../access/access-policy.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { escapeLike, parseId } from '../common/input.js';
 import { User } from '../identity/user.entity.js';
+import { Inspection } from '../inspections/inspection.entity.js';
 import {
   InspectionSchedule,
   ScheduleResponsible,
@@ -242,8 +243,28 @@ export class ScheduleService {
         orderBy: { occurrenceAt: 'asc', id: 'asc' },
       },
     );
+    const inspections = rows.length
+      ? await em.find(
+          Inspection,
+          { assignment: { $in: rows.map((row) => row.id) } },
+          { fields: ['id', 'assignment', 'state'] },
+        )
+      : [];
+    const byAssignment = new Map(inspections.map((row) => [row.assignment!.id, row]));
     return {
-      data: rows.map((row) => assignmentSummary(row, now)),
+      data: rows.map((row) => {
+        const inspection = byAssignment.get(row.id);
+        return {
+          ...assignmentSummary(row, now),
+          inspectionId: inspection?.id ?? null,
+          inspectionState: inspection?.state ?? null,
+          canStart:
+            !inspection &&
+            row.status === 'PLANNED' &&
+            row.occurrenceAt <= now &&
+            row.responsibles.getItems().some((link) => link.user.id === user.id),
+        };
+      }),
       total,
       page: q.page,
       pageSize: q.pageSize,

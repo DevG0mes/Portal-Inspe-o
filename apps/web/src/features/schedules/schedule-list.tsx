@@ -7,6 +7,7 @@ import { useResource } from '../shared/use-resource';
 import { ErrorNotice } from '../shared/error-notice';
 import { Pagination } from '../shared/pagination';
 import { frequencyLabels, assignmentLabels, localInstant } from './presentation';
+import { AssignmentAction } from '../inspection-runner/assignment-action';
 export function ScheduleList({ assignments = false }: { assignments?: boolean }) {
   const params = useSearchParams(),
     router = useRouter();
@@ -130,7 +131,7 @@ export function ScheduleList({ assignments = false }: { assignments?: boolean })
                         <th scope="col">Responsáveis</th>
                         <th scope="col">{assignments ? 'Ocorrência e prazo' : 'Recorrência'}</th>
                         <th scope="col">Situação</th>
-                        {!assignments && <th scope="col">Ações</th>}
+                        <th scope="col">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -170,6 +171,13 @@ export function ScheduleList({ assignments = false }: { assignments?: boolean })
                             )}
                           </td>
                           <td data-label="Situação">
+                            {'inspectionState' in row && row.inspectionState && (
+                              <span className="cell-detail">
+                                {row.inspectionState === 'COMPLETED'
+                                  ? 'Inspeção concluída'
+                                  : 'Em preenchimento'}
+                              </span>
+                            )}
                             {'state' in row ? (
                               <span className={`badge ${row.state === 'OVERDUE' ? 'overdue' : ''}`}>
                                 {assignmentLabels[row.state]}
@@ -190,6 +198,11 @@ export function ScheduleList({ assignments = false }: { assignments?: boolean })
                               <a href={`/schedules/${row.id}`}>
                                 Abrir<span className="sr-only"> {row.name}</span>
                               </a>
+                            </td>
+                          )}
+                          {'occurrenceAt' in row && (
+                            <td data-label="Ações">
+                              <AssignmentAction assignment={row} />
                             </td>
                           )}
                         </tr>

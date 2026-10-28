@@ -2,7 +2,26 @@
 
 ## Estado atual
 
-Tarefas 1 a 8 concluídas. Tarefa 9 em andamento: núcleo HTTP de execução de inspeções implementado; interface de preenchimento e evidências ainda pendentes. Programações e atribuições já são materializadas pelo worker.
+Tarefas 1 a 8 concluídas. Tarefa 9 em andamento: núcleo HTTP e interface de preenchimento implementados. Próximo incremento: observações por pergunta e evidências privadas no MinIO, incluindo limpeza de uploads abandonados.
+
+## Tarefa 9 — interface de execução em 28/10/2026
+
+- Rotas protegidas `/inspections`, `/inspections/new` e `/inspections/:id`; navegação comum, lista paginada, filtros por situação, criação com seletores remotos e confirmação. API aplica escopo/autoria antes da contagem e retorna metadados sem respostas no DTO de lista.
+- Campos dos cinco tipos, condições de visibilidade, progresso das perguntas respondidas, autosave, validação com foco no primeiro erro, confirmação final e consulta das respostas/ocorrências de cada ciclo. Gestor não responsável recebe consulta do rascunho, sem edição.
+- Ruling: autosave foi extraído do construtor para `features/shared/draft-session.ts` e tornado genérico; uma fachada mantém importações existentes — evita dois algoritmos de concorrência — custo: regressões devem cobrir também o construtor. Renderizador de campos tipados extraído para `features/shared/question-field.tsx` e reutilizado pela prévia.
+- Erros de salvamento exigem retry; conflito real 409 interrompe escrita e mantém JSON local para copiar. Recarregar pede descarte explícito. DirtyGuard/beforeunload protegem alterações; sem cache offline. Hook de leitura passou a considerar revisão também na seleção do estado, evitando montar um editor novo com dados anteriores durante reload.
+- Atribuições retornam inspeção vinculada, estado e permissão de início. Busca de vínculos em lote; UI permite iniciar/continuar/consultar, preservando separadamente a situação de prazo. Criar avulsa substitui histórico; iniciar atribuição usa navegação de documento para beforeunload.
+- Revisão independente apontou ausência do histórico para responsável após reabertura. Teste de componente e browser reproduziram; corrigido com consulta somente leitura, sem desmontar o rascunho ou oferecer ações de descarte. Segunda revisão sem bloqueadores.
+- Teste de precisão reproduziu arredondamento indevido de medidas na consulta; formatação pt-BR passou a preservar até 21 algarismos significativos, sem mudar o número armazenado.
+- Sem migração nova neste incremento. Contratos visuais e documentação de execução atualizados; uploads, observações e limpeza continuam pendentes na tarefa 9.
+
+### Evidências da interface de execução
+
+- Autosave genérico e contratos novos passaram de módulo ausente/404/campos ausentes para sucesso. Histórico durante reabertura e precisão numérica tiveram regressões reproduzidas antes da correção.
+- `pnpm test`: 61 testes aprovados. `pnpm test:e2e`: 73 aprovados. `pnpm test:integration`: 9 aprovados. `pnpm test:browser`: 28 cenários aprovados, 14 desktop e 14 celular. Rodada focada final de precisão: 2 cenários aprovados, sem contagem duplicada. Total: 171 testes/cenários distintos.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Axe WCAG A/AA sem violações nas telas exercitadas; viewport móvel sem overflow horizontal. Capturas de preenchimento desktop e celular examinadas visualmente.
+- API e web compilados reiniciados no ambiente local. Readiness confirmou PostgreSQL/Redis/MinIO up; `/inspections` sem sessão retornou 307 para `/login`. Testes de browser continuam usando banco e fila aleatórios exclusivos, sem criar contas reais no portal.
+- Limites: a tarefa 9 ainda não está concluída porque evidências/observações/limpeza de temporários permanecem pendentes. Homologação física em celular e implantação de produção continuam posteriores; testes móveis usam viewport/touch do Edge.
 
 ## Tarefa 9 — núcleo de execução em 28/10/2026
 

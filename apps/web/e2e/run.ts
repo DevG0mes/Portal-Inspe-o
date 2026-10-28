@@ -12,6 +12,12 @@ import { Sector } from '../../api/src/organization/sector.entity.js';
 import { UnitMembership, SectorMembership } from '../../api/src/organization/membership.entity.js';
 import { FormTemplate } from '../../api/src/forms/entities/form-template.entity.js';
 import { FormVersion } from '../../api/src/forms/entities/form-version.entity.js';
+import {
+  InspectionSchedule,
+  InspectionAssignment,
+  ScheduleResponsible,
+  AssignmentResponsible,
+} from '../../api/src/schedules/schedule.entity.js';
 import { cleanupBrowserQueue } from '../../worker/src/test-support.js';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -156,6 +162,33 @@ try {
     },
   });
   em.persist([form, version]);
+  const collaborator = await em.findOneOrFail(User, { email: 'collaborator@example.test' });
+  for (const device of ['desktop', 'mobile']) {
+    const schedule = new InspectionSchedule();
+    Object.assign(schedule, {
+      name: `Ronda disponível ${device}`,
+      unit,
+      sector,
+      form,
+      createdBy: admin,
+      frequency: 'ONCE',
+      startDate: '2026-10-28',
+      time: '00:00',
+      deadlineHours: 24,
+    });
+    const responsible = new ScheduleResponsible();
+    Object.assign(responsible, { schedule, user: collaborator });
+    const assignment = new InspectionAssignment();
+    Object.assign(assignment, {
+      schedule,
+      formVersion: version,
+      occurrenceAt: new Date(Date.now() - 60000),
+      dueAt: new Date(Date.now() + 86400000),
+    });
+    const assigned = new AssignmentResponsible();
+    Object.assign(assigned, { assignment, user: collaborator });
+    em.persist([schedule, responsible, assignment, assigned]);
+  }
   await em.flush();
   const api = start(resolve(root, 'apps/api/dist/main.js'), []);
   await ready('http://127.0.0.1:3101/api/health/ready', api);

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { JsonRequest } from '../auth/access.decorators.js';
 import type { AuthenticatedRequest } from '../auth/auth.types.js';
 import { InspectionService } from './inspection.service.js';
@@ -6,6 +6,9 @@ import { InspectionService } from './inspection.service.js';
 @JsonRequest()
 export class InspectionsController {
   constructor(@Inject(InspectionService) private readonly service: InspectionService) {}
+  @Get() list(@Req() r: AuthenticatedRequest, @Query() q: unknown) {
+    return this.service.list(r.principal, q, r.requestId);
+  }
   @Get(':id') get(@Req() r: AuthenticatedRequest, @Param('id') id: string) {
     return this.service.get(r.principal, id, r.requestId);
   }

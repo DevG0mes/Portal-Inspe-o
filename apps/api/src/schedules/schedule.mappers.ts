@@ -27,6 +27,9 @@ export function scheduleSummary(row: InspectionSchedule): ScheduleSummary {
 }
 export function assignmentSummary(row: InspectionAssignment, now = new Date()): AssignmentSummary {
   return {
+    inspectionId: null,
+    inspectionState: null,
+    canStart: false,
     id: row.id,
     scheduleId: row.schedule.id,
     name: row.schedule.name,

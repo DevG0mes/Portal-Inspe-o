@@ -108,6 +108,29 @@ it('creates a pinned draft and enforces current scope on every operation', async
       .status,
   ).toBe(403);
   expect((await call(`/inspections/${row.id}`, 'GET', undefined, 3)).status).toBe(200);
+  expect(row).toMatchObject({ canEdit: true, canReopen: false });
+  const manager = await (await call(`/inspections/${row.id}`, 'GET', undefined, 3)).json();
+  expect(manager).toMatchObject({ canEdit: false, canReopen: true });
+});
+
+it('paginates scoped inspection summaries without snapshots or other peoples answers', async () => {
+  const row = await create();
+  const response = await call('/inspections?pageSize=1&state=DRAFT');
+  expect(response.status).toBe(200);
+  const list = await response.json();
+  expect(list.total).toBeGreaterThan(0);
+  expect(list.data).toHaveLength(1);
+  expect(list.data[0]).toMatchObject({
+    unitName: 'Unidade',
+    sectorName: 'Setor',
+    title: 'Inspeção de segurança',
+    state: 'DRAFT',
+  });
+  expect(list.data[0]).not.toHaveProperty('snapshot');
+  expect(list.data[0]).not.toHaveProperty('answers');
+  const outside = await (await call('/inspections', 'GET', undefined, 2)).json();
+  expect(outside.total).toBe(0);
+  expect((await call(`/inspections/${row.id}`, 'GET', undefined, 2)).status).toBe(403);
 });
 it('serializes concurrent autosaves and rejects stale revisions without losing the winner', async () => {
   const row = await create();
@@ -294,6 +317,12 @@ it('shares one assigned inspection, prevents early starts and keeps its pinned v
     b = await results[1]!.json();
   expect(a.id).toBe(b.id);
   expect(a.formVersionNumber).toBe(1);
+  const assignments = await (await call('/schedules/assignments')).json();
+  expect(assignments.data.find((item: { id: string }) => item.id === assignment.id)).toMatchObject({
+    inspectionId: a.id,
+    inspectionState: 'DRAFT',
+    canStart: false,
+  });
   expect(a.snapshot.title).toBe('Inspeção de segurança');
   expect((await create()).formVersionNumber).toBe(2);
   expect(

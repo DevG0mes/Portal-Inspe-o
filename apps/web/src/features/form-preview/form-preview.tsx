@@ -2,9 +2,10 @@
 import { useId, useMemo, useState } from 'react';
 import type { AnswerInput, EvaluationResult, FormVersionSnapshot } from '@portal/contracts';
 import { RuleEngine } from '@portal/form-engine';
-import { Button, Field, Input, Notice, Select } from '@portal/ui';
+import { Button, Notice } from '@portal/ui';
 import { api } from '../../lib/api-client';
 import { ErrorNotice } from '../shared/error-notice';
+import { QuestionField } from '../shared/question-field';
 import { IssueSummary } from '../form-builder/issue-summary';
 import { priorityLabels } from '../form-builder/model';
 export function FormPreview({
@@ -82,62 +83,14 @@ export function FormPreview({
                         : undefined;
                       const id = `preview-${prefix}-${question.id}`;
                       return (
-                        <Field
+                        <QuestionField
                           key={question.id}
                           id={id}
-                          label={`${question.label}${question.required ? ' (obrigatória)' : ''}`}
+                          question={question}
+                          value={value}
                           error={error}
-                        >
-                          {question.type === 'SELECT' || question.type === 'YES_NO_NA' ? (
-                            <Select
-                              id={id}
-                              value={String(value)}
-                              aria-invalid={!!error}
-                              aria-describedby={error ? `${id}-error` : undefined}
-                              onChange={(event) => answer(question.id, event.target.value || null)}
-                            >
-                              <option value="">Selecione…</option>
-                              {(question.type === 'SELECT'
-                                ? (question.options ?? [])
-                                : [
-                                    { id: 'YES', label: 'Sim' },
-                                    { id: 'NO', label: 'Não' },
-                                    { id: 'NA', label: 'Não se aplica' },
-                                  ]
-                              ).map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <Input
-                              id={id}
-                              type={
-                                question.type === 'NUMBER'
-                                  ? 'number'
-                                  : question.type === 'DATE'
-                                    ? 'date'
-                                    : 'text'
-                              }
-                              step={question.type === 'NUMBER' ? 'any' : undefined}
-                              maxLength={10000}
-                              value={value}
-                              aria-invalid={!!error}
-                              aria-describedby={error ? `${id}-error` : undefined}
-                              onChange={(event) =>
-                                answer(
-                                  question.id,
-                                  event.target.value === ''
-                                    ? null
-                                    : question.type === 'NUMBER'
-                                      ? Number(event.target.value)
-                                      : event.target.value,
-                                )
-                              }
-                            />
-                          )}
-                        </Field>
+                          onChange={(value) => answer(question.id, value)}
+                        />
                       );
                     })}
                   </section>

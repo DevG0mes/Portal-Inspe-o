@@ -42,3 +42,7 @@ Tokens `--danger`/`--danger-soft` representam falha; `--success`/`--success-soft
 ## Construtor de fichas
 
 O construtor continua a referência de ficha operacional: seções numeradas e perguntas em cartões com faixa azul, numeradas pela ordem real. A barra de ações informa a situação do rascunho e a revisão confirmada; não fica sobre os campos. Uma única rolagem de documento, com controles quebrando linha no celular. Condições e regras têm agrupamentos/legendas visíveis e fundo de apoio. Prévia usa os mesmos campos e separa respostas de ocorrências simuladas. Conteúdo local de conflito usa textarea somente leitura, altura suficiente, sem redimensionamento e com rolagem. Nenhuma fonte, cor ou biblioteca visual paralela foi adicionada.
+
+## Preenchimento em campo
+
+`features/inspection-runner` mantém a ficha operacional em coluna única. Uma faixa superior mostra perguntas respondidas e confirmação de salvamento; não fica sobre os campos. Seções seguem a ordem da ficha publicada, com campos canônicos compartilhados com a prévia. Conclusões usam leitura por pergunta/resposta e seletor de ciclo. Rascunhos, erros e conflitos têm texto explícito e recuperação no mesmo documento. Sem promessa de operação offline.

@@ -23,4 +23,17 @@ export interface InspectionView {
   cycle: number;
   answers: AnswerInput[];
   submissions: InspectionSubmissionView[];
+  canEdit: boolean;
+  canReopen: boolean;
+}
+
+export interface InspectionSummary {
+  id: string;
+  title: string;
+  unitName: string;
+  sectorName: string;
+  createdByName: string;
+  formVersionNumber: number;
+  state: 'DRAFT' | 'COMPLETED';
+  updatedAt: string;
 }

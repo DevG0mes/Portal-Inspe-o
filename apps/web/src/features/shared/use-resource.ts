@@ -5,22 +5,25 @@ import { api } from '../../lib/api-client';
 export function useResource<T>(path: string | null, revision = 0) {
   const [state, setState] = useState<{
     path: string | null;
+    revision: number;
     data?: T;
     error?: unknown;
     loading: boolean;
-  }>({ path, loading: true });
+  }>({ path, revision, loading: true });
   useEffect(() => {
     if (!path) return;
     const controller = new AbortController();
-    setState({ path, loading: true });
+    setState({ path, revision, loading: true });
     api<T>(path, { signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) setState({ path, data, loading: false });
+        if (!controller.signal.aborted) setState({ path, revision, data, loading: false });
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setState({ path, error, loading: false });
+        if (!controller.signal.aborted) setState({ path, revision, error, loading: false });
       });
     return () => controller.abort();
   }, [path, revision]);
-  return state.path === path ? state : { path, loading: true, data: undefined, error: undefined };
+  return state.path === path && state.revision === revision
+    ? state
+    : { path, revision, loading: true, data: undefined, error: undefined };
 }

@@ -1,6 +1,6 @@
-# Execução de inspeções — núcleo HTTP
+# Execução de inspeções
 
-Esta é a primeira parte da tarefa 9. O núcleo de persistência está separado da futura interface de preenchimento e do serviço de evidências. Não há upload, modo offline ou plano de ação nesta entrega.
+Esta é a segunda parte da tarefa 9. Núcleo HTTP e interface de preenchimento estão disponíveis. O serviço de evidências segue pendente; não há upload, modo offline ou plano de ação nesta entrega.
 
 ## Contratos e organização
 
@@ -47,4 +47,12 @@ Triggers PostgreSQL rejeitam UPDATE, DELETE e TRUNCATE de conclusões, incluindo
 
 Os testes HTTP usam PostgreSQL descartável com migrações reais, contas fictícias e porta aleatória. Cobrem concorrência, validação, escopo revogado, publicação posterior, início compartilhado e antecipado, idempotência, reabertura e imutabilidade no banco.
 
-Ainda faltam para concluir a tarefa 9: listagem paginada de inspeções, integração das atribuições com estado de execução, tela responsiva com autosave e recuperação, observações por pergunta, evidências privadas no MinIO, promoção compensável, limpeza de uploads abandonados e testes de browser do fluxo completo. O plano permanece aberto nesses itens.
+## Interface de execução
+
+As rotas `/inspections`, `/inspections/new` e `/inspections/:id` exigem sessão no servidor. O BFF encaminha JSON para inspeções sob as mesmas verificações de origem, tamanho e timeout das demais rotas. `GET /api/inspections` aceita page/pageSize/state e aplica escopo/autoria antes da contagem. A lista expõe metadados, sem respostas ou snapshots no DTO. `canEdit` e `canReopen` são calculados com o usuário atual na API e orientam os controles, sem substituir a autorização das mutações.
+
+O salvamento reutiliza `features/shared/draft-session.ts`, extraído do construtor e tornado genérico. Campos tipados pertencem a `features/shared/question-field.tsx`, também consumido pela prévia. A execução mostra progresso das perguntas visíveis, aguarda a gravação mais recente antes da conclusão e preserva o conteúdo local quando há falha ou conflito. Conclusões permitem selecionar ciclos anteriores, inclusive durante o preenchimento de outro ciclo. Gestor não responsável consulta o rascunho, sem editor.
+
+Ruling: situação de prazo e situação de execução da atribuição são distintas — concluir não deve apagar o histórico de ocorrências vencidas — custo: a lista apresenta ambas, com ações de iniciar/continuar/consultar. O servidor busca vínculos de inspeção em lote.
+
+Ainda faltam para concluir a tarefa 9: observações por pergunta, evidências privadas no MinIO, promoção compensável, limpeza de uploads abandonados e testes de browser incluindo arquivos. O plano permanece aberto nesses itens.

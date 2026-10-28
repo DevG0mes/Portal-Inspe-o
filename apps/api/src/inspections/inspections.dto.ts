@@ -1,6 +1,11 @@
 import { z } from 'zod';
-import { parseInput } from '../common/input.js';
+import { paginationShape, parseInput } from '../common/input.js';
 const revision = z.number().int().positive().max(2147483646);
+export const parseInspectionQuery = (raw: unknown) =>
+  parseInput(
+    z.object({ ...paginationShape, state: z.enum(['DRAFT', 'COMPLETED']).optional() }).strict(),
+    raw,
+  );
 export const parseCreateInspection = (raw: unknown) =>
   parseInput(
     z.union([

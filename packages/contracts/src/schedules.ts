@@ -37,4 +37,7 @@ export interface AssignmentSummary {
   dueAt: string;
   state: AssignmentState;
   responsibles: { id: string; name: string }[];
+  inspectionId: string | null;
+  inspectionState: 'DRAFT' | 'COMPLETED' | null;
+  canStart: boolean;
 }

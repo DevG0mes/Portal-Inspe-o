@@ -348,7 +348,7 @@
 - Consome: `RuleEngine.evaluate`, `AccessPolicy.assertUnitSector`.
 - Produz: criar inspeção avulsa/atribuída, salvar rascunho com versão otimista, preparar/finalizar upload, concluir e reabrir inspeção.
 
-- [ ] **Passo 1: Escrever testes do ciclo que falham**
+- [x] **Passo 1: Escrever testes do ciclo que falham**
 
   Cobrir escopo, autosave, conflito de versão, campos ocultos, obrigatórios, conclusão repetida, snapshot imutável, reabertura justificada e geração determinística de não conformidades.
 
@@ -356,7 +356,7 @@
 
   Rejeitar MIME/extensão/tamanho inválido, chave pertencente a outro usuário e finalização sem objeto; remover upload abandonado por job de limpeza.
 
-- [ ] **Passo 3: Implementar domínio e endpoints de inspeção**
+- [x] **Passo 3: Implementar domínio e endpoints de inspeção**
 
   Recalcular regras no backend dentro da transação de conclusão. Usar restrição única para impedir duas conclusões ou ocorrências iguais.
 

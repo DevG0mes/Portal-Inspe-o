@@ -32,3 +32,13 @@ Campos DATE da prévia usam input date nativo (popup, teclado e formato visual d
 | Toast          | Notice in packages/ui                            | UX-CONTRACT.md                | inline success, error        | auth-form.test.tsx, auth-admin.spec.ts |
 | CRUD           | features/admin                                   | API contracts, UX-CONTRACT.md | paginated, soft deactivation | apps/web/e2e/auth-admin.spec.ts        |
 | Date           | packages/ui Input in features/form-preview       | UX-CONTRACT.md                | native                       | apps/web/e2e/form-builder.spec.ts      |
+
+## Execução de inspeções
+
+`features/inspection-runner` é proprietário da listagem, criação e execução. `features/shared/draft-session.ts` passa a ser o proprietário do autosave serializado genérico; o construtor mantém uma fachada de importação compatível. `features/shared/question-field.tsx` é o renderizador editável dos tipos de resposta, usado pela prévia e pela execução.
+
+Criação avulsa usa seletores remotos paginados e confirmação; navegar para o registro substitui a entrada de criação. Atribuições iniciam por navegação de documento e retomam o mesmo ID compartilhado. As ações disponíveis e o estado de execução vêm da API. Prazo e situação de execução são exibidos separadamente.
+
+Autosave de 700 ms pausa em IME, serializa gerações e preserva digitação recente. Falha exige retry explícito; conflito interrompe a escrita e disponibiliza uma cópia local antes do descarte confirmado. Recarregamento explícito nunca monta o editor com dados da revisão anterior. Sem armazenamento offline. Beforeunload e DirtyGuard protegem alterações pendentes.
+
+Revisar/concluir espera a última gravação, valida o conteúdo visível com o motor compartilhado e foca o primeiro campo inválido. A confirmação bloqueia edição; concluir usa a revisão confirmada e o ciclo. Retentativa manual após falha de resposta é idempotente no servidor. Conclusões exibem perguntas/respostas aceitas e ocorrências por ciclo; reabertura exige justificativa. Verificação em `apps/web/e2e/inspection.spec.ts`, incluindo teclado/foco, falhas, duas abas, WCAG A/AA e viewport móvel.

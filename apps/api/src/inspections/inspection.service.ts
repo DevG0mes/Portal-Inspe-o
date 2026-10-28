@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
-import { LockMode } from '@mikro-orm/core';
+import { LockMode, type FilterQuery } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import type { AuthenticatedPrincipal, InspectionView } from '@portal/contracts';
 import { RuleEngine } from '@portal/form-engine';
@@ -18,6 +18,7 @@ import {
   parseInspectionDraft,
   parseCompleteInspection,
   parseReopenInspection,
+  parseInspectionQuery,
 } from './inspections.dto.js';
 
 /** Mutations lock the inspection before reading its revision, state or completion cycle. */
@@ -72,8 +73,19 @@ export class InspectionService {
     await this.authorize(actor, row, em, requestId, write);
     return row;
   }
-  private async view(row: Inspection, em: EntityManager): Promise<InspectionView> {
+  private async view(
+    actor: AuthenticatedPrincipal,
+    row: Inspection,
+    em: EntityManager,
+  ): Promise<InspectionView> {
     await em.populate(row, ['formVersion']);
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const canEdit =
+      row.createdBy.id === user.id ||
+      !!(
+        row.assignment &&
+        (await em.count(AssignmentResponsible, { assignment: row.assignment.id, user: user.id }))
+      );
     const history = await em.find(
       InspectionSubmission,
       { inspection: row.id },
@@ -91,6 +103,8 @@ export class InspectionService {
       state: row.state,
       revision: row.revision,
       cycle: row.cycle,
+      canEdit,
+      canReopen: user.role === 'ADMIN' || user.role === 'MANAGER',
       answers: row.answers,
       submissions: history.map((s) => ({
         id: s.id,
@@ -105,7 +119,57 @@ export class InspectionService {
   }
   async get(actor: AuthenticatedPrincipal, id: string, requestId: string) {
     const em = this.entityManager.fork();
-    return this.view(await this.load(actor, id, em, requestId, false), em);
+    return this.view(actor, await this.load(actor, id, em, requestId, false), em);
+  }
+  async list(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
+    const query = parseInspectionQuery(raw),
+      em = this.entityManager.fork();
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const scope = await this.access.sectorFilter(actor, requestId, em);
+    const ownership: FilterQuery<Inspection> =
+      user.role === 'COLLABORATOR'
+        ? {
+            $or: [
+              { createdBy: user.id },
+              { assignment: { responsibles: { $some: { user: user.id } } } },
+            ],
+          }
+        : {};
+    const [rows, total] = await em.findAndCount(
+      Inspection,
+      { $and: [{ sector: scope }, ownership, query.state ? { state: query.state } : {}] },
+      {
+        populate: ['unit', 'sector', 'createdBy', 'formVersion'],
+        fields: [
+          'id',
+          'state',
+          'updatedAt',
+          'unit.name',
+          'sector.name',
+          'createdBy.name',
+          'formVersion.number',
+          'formVersion.snapshot',
+        ],
+        orderBy: { updatedAt: 'desc', id: 'asc' },
+        limit: query.pageSize,
+        offset: (query.page - 1) * query.pageSize,
+      },
+    );
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        title: row.formVersion.snapshot.title,
+        unitName: row.unit.name,
+        sectorName: row.sector.name,
+        createdByName: row.createdBy.name,
+        formVersionNumber: row.formVersion.number,
+        state: row.state,
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
   async create(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const input = parseCreateInspection(raw);
@@ -131,7 +195,7 @@ export class InspectionService {
         if (!(await em.count(AssignmentResponsible, { assignment: assignment.id, user: user.id })))
           throw new ForbiddenException('Atribuição não permitida.');
         const existing = await em.findOne(Inspection, { assignment: assignment.id });
-        if (existing) return this.view(existing, em);
+        if (existing) return this.view(actor, existing, em);
         if (assignment.status !== 'PLANNED' || assignment.occurrenceAt > new Date())
           throw new ConflictException('Atribuição cancelada ou ainda não disponível.');
         row.formVersion = assignment.formVersion;
@@ -164,7 +228,7 @@ export class InspectionService {
         },
         em,
       );
-      return this.view(row, em);
+      return this.view(actor, row, em);
     });
   }
   async save(actor: AuthenticatedPrincipal, id: string, raw: unknown, requestId: string) {
@@ -192,7 +256,7 @@ export class InspectionService {
         },
         em,
       );
-      return this.view(row, em);
+      return this.view(actor, row, em);
     });
   }
   async complete(actor: AuthenticatedPrincipal, id: string, raw: unknown, requestId: string) {
@@ -205,7 +269,7 @@ export class InspectionService {
           inspection: row.id,
           cycle: row.cycle,
         });
-        if (prior?.sourceRevision === input.revision) return this.view(row, em);
+        if (prior?.sourceRevision === input.revision) return this.view(actor, row, em);
         throw new ConflictException('Inspeção já concluída.');
       }
       if (row.revision !== input.revision)
@@ -241,7 +305,7 @@ export class InspectionService {
         },
         em,
       );
-      return this.view(row, em);
+      return this.view(actor, row, em);
     });
   }
   async reopen(actor: AuthenticatedPrincipal, id: string, raw: unknown, requestId: string) {
@@ -265,7 +329,7 @@ export class InspectionService {
         },
         em,
       );
-      return this.view(row, em);
+      return this.view(actor, row, em);
     });
   }
 }

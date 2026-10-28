@@ -13,6 +13,7 @@
   },
   "evidence": {
     "crudFullFlow": "apps/web/e2e/auth-admin.spec.ts",
-    "failurePaths": "apps/web/e2e/auth-admin.spec.ts"
+    "failurePaths": "apps/web/e2e/auth-admin.spec.ts",
+    "inspectionExecution": "apps/web/e2e/inspection.spec.ts"
   }
 }

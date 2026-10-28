@@ -967,3 +967,39 @@ dialog::backdrop {
     margin-bottom: 12px;
   }
 }
+/* Execution uses the established document scroll, card surfaces and answer controls. */
+.inspection-status progress {
+  display: block;
+  width: 100%;
+  height: 12px;
+  margin-block: 12px;
+  accent-color: var(--brand);
+}
+.inspection-questions fieldset {
+  min-inline-size: 0;
+}
+.inspection-questions .card + .card {
+  margin-block-start: 16px;
+}
+.inspection-record {
+  margin: 0;
+}
+.inspection-record > div {
+  padding-block: 12px;
+  border-block-end: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.inspection-record dt {
+  font-weight: 600;
+}
+.inspection-record dd {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+.inspection-history > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 12px;
+  color: var(--brand);
+  font-weight: 600;
+}
