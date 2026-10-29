@@ -129,6 +129,18 @@ test('assigns a corrective plan, submits evidence, returns it and approves with 
   const url = page.url();
   await expect(page.getByRole('button', { name: 'Iniciar execução', exact: true })).toHaveCount(0);
   await role(page, 'collaborator');
+  await page.goto('/notifications');
+  const notice = page
+    .getByRole('listitem')
+    .filter({ has: page.locator(`a[href="${new URL(url).pathname}"]`) });
+  await expect(notice.getByText('Plano de ação atribuído', { exact: true })).toBeVisible();
+  await notice.getByRole('button', { name: 'Marcar como lida', exact: true }).click();
+  await expect(notice.getByText('Lida', { exact: true })).toBeVisible();
+  await accessible(page);
+  await page.screenshot({
+    path: `test-results/notifications-${info.project.name}.png`,
+    fullPage: true,
+  });
   await page.goto(url);
   await page.getByRole('button', { name: 'Iniciar execução', exact: true }).click();
   await confirm(page);
@@ -247,4 +259,45 @@ test('keeps a local comment when another tab changes the plan and recovers only 
     .click();
   await expect(other.getByLabel('Comentário ou justificativa', { exact: true })).toHaveValue('');
   await other.close();
+});
+
+test('recovers notification reads and mutations without losing unread notices', async ({
+  page,
+}, info) => {
+  const fixture = await source(page, `Avisos ${info.project.name}`);
+  await role(page, 'manager');
+  const candidates = await (
+    await page.request.get(
+      `/api/schedules/candidates?unitId=${fixture.unitId}&sectorId=${fixture.sectorId}`,
+    )
+  ).json();
+  await page.request.post('/api/action-plans', {
+    headers: { Origin: origin },
+    data: {
+      sourceSubmissionId: fixture.submissionId,
+      questionId: fixture.questionId,
+      responsibleId: candidates.data.find((u: { name: string }) => u.name === 'Colaborador teste')
+        .id,
+      description: 'Verificar proteção do equipamento',
+      priority: 'HIGH',
+      dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+    },
+  });
+  await role(page, 'collaborator');
+  await page.route('**/api/notifications?*', (route) => route.fulfill({ status: 503, body: '{}' }));
+  await page.goto('/notifications?unread=true');
+  await expect(page.getByRole('alert').filter({ hasText: /Não foi possível/ })).toBeVisible();
+  await page.unroute('**/api/notifications?*');
+  await page.getByRole('button', { name: 'Atualizar avisos', exact: true }).click();
+  await expect(page.getByRole('listitem').first()).toBeVisible();
+  await page.route('**/api/notifications/read-all', (route) =>
+    route.fulfill({ status: 503, body: '{}' }),
+  );
+  await page.getByRole('button', { name: 'Marcar todas como lidas', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: /Não foi possível/ })).toBeVisible();
+  await expect(page.getByRole('listitem').first()).toBeVisible();
+  await page.unroute('**/api/notifications/read-all');
+  await page.getByRole('button', { name: 'Marcar todas como lidas', exact: true }).click();
+  await expect(page.getByText('Nenhuma notificação neste filtro.', { exact: true })).toBeVisible();
+  await accessible(page);
 });

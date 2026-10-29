@@ -2,7 +2,26 @@
 
 ## Estado atual
 
-Tarefas 1 a 10 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam notificações internas (11), métricas (12), relatórios (13) e preparação operacional de produção (14).
+Tarefas 1 a 11 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam métricas (12), relatórios (13) e preparação operacional de produção (14).
+
+## Tarefa 11 — notificações internas em 29/10/2026
+
+- Migração 202610290002, entidade, contratos e API de lista paginada, contagem de não lidas e leitura individual/em lote. Destinatário aplicado antes de paginação/contagem; leitura de outra pessoa retorna 404.
+- Emissão usa EntityManager da transação de negócio, constraint única por evento/destinatário e ON CONFLICT sem alterar readAt. Criação/reatribuição de plano e materialização de inspeção avisam responsáveis; solicitação de validação avisa gestores elegíveis e administradores; aprovação/devolução avisam responsável. Comentários não geram avisos.
+- Ruling: helper transacional `emitOnce` é função interna compartilhada, sem endpoint de emissão — evita dependência circular entre módulos e impede gravação fora da transação — custo: chamadores precisam fornecer o EM transacional, documentado e verificado por rollback real.
+- Job `notify-deadlines` na fila existente, a cada 15 minutos. Proximidade até 24h, vencimento separado, 100 destinatários por tipo/lote, anti-join persistente evita starvation. Chaves usam instante epoch, sem depender de timezone da conexão. Conclusões/cancelamentos/usuários e escopos inativos são excluídos. Repetição não duplica. Decisões detalhadas em `notifications.md`.
+- Avisos guardam somente tipo e referência. Título e link são projetados após autorização atual; revogação/reatribuição não revela o conteúdo antigo. Planos abrem detalhe; atribuições abrem lista autorizada. Histórico de avisos permanece com registro indisponível quando necessário.
+- Central em `/notifications`, filtro não lidas na URL, paginação, atualização explícita, erros com retry e marcação idempotente. Indicador no menu atualiza ao mudar rota, voltar à aba, marcar leitura e a cada minuto visível; requisições antigas são canceladas. Usa componentes e estilos existentes, sem dependência nova e sem e-mail/push externo.
+- RED→GREEN: emissão e central ausentes; duplicação concorrente/rollback/leitura; eventos do fluxo e prazos; título autorizado/null sem acesso. Browser verifica falhas de consulta/escrita com retry, leitura individual/em lote, filtro vazio e acessibilidade. README, DESIGN e UX-CONTRACT atualizados.
+- Revisão independente sem bloqueadores P1/P2. Observação menor registrada: contador operacional de tentativas do job pode superar inserções em corrida de workers; unicidade/leitura permanecem corretas e esse contador não governa processamento ou métricas do portal.
+
+### Evidências da tarefa 11
+
+- `pnpm test`: 70 aprovados; `pnpm test:e2e`: 87 aprovados; `pnpm test:integration`: 10 aprovados, incluindo schema e ciclo de migrações. Rodadas focadas posteriores de notificações/planos/programações também aprovadas.
+- `pnpm test:browser`: 36 cenários aprovados, 18 desktop e 18 celular. Total: 203 testes/cenários distintos. Fluxo de correção inclui central e leitura; novo cenário testa falhas, retry e leitura em lote com filtro vazio.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Axe WCAG A/AA sem violações nas telas exercitadas; sem overflow horizontal móvel. Captura da central móvel com títulos e paginação examinada.
+- Migração 202610290002 aplicada ao banco local e API/web/worker reiniciados. Health ready: PostgreSQL/Redis/MinIO up. API sem sessão retorna 401; página protegida redireciona a `/login`. Redis confirmou os schedulers de materialização, limpeza e notificações. Job real `notify-deadlines` processado pelo worker com sucesso, sem avisos elegíveis no banco local.
+- Limites: avisos exclusivamente internos, polling sem push; até 100 destinatários por tipo a cada 15 minutos para prazos. Homologação em aparelho físico e preparação de produção permanecem posteriores. Não houve publicação externa.
 
 ## Tarefa 10 — planos de ação em 29/10/2026
 

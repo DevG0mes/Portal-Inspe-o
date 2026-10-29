@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório começou com a especificação e um plano de 14 tarefas. Fundação, autenticação, administração de usuários e organização, formulários versionados e motor de regras estão implementados na API, na branch `codex/portal-foundation`. A interface oferece login, troca de senha e administração de usuários, unidades, setores e vínculos. O construtor visual permite editar, simular e publicar versões de formulários. Programações únicas/recorrentes e atribuições já são materializadas pelo worker. A execução de inspeções é a próxima etapa. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório segue uma especificação e um plano de 14 tarefas, na branch `codex/portal-foundation`. Já oferece autenticação, administração de usuários e organização, formulários versionados, programação recorrente, execução de inspeções com evidências privadas e planos de ação com validação gerencial. A central de notificações internas acompanha atribuições, prazos e decisões. Restam painéis de indicadores, relatórios PDF/Excel e preparação operacional de produção. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 

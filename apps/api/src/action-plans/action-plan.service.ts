@@ -13,6 +13,7 @@ import { EvidenceArtifact, evidenceView } from '../files/file.entity.js';
 import { ActionPlan, ActionPlanEvent } from './action-plan.entity.js';
 import { ActionPlanAccess } from './action-plan.access.js';
 import { transition, isOverdue } from './action-plan.machine.js';
+import { emitOnce, managers } from '../notifications/notification-events.js';
 import {
   deadline,
   parseActionCreate,
@@ -264,6 +265,12 @@ export class ActionPlanService {
         },
       });
       em.persist(event);
+      await em.flush();
+      await emitOnce(em, `action-assigned-${event.id}`, responsible.id, {
+        kind: 'ACTION_ASSIGNED',
+        resourceType: 'ACTION_PLAN',
+        resourceId: row.id,
+      });
       await this.audit.record(
         {
           actorId: user.id,
@@ -380,6 +387,27 @@ export class ActionPlanService {
       row.state = state;
       row.revision++;
       if (state === 'COMPLETED' && input.type === 'APPROVE') row.completedAt = new Date();
+      await em.flush();
+      if (input.type === 'REQUEST_VALIDATION') {
+        for (const manager of await managers(em, row.unit.id, row.sector.id))
+          await emitOnce(em, `action-review-${event.id}`, manager.id, {
+            kind: 'ACTION_REVIEW',
+            resourceType: 'ACTION_PLAN',
+            resourceId: row.id,
+          });
+      } else if (input.type === 'ASSIGN' || input.type === 'APPROVE' || input.type === 'RETURN') {
+        const kind =
+          input.type === 'ASSIGN'
+            ? 'ACTION_ASSIGNED'
+            : input.type === 'APPROVE'
+              ? 'ACTION_APPROVED'
+              : 'ACTION_RETURNED';
+        await emitOnce(em, `action-${input.type}-${event.id}`, row.responsible.id, {
+          kind,
+          resourceType: 'ACTION_PLAN',
+          resourceId: row.id,
+        });
+      }
       await this.audit.record(
         {
           actorId: user.id,

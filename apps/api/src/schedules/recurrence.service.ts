@@ -11,6 +11,7 @@ import {
   AssignmentResponsible,
 } from './schedule.entity.js';
 import { validateOperational } from './schedule-policy.js';
+import { emitOnce } from '../notifications/notification-events.js';
 export class RecurrenceService {
   constructor(
     private readonly entityManager: EntityManager,
@@ -103,6 +104,13 @@ export class RecurrenceService {
       assignment.status = 'PLANNED';
       const next = nextOccurrence(schedule, at.toISOString());
       schedule.nextOccurrenceAt = next ? new Date(next) : null;
+      await em.flush();
+      for (const user of checked.users)
+        await emitOnce(em, `assignment-${assignment.id}`, user.id, {
+          kind: 'ASSIGNMENT_ASSIGNED',
+          resourceType: 'ASSIGNMENT',
+          resourceId: assignment.id,
+        });
       await this.audit.record(
         {
           action: previous ? 'schedules.occurrence_restored' : 'schedules.materialized',

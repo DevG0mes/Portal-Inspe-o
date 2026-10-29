@@ -7,6 +7,7 @@ import { api } from '../../lib/api-client';
 import { ErrorNotice } from '../shared/error-notice';
 import type { Principal } from '../../lib/session';
 import { roleLabels } from '../admin/config';
+import { UnreadIndicator } from '../notifications/unread-indicator';
 export function PortalShell({ role, children }: { role: Principal['role']; children: ReactNode }) {
   const path = usePathname();
   const [expanded, setExpanded] = useState(false);
@@ -17,6 +18,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
     ['/assignments', 'Atribuições'],
     ['/inspections', 'Inspeções'],
     ['/action-plans', 'Planos de ação'],
+    ['/notifications', 'Notificações'],
     ...(role !== 'COLLABORATOR' ? [['/schedules', 'Programações']] : []),
     ...(role === 'ADMIN'
       ? [
@@ -68,6 +70,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
               onClick={() => setExpanded(false)}
             >
               {label}
+              {href === '/notifications' && <UnreadIndicator />}
             </Link>
           ))}
         </nav>

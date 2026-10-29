@@ -12,6 +12,7 @@ import { PasswordService } from '../src/auth/password.service.js';
 import { FormTemplate } from '../src/forms/entities/form-template.entity.js';
 import { FormVersion } from '../src/forms/entities/form-version.entity.js';
 import { definition, question } from './helpers/form-fixtures.js';
+import { DeadlineNotifications } from '../src/notifications/deadline-notifications.js';
 let database: Awaited<ReturnType<typeof createTestDatabase>>, app: INestApplication, origin: string;
 let users: User[], unit: Unit, sector: Sector, form: FormTemplate;
 const item = question('YES_NO_NA', {
@@ -150,6 +151,51 @@ async function command(id: string, revision: number, type: string, extra: object
     user,
   );
 }
+it('emits due and overdue notices once per deadline, skips completed plans and respects current grants', async () => {
+  const row = await create(),
+    deadlines = new DeadlineNotifications(database.orm.em);
+  const at = new Date(row.dueAt);
+  await deadlines.run(new Date(at.getTime() - 3600000));
+  await deadlines.run(new Date(at.getTime() - 3600000));
+  await deadlines.run(new Date(at.getTime() + 1));
+  await deadlines.run(new Date(at.getTime() + 1));
+  const notices = (await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json())
+    .data;
+  expect(
+    notices
+      .filter((n: { resourceId: string }) => n.resourceId === row.id)
+      .map((n: { kind: string }) => n.kind)
+      .sort(),
+  ).toEqual(['ACTION_ASSIGNED', 'ACTION_DUE', 'ACTION_OVERDUE']);
+  await database.orm.em
+    .fork()
+    .execute(
+      "update action_plan set state='COMPLETED',due_at=due_at+interval '2 days' where id=?",
+      [row.id],
+    );
+  await deadlines.run(new Date(at.getTime() + 2 * 86400000));
+  expect(
+    (await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json()).data.filter(
+      (n: { resourceId: string }) => n.resourceId === row.id,
+    ),
+  ).toHaveLength(3);
+  await database.orm.em
+    .fork()
+    .execute("update action_plan set state='OPEN',responsible_id=? where id=?", [
+      users[3]!.id,
+      row.id,
+    ]);
+  await deadlines.run(new Date(at.getTime() + 2 * 86400000));
+  expect((await (await call('/notifications', 'GET', undefined, 3)).json()).total).toBe(0);
+  const oldRecipient = (
+    await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json()
+  ).data;
+  expect(
+    oldRecipient
+      .filter((n: { resourceId: string }) => n.resourceId === row.id)
+      .every((n: { href: string | null }) => n.href === null),
+  ).toBe(true);
+});
 it('lists authorized occurrences, creates once per occurrence and filters responsibility before counting', async () => {
   const input = await occurrence();
   const list = await call('/action-plans/occurrences');
@@ -165,6 +211,13 @@ it('lists authorized occurrences, creates once per occurrence and filters respon
     two = await results[1]!.json();
   expect(one.id).toBe(two.id);
   expect(one.state).toBe('OPEN');
+  const notifications = await call('/notifications', 'GET', undefined, 2);
+  expect(notifications.status).toBe(200);
+  const notices = (await notifications.json()).data;
+  expect(notices.find((n: { resourceId: string }) => n.resourceId === one.id).resourceTitle).toBe(
+    one.description,
+  );
+  expect(notices.filter((n: { resourceId: string }) => n.resourceId === one.id)).toHaveLength(1);
   expect((await (await call('/action-plans', 'GET', undefined, 3)).json()).total).toBe(0);
   expect((await call(`/action-plans/${one.id}`, 'GET', undefined, 3)).status).toBe(403);
   expect((await call('/action-plans', 'POST', await occurrence(), 2)).status).toBe(403);
@@ -232,6 +285,20 @@ it('requires correction evidence, records decisions immutably and retries comman
   ).json();
   expect(repeated.revision).toBe(row.revision);
   expect(repeated.history.total).toBe(6);
+  const responsibleNotices = (await (await call('/notifications', 'GET', undefined, 2)).json())
+    .data;
+  expect(
+    responsibleNotices
+      .filter((n: { resourceId: string }) => n.resourceId === row.id)
+      .map((n: { kind: string }) => n.kind)
+      .sort(),
+  ).toEqual(['ACTION_APPROVED', 'ACTION_ASSIGNED', 'ACTION_RETURNED']);
+  const managerNotices = (await (await call('/notifications')).json()).data;
+  expect(
+    managerNotices.filter(
+      (n: { resourceId: string }) => n.resourceId === row.id && n.kind === 'ACTION_REVIEW',
+    ),
+  ).toHaveLength(2);
   expect((await command(row.id, 1, 'COMMENT', { text: 'Comentário antigo' })).status).toBe(409);
   await expect(
     database.orm.em

@@ -7,6 +7,7 @@ import { InspectionService } from '../inspections/inspection.service.js';
 import { AccessPolicy } from '../access/access-policy.service.js';
 import { MinioStorageAdapter } from '../files/minio-storage.adapter.js';
 import { loadEnvironment } from '@portal/config';
+import { DeadlineNotifications } from '../notifications/deadline-notifications.js';
 /** Server-only worker entrypoint. Reuses the domain transaction without starting HTTP. */
 export async function createSchedulingRuntime(databaseUrl: string) {
   const database = await MikroORM.init(createDatabaseOptions(databaseUrl));
@@ -23,6 +24,7 @@ export async function createSchedulingRuntime(databaseUrl: string) {
   return {
     due: () => recurrence.due(),
     cleanupUploads: () => files.cleanup(),
+    notifyDeadlines: () => new DeadlineNotifications(database.em).run(),
     materialize: (id: string, at: string, key: string) => recurrence.materialize(id, at, key),
     close: () => database.close(true),
   };

@@ -419,19 +419,19 @@
 **Interfaces:**
 - Produz: `NotificationService.emitOnce(eventKey, recipientId, payload): Promise<void>`; listar, contar não lidas, marcar uma/todas como lidas.
 
-- [ ] **Passo 1: Escrever testes que falham para eventos e deduplicação**
+- [x] **Passo 1: Escrever testes que falham para eventos e deduplicação**
 
   Cobrir atribuição, proximidade/vencimento, validação, aprovação e devolução; repetir job não duplica notificação.
 
-- [ ] **Passo 2: Implementar geração transacional e jobs de prazo**
+- [x] **Passo 2: Implementar geração transacional e jobs de prazo**
 
   Usar `eventKey` único por evento/destinatário. Link só é retornado se o destinatário ainda pode acessar o recurso.
 
-- [ ] **Passo 3: Implementar central e indicador no frontend**
+- [x] **Passo 3: Implementar central e indicador no frontend**
 
   Paginar resultados, permitir marcar como lida e tratar recurso que deixou de estar disponível.
 
-- [ ] **Passo 4: Verificar e commit**
+- [x] **Passo 4: Verificar e commit**
 
   Executar: `pnpm --filter api test notifications && pnpm --filter worker test && pnpm --filter web test notifications`
 

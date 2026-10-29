@@ -11,6 +11,7 @@ import { Sector } from '../src/organization/sector.entity.js';
 import { UnitMembership, SectorMembership } from '../src/organization/membership.entity.js';
 import { PasswordService } from '../src/auth/password.service.js';
 import { RecurrenceService } from '../src/schedules/recurrence.service.js';
+import { DeadlineNotifications } from '../src/notifications/deadline-notifications.js';
 import { ScheduleService } from '../src/schedules/schedule.service.js';
 import { AuditService } from '../src/audit/audit.service.js';
 import { InspectionAssignment, InspectionSchedule } from '../src/schedules/schedule.entity.js';
@@ -131,6 +132,18 @@ it('materializes concurrent duplicate jobs exactly once, pins the version and co
     1,
   );
   expect(a.dueAt.getTime() - a.occurrenceAt.getTime()).toBe(24 * 3600000);
+  const deadlines = new DeadlineNotifications(database.orm.em);
+  await deadlines.run(new Date(a.dueAt.getTime() - 3600000));
+  await deadlines.run(new Date(a.dueAt.getTime() + 1));
+  await deadlines.run(new Date(a.dueAt.getTime() + 1));
+  const notices = (await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json())
+    .data;
+  expect(
+    notices
+      .filter((n: { resourceId: string }) => n.resourceId === a.id)
+      .map((n: { kind: string }) => n.kind)
+      .sort(),
+  ).toEqual(['ASSIGNMENT_ASSIGNED', 'ASSIGNMENT_DUE', 'ASSIGNMENT_OVERDUE']);
   await expect(recurrence.materialize(schedule.id, at, 'wrong')).rejects.toThrow();
   const rows = await (
     await call('/schedules/assignments?state=UPCOMING', 'GET', undefined, 2)

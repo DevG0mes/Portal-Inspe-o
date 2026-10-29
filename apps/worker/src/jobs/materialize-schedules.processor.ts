@@ -3,6 +3,7 @@ interface Runtime {
   due: () => Promise<{ id: string; nextOccurrenceAt: Date | null; revision?: number }[]>;
   materialize: (id: string, at: string, key: string) => Promise<{ id: string }>;
   cleanupUploads?: () => Promise<{ cleaned: number }>;
+  notifyDeadlines?: () => Promise<{ emitted: number }>;
 }
 interface JobQueue {
   add: (name: string, data: object, options: object) => Promise<unknown> | unknown;
@@ -15,6 +16,10 @@ export async function processSchedulingJob(
   runtime: Runtime,
   queue: JobQueue,
 ) {
+  if (job.name === 'notify-deadlines') {
+    if (!runtime.notifyDeadlines) throw new Error('Deadline notifications unavailable.');
+    return runtime.notifyDeadlines();
+  }
   if (job.name === 'cleanup-uploads') {
     if (!runtime.cleanupUploads) throw new Error('Upload cleanup unavailable.');
     return runtime.cleanupUploads();

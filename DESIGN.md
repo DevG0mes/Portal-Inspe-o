@@ -54,3 +54,7 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 ## Correções e validação
 
 `features/action-plans` organiza ocorrências pendentes, atribuição e execução da correção. Detalhe em coluna única com origem, prazo, evidências e histórico cronológico paginado. Estado e vencimento têm rótulos separados. Ações dependem das permissões recebidas da API; responsáveis usam os mesmos controles privados de evidência da inspeção. Comentário e edição de atribuição preservam conteúdo independente até o envio explícito. Conflito oferece cópia local e descarte confirmado, seguindo a recuperação existente.
+
+## Central de avisos
+
+`features/notifications` apresenta avisos em lista cronológica paginada, com tipo, data em São Paulo e rótulo de leitura. Divisórias e ações seguem o histórico de planos; não há overlay ou toast novo. Indicador textual junto à navegação informa não lidas. Links indisponíveis têm explicação explícita e não convidam a uma ação sem acesso.

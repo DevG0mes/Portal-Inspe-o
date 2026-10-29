@@ -1025,12 +1025,14 @@ dialog::backdrop {
   margin-block-start: 16px;
 }
 .occurrence-list,
-.action-timeline {
+.action-timeline,
+.notification-list {
   padding-inline-start: 24px;
   overflow-wrap: anywhere;
 }
 .occurrence-list > li,
-.action-timeline > li {
+.action-timeline > li,
+.notification-list > li {
   padding-block: 16px;
   border-block-end: 1px solid var(--border);
 }
