@@ -115,12 +115,14 @@ describe('local authentication HTTP contract', () => {
     await database.orm.em.fork().nativeUpdate(User, { id: user.id }, { isActive: false });
     const inactive = await login();
     expect([wrong.status, unknown.status, inactive.status]).toEqual([401, 401, 401]);
-    expect(await wrong.json()).toEqual(await unknown.json());
-    expect(await inactive.json()).toEqual({
-      statusCode: 401,
-      message: 'Credenciais inválidas.',
-      error: 'Unauthorized',
-    });
+    for (const response of [wrong, unknown, inactive]) {
+      expect(await response.json()).toEqual({
+        statusCode: 401,
+        message: 'Credenciais inválidas.',
+        error: 'Unauthorized',
+        requestId: response.headers.get('x-request-id'),
+      });
+    }
   });
 
   it('locks an account temporarily after five failed attempts, without extending the lock', async () => {

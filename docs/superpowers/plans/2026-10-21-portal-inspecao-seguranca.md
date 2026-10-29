@@ -516,23 +516,23 @@
 - Consome: todos os fluxos anteriores.
 - Produz: imagens imutáveis, deployment interno documentado, logs correlacionáveis, health checks e procedimentos verificáveis de backup/restauração.
 
-- [ ] **Passo 1: Escrever teste ponta a ponta do caminho crítico**
+- [x] **Passo 1: Escrever teste ponta a ponta do caminho crítico**
 
   Administrador cria organização/usuários e publica formulário; gestor agenda; colaborador inspeciona com foto; sistema gera não conformidade; responsável corrige; gestor valida; relatório e métricas refletem o resultado.
 
-- [ ] **Passo 2: Implementar proteções transversais**
+- [x] **Passo 2: Implementar proteções transversais**
 
   Adicionar requestId, logs JSON sanitizados, limites de corpo/upload, rate limit de autenticação, cabeçalhos de segurança e tratamento uniforme de erro.
 
-- [ ] **Passo 3: Criar imagens e compose de produção**
+- [x] **Passo 3: Criar imagens e compose de produção**
 
   Executar como usuário não-root, usar Next.js standalone, health checks, secrets por arquivo/ambiente, volumes explícitos e migração como job único antes da API.
 
-- [ ] **Passo 4: Criar e testar backup/restauração**
+- [x] **Passo 4: Criar e testar backup/restauração**
 
   Fazer backup consistente de PostgreSQL e MinIO, restaurar em ambiente descartável e comparar contagens e checksums de amostra.
 
-- [ ] **Passo 5: Executar verificação final**
+- [x] **Passo 5: Executar verificação final**
 
   Executar: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build`
 
@@ -540,7 +540,7 @@
 
   Esperado: tudo aprovado, zero acesso cruzado, zero duplicação em retries e documentação operacional reproduzível.
 
-- [ ] **Passo 6: Commit**
+- [x] **Passo 6: Commit**
 
   `git commit -m "chore: harden and package inspection portal"`
 

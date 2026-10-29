@@ -28,6 +28,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch(() => {
-  console.error('API startup failed. Check configuration and service availability.');
+  console.error(JSON.stringify({ event: 'api.startup_failed' }));
   process.exitCode = 1;
 });

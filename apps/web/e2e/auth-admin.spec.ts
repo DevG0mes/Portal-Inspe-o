@@ -56,7 +56,8 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
   await login(page);
   await expect(page).toHaveURL(/dashboard/);
   await page.goto('/users');
-  await expect(page.getByText('Página 1 de 2', { exact: false })).toBeVisible();
+  await expect(page.getByText(/Página 1 de \d+/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Próxima', exact: true })).toBeEnabled();
   await accessible(page);
   await page.getByRole('button', { name: 'Próxima', exact: true }).click();
   await expect(page).toHaveURL(/page=2/);

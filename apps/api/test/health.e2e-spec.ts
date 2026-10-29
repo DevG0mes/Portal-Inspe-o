@@ -53,6 +53,8 @@ describe('health HTTP contract', () => {
     expect(await response.json()).toEqual({
       status: 'unavailable',
       dependencies: { postgres: 'down', redis: 'up', minio: 'up' },
+      statusCode: 503,
+      requestId: response.headers.get('x-request-id'),
     });
   });
 });

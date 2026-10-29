@@ -1,0 +1,26 @@
+FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS build
+RUN npm install --global pnpm@11.25.0
+WORKDIR /repo
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+COPY packages/config/package.json ./packages/config/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/form-engine/package.json ./packages/form-engine/package.json
+COPY packages/scheduling/package.json ./packages/scheduling/package.json
+COPY packages/testing/package.json ./packages/testing/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm --filter @portal/worker... build
+RUN pnpm --filter @portal/worker deploy --prod --legacy /out
+
+FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c
+ENV NODE_ENV=production WORKER_HEALTH_FILE=/tmp/worker-health.json
+WORKDIR /app
+COPY --from=build --chown=node:node /out ./
+USER node
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s CMD ["node", "dist/health/check.js"]
+CMD ["node", "dist/main.js"]

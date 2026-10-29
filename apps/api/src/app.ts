@@ -2,8 +2,10 @@ import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { randomUUID } from 'node:crypto';
-import type { Request, Response } from 'express';
+import { requestContext } from './common/request-id.middleware.js';
+import { authenticationLimit } from './common/rate-limit.config.js';
+import { HttpErrorFilter } from './common/http-error.filter.js';
+import { writeOperationalLog, type OperationalLog } from './common/logging.js';
 import { RequestContext } from '@mikro-orm/core';
 import type { MikroORM } from '@mikro-orm/postgresql';
 import { DatabaseModule } from './database/database.module.js';
@@ -36,6 +38,7 @@ export async function createApplication(
     origin: process.env.APP_ORIGIN ?? 'http://127.0.0.1:3000',
   },
   storage?: StorageAdapter,
+  operations: { log?: OperationalLog; authLimit?: number } = {},
 ) {
   const environment = database ? loadEnvironment(process.env) : undefined;
   @Module({
@@ -68,9 +71,17 @@ export async function createApplication(
   class AppModule {}
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn'],
+    logger: false,
     abortOnError: false,
   });
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+  app.use(
+    requestContext(
+      operations.log ?? (process.env.NODE_ENV === 'test' ? () => {} : writeOperationalLog),
+    ),
+  );
+  app.use(authenticationLimit(operations.authLimit));
+  app.useGlobalFilters(new HttpErrorFilter());
   app.useBodyParser('json', { limit: '2mb' });
   app.useBodyParser('raw', { type: 'application/octet-stream', limit: '25mb' });
   app.setGlobalPrefix('api');
@@ -78,12 +89,6 @@ export async function createApplication(
     origin: authOptions.origin,
     credentials: true,
     allowedHeaders: ['Content-Type'],
-  });
-  app.use((request: Request & { requestId?: string }, response: Response, next: () => void) => {
-    request.requestId = randomUUID();
-    response.setHeader('X-Request-Id', request.requestId);
-    response.setHeader('Cache-Control', 'no-store');
-    next();
   });
   if (database) {
     app.use((_request: unknown, _response: unknown, next: () => void) => {

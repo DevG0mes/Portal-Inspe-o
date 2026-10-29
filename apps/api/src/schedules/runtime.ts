@@ -29,6 +29,9 @@ export async function createSchedulingRuntime(databaseUrl: string, renderReport?
     new MinioStorageAdapter(environment),
   );
   return {
+    checkDatabase: async () => {
+      await database.em.getConnection().execute('select 1');
+    },
     due: () => recurrence.due(),
     cleanupUploads: async () => {
       const f = await files.cleanup(),

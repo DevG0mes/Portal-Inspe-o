@@ -10,12 +10,30 @@ const valid = {
 };
 
 describe('environment configuration', () => {
+  it('requires an external HTTPS storage origin in production and rejects credentials or path prefixes', () => {
+    const production = { ...valid, NODE_ENV: 'production', APP_ORIGIN: 'https://portal.psi.test' };
+    expect(() => loadEnvironment(production)).toThrow();
+    for (const MINIO_PUBLIC_URL of [
+      'http://files.psi.test',
+      'https://secret:password@files.psi.test',
+      'https://files.psi.test/prefix',
+    ])
+      expect(() => loadEnvironment({ ...production, MINIO_PUBLIC_URL })).toThrow();
+    expect(
+      loadEnvironment({ ...production, MINIO_PUBLIC_URL: 'https://files.psi.test' })
+        .MINIO_PUBLIC_URL,
+    ).toBe('https://files.psi.test');
+  });
   it('requires HTTPS origin in production for secure session cookies', () => {
     expect(() => loadEnvironment({ ...valid, APP_ORIGIN: 'ftp://portal.psi.test' })).toThrow();
     expect(() => loadEnvironment({ ...valid, NODE_ENV: 'production' })).toThrow();
     expect(
-      loadEnvironment({ ...valid, NODE_ENV: 'production', APP_ORIGIN: 'https://portal.psi.test' })
-        .APP_ORIGIN,
+      loadEnvironment({
+        ...valid,
+        NODE_ENV: 'production',
+        APP_ORIGIN: 'https://portal.psi.test',
+        MINIO_PUBLIC_URL: 'https://files.psi.test',
+      }).APP_ORIGIN,
     ).toBe('https://portal.psi.test');
   });
   it('rejects missing credentials before starting services', () => {

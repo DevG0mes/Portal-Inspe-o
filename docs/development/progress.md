@@ -2,7 +2,31 @@
 
 ## Estado atual
 
-Tarefas 1 a 13 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Resta a preparação operacional de produção (14).
+Tarefas 1 a 14 concluídas e verificadas localmente. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Instalação real depende do servidor interno, DNS, certificado confiável, credenciais e janela operacional definidos pela empresa; não houve publicação de produção.
+
+## Tarefa 14 — preparação operacional concluída em 29/10/2026
+
+- Base: e41fb78. Proteções HTTP, logs sanitizados, limite local de autenticação, heartbeat do worker, imagens e Compose HTTPS. Backup usa pausa dos escritores/MinIO e restaura somente recursos descartáveis novos.
+- Ruling: manter testes de caminho crítico em `apps/web/e2e`, junto do runner que já isola banco/fila/bucket, e fumaça concorrente em TypeScript reutilizando essas sessões — evita um segundo ambiente/runner YAML com credenciais divergentes — custo: o comando continua sendo `pnpm test:browser`.
+- Ruling: limiter da API usa peer de transporte sem confiar em forwarded headers; ingress único limita IP real antes do BFF — evita falsificação de IP e coordenação distribuída implícita — custo: não publicar a API nem replicar ingress sem centralizar o limite.
+- Ruling: backup consistente exige janela de manutenção com escritores e MinIO parados; Redis é reconstruível a partir dos registros duráveis/idempotentes — mantém referências entre PostgreSQL e arquivos — custo: indisponibilidade durante a cópia, sem promessa de backup online.
+- HTTP: requestId gerado antes dos parsers, cabeçalhos, erro correlacionado e log por allowlist sem corpo/query/cookies. Testes ausentes falharam antes da implementação; variação de case no login reproduziu bypass do limiter e passou após regex case-insensitive. Ingresso também cobre case/trailing slash; oito requisições reais retornaram 400 × 6 e 429 × 2, sem usar contas existentes.
+- Worker: heartbeat atômico com probes limitados de banco/fila/MinIO e expiração de 60 s. Redis interrompido no projeto descartável produziu readiness 503 e worker unhealthy; serviço retomado depois. Logs de falha são JSON sanitizado.
+- Imagens Linux de API/worker com dependências de produção e web standalone construídas; bases fixadas por digest, usuário não-root nas aplicações, filesystem somente leitura e tmpfs. Ensaio `portal-stage14` usa volumes/credenciais/certificado próprios; somente loopback 3443. Nenhum dado do portal local foi migrado ou substituído.
+- Assinatura MinIO separa endereço interno e origem HTTPS pública. Ensaio verificou login/troca, publicação, conclusão, PDF/Excel reais no worker, TLS com CA de teste explicitamente confiada, assinatura preservada no ingresso e 403 anônimo.
+- Backup quiescido exportou PostgreSQL como bytes e MinIO parado. Docker cp não leu o dump no tmpfs na primeira tentativa; exportação passou a usar stdout binário do processo, sem conversão de texto. Restore em recursos novos sem rede verificou 21 tabelas e todos os hashes de arquivos. Corrupção do dump foi rejeitada antes de criar recursos. Limpeza só de recursos aleatórios com etiqueta conferida.
+- Revisão independente identificou escritores antigos ativos durante atualização se fosse usado apenas depends_on. Procedimento corrigido: build, parada explícita, backup (preserva a parada), migração verificada e somente então up. Ensaio comprovou API/worker ainda parados após backup de manutenção. Sem outros P1/P2 na revisão.
+- Testes de navegador novos criam usuários, organização e programação, executam foto/correção/aprovação, verificam métricas e relatórios e exercitam 30 leituras com concorrência dez por escopo (incluindo recorte sem acesso). Corrigida espera pela resposta da conclusão e teste antigo de paginação com total fixo. Rodada focada: dois cenários desktop/celular aprovados.
+- Uma rodada simultânea a builds Docker excedeu timeout em teste HTTP antigo e uma rodada de 30 workers unitários excedeu tempo no jsdom; concorrência unitária limitada a quatro, sem aumentar timeout. Rodadas finais posteriores aprovadas, sem remover cenários.
+
+### Evidências finais da tarefa 14
+
+- `pnpm test`: 76 aprovados; `pnpm test:e2e`: 107 aprovados; `pnpm test:integration`: 10 aprovados; `pnpm test:browser`: 44 cenários aprovados (22 desktop e 22 celular). Total: 237 testes/cenários distintos. Rodadas focadas não são somadas novamente.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Revisão independente com um P2 operacional corrigido; nenhuma pendência P1/P2. Fumaça de leitura por escopo aprovada com concorrência dez, 30 chamadas por escopo e limite p95 de cinco segundos.
+- `docker compose ... config --quiet` aprovado; imagens finais de API/worker/web e MinIO construídas. Ensaio final com todos os serviços healthy e nova geração/download HTTPS de PDF/Excel aprovado; cert de teste confiado explicitamente, sem desligar verificação TLS.
+- Backup/restauração comprovados em banco/volume novos, 21 tabelas e todos os hashes de armazenamento; arquivo adulterado rejeitado. Interrupção de Redis produziu readiness 503 e worker unhealthy. Atualização de manutenção preservou escritores parados após backup.
+- API/worker locais reiniciados; frontend local em standalone com assets copiados para saída gerada. Readiness: PostgreSQL/Redis/MinIO up; `/login` e CSS responderam 200, cabeçalhos de segurança conferidos. Projeto Docker `portal-stage14` parado após conferência, mantendo volumes; infraestrutura e dados locais `portal-inspecao` preservados.
+- Limites: preparo e ensaio locais, sem publicação. Dimensionamento de produção, DNS/CA corporativa, ACL de secrets/backups, agenda/retenção e homologação em dispositivo físico pertencem à operação. Backup exige manutenção; limite de IP pressupõe ingresso único. Guias em `docs/operations/`.
 
 ## Tarefa 13 — relatórios PDF e Excel em 29/10/2026
 

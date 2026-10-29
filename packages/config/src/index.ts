@@ -29,6 +29,20 @@ const schema = z
     MINIO_ACCESS_KEY: z.string().min(3),
     MINIO_SECRET_KEY: z.string().min(8),
     MINIO_BUCKET: z.string().min(3).default('inspection-evidence'),
+    MINIO_PUBLIC_URL: z
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          ['http:', 'https:'].includes(url.protocol) &&
+          !url.username &&
+          !url.password &&
+          url.pathname === '/' &&
+          !url.search &&
+          !url.hash
+        );
+      })
+      .optional(),
     EVIDENCE_MAX_BYTES: z.coerce
       .number()
       .int()
@@ -37,6 +51,16 @@ const schema = z
       .default(10 * 1024 * 1024),
   })
   .superRefine((environment, context) => {
+    if (
+      environment.NODE_ENV === 'production' &&
+      !environment.MINIO_PUBLIC_URL?.startsWith('https://')
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['MINIO_PUBLIC_URL'],
+        message: 'Production requires external HTTPS storage origin',
+      });
+    }
     if (environment.NODE_ENV === 'production' && !environment.APP_ORIGIN.startsWith('https://')) {
       context.addIssue({
         code: 'custom',

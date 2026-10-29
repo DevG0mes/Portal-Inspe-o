@@ -5,5 +5,7 @@ export default defineConfig({
     include: ['apps/**/*.spec.ts', 'apps/**/*.test.tsx', 'packages/**/*.spec.ts'],
     exclude: ['apps/web/e2e/**', '**/node_modules/**', '**/dist/**'],
     environment: 'node',
+    // Keep jsdom suites responsive alongside browser/Docker checks on developer machines.
+    maxWorkers: 4,
   },
 });

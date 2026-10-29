@@ -46,6 +46,7 @@ function boundedTransport(base: Pick<typeof http, 'request'>): Pick<typeof http,
 /** Private bucket, single-part bounded uploads and expiring attachment downloads. */
 export class MinioStorageAdapter implements StorageAdapter {
   private readonly client: Client;
+  private readonly downloadClient: Client;
   private readonly bucket: string;
   constructor(environment: Environment) {
     this.bucket = environment.MINIO_BUCKET;
@@ -58,6 +59,19 @@ export class MinioStorageAdapter implements StorageAdapter {
       secretKey: environment.MINIO_SECRET_KEY,
       transport: boundedTransport(transport),
     });
+    const publicUrl = environment.MINIO_PUBLIC_URL
+      ? new URL(environment.MINIO_PUBLIC_URL)
+      : undefined;
+    this.downloadClient = publicUrl
+      ? new Client({
+          endPoint: publicUrl.hostname,
+          port: Number(publicUrl.port || (publicUrl.protocol === 'https:' ? 443 : 80)),
+          useSSL: publicUrl.protocol === 'https:',
+          accessKey: environment.MINIO_ACCESS_KEY,
+          secretKey: environment.MINIO_SECRET_KEY,
+          region: 'us-east-1',
+        })
+      : this.client;
   }
   async ensureBucket() {
     if (!(await this.client.bucketExists(this.bucket))) {
@@ -108,7 +122,7 @@ export class MinioStorageAdapter implements StorageAdapter {
     await this.client.removeObject(this.bucket, key);
   }
   downloadUrl(key: string, filename: string, mime: string) {
-    return this.client.presignedGetObject(this.bucket, key, 60, {
+    return this.downloadClient.presignedGetObject(this.bucket, key, 60, {
       'response-content-type': mime,
       'response-content-disposition': `attachment; filename="evidence"; filename*=UTF-8''${encodeURIComponent(filename).replace(/'/g, '%27')}`,
       'response-cache-control': 'private, no-store',

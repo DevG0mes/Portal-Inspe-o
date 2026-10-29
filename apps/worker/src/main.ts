@@ -4,11 +4,14 @@ import { Redis } from 'ioredis';
 import { Queue, Worker, UnrecoverableError } from 'bullmq';
 import { processSchedulingJob } from './jobs/materialize-schedules.processor.js';
 import { renderReport } from './jobs/generate-report.processor.js';
+import { heartbeat } from './health/heartbeat.js';
 async function bootstrap() {
   const environment = loadEnvironment(process.env);
   const runtime = await createSchedulingRuntime(environment.DATABASE_URL, renderReport);
   const connection = new Redis(environment.REDIS_URL, { maxRetriesPerRequest: null });
-  connection.on('error', () => console.error('Worker connection unavailable.'));
+  connection.on('error', () =>
+    console.error(JSON.stringify({ event: 'worker.connection_unavailable' })),
+  );
   const queue = new Queue(environment.SCHEDULE_QUEUE_NAME, { connection });
   const worker = new Worker(
     environment.SCHEDULE_QUEUE_NAME,
@@ -29,14 +32,14 @@ async function bootstrap() {
     },
     { connection, concurrency: 4 },
   );
-  worker.on('error', () => console.error('Scheduling worker unavailable.'));
-  worker.on('failed', () =>
-    console.error('Scheduling job failed; retry or configuration review required.'),
-  );
+  worker.on('error', () => console.error(JSON.stringify({ event: 'worker.unavailable' })));
+  worker.on('failed', () => console.error(JSON.stringify({ event: 'worker.job_failed' })));
   let closing = false;
+  let stopHealth: (() => Promise<void>) | undefined;
   async function shutdown() {
     if (closing) return;
     closing = true;
+    await stopHealth?.();
     await worker.close();
     await queue.close();
     connection.disconnect();
@@ -83,12 +86,27 @@ async function bootstrap() {
       {},
       { jobId: `startup-${Date.now()}`, removeOnComplete: true, removeOnFail: 100 },
     );
+    if (process.env.WORKER_HEALTH_FILE)
+      stopHealth = await heartbeat(process.env.WORKER_HEALTH_FILE, {
+        database: runtime.checkDatabase,
+        queue: async () => {
+          if (!worker.isRunning() || closing) throw new Error('Worker stopped');
+          await queue.client.then((client) => client.ping());
+        },
+        storage: async () => {
+          const response = await fetch(
+            `${environment.MINIO_USE_SSL ? 'https' : 'http'}://${environment.MINIO_ENDPOINT}:${environment.MINIO_PORT}/minio/health/live`,
+            { signal: AbortSignal.timeout(1500) },
+          );
+          if (!response.ok) throw new Error('Storage unavailable');
+        },
+      });
   } catch (error) {
     await shutdown();
     throw error;
   }
 }
 bootstrap().catch(() => {
-  console.error('Worker startup failed. Check local services and configuration.');
+  console.error(JSON.stringify({ event: 'worker.startup_failed' }));
   process.exitCode = 1;
 });

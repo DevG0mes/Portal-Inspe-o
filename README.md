@@ -4,9 +4,11 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório segue uma especificação e um plano de 14 tarefas, na branch `codex/portal-foundation`. Já oferece autenticação, administração de usuários e organização, formulários versionados, programação recorrente, execução de inspeções com evidências privadas e planos de ação com validação gerencial. A central de notificações acompanha atribuições, prazos e decisões. Painéis por perfil apresentam conformidade, pendências, correções, evolução e recortes organizacionais autorizados. Relatórios PDF de inspeções e Excel do painel são gerados em segundo plano e acompanhados em Meus relatórios, com download privado. Resta a preparação operacional de produção. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório segue uma especificação e um plano de 14 tarefas, na branch `codex/portal-foundation`. Já oferece autenticação, administração de usuários e organização, formulários versionados, programação recorrente, execução de inspeções com evidências privadas e planos de ação com validação gerencial. A central de notificações acompanha atribuições, prazos e decisões. Painéis por perfil apresentam conformidade, pendências, correções, evolução e recortes organizacionais autorizados. Relatórios PDF de inspeções e Excel do painel são gerados em segundo plano e acompanhados em Meus relatórios, com download privado. A preparação operacional foi validada em um ambiente Docker isolado, com imagens, HTTPS, health checks e prova de backup/restauração. A instalação real no servidor interno ainda depende da configuração da empresa. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
+
+Instalação interna: [implantação](docs/operations/deployment.md), [backup e restauração](docs/operations/backup-and-restore.md) e [resposta a incidentes](docs/operations/incident-response.md). O Compose de produção é separado do ambiente local e exige credenciais e certificado próprios.
 
 - Node.js 24 LTS.
 - pnpm 11.25.0, conforme `packageManager`.
