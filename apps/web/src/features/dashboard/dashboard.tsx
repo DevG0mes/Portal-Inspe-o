@@ -18,6 +18,7 @@ import { ErrorNotice } from '../shared/error-notice';
 import { actionStates } from '../action-plans/presentation';
 import { priorityLabels } from '../form-builder/model';
 import { localInstant } from '../schedules/presentation';
+import { ReportRequestButton } from '../reports/report-request-button';
 const number = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const groupLabels: Record<keyof AnalyticsGroups, string> = {
@@ -111,6 +112,16 @@ export function Dashboard({ role }: { role: UserRole }) {
         <Button variant="secondary" onClick={() => setRevision((r) => r + 1)}>
           Atualizar indicadores
         </Button>
+        {data && (
+          <ReportRequestButton
+            key={query}
+            label="Solicitar Excel deste recorte"
+            input={{
+              format: 'XLSX',
+              filters: { ...Object.fromEntries(filter), from: data.from, to: data.to },
+            }}
+          />
+        )}
         {data && (
           <span className="muted">
             Período: {data.from.split('-').reverse().join('/')} a{' '}

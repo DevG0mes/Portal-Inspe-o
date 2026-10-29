@@ -6,6 +6,7 @@ import type {
   AnalyticsOccurrence,
   AnalyticsPlan,
   AnalyticsGroups,
+  AnalyticsTrend,
 } from '@portal/contracts';
 import { z } from 'zod';
 import { parseInput, paginationShape, escapeLike } from '../common/input.js';
@@ -17,10 +18,11 @@ export class AnalyticsService {
   constructor(
     private readonly em: EntityManager,
     private readonly access: AccessPolicy,
+    private readonly snapshotEm?: EntityManager,
   ) {}
   private async context(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const q = parseAnalytics(raw),
-      em = this.em.fork(),
+      em = this.snapshotEm ?? this.em.fork(),
       user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
     const scope = await this.access.sectorFilter(actor, requestId, em);
     const sectors = await em.find(
@@ -117,7 +119,7 @@ export class AnalyticsService {
   }
   async trends(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const { em, sql } = await this.context(actor, raw, requestId);
-    const data = await em.execute(
+    const data = await em.execute<AnalyticsTrend[]>(
       `${sql.cte} select to_char(s.completed_at at time zone 'America/Sao_Paulo','YYYY-MM-DD') date,count(*)::int completed,coalesce(sum((select count(*) from occurrences o where o.submission_id=s.id)),0)::int nonconformities from selected s group by 1 order by 1`,
       sql.args,
     );

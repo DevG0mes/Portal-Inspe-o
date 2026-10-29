@@ -2,7 +2,25 @@
 
 ## Estado atual
 
-Tarefas 1 a 12 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam relatórios (13) e preparação operacional de produção (14).
+Tarefas 1 a 13 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Resta a preparação operacional de produção (14).
+
+## Tarefa 13 — relatórios PDF e Excel em 29/10/2026
+
+- Migração 202610290003, módulo reports, contratos de pedido/snapshot e central individual. PDF parte de uma conclusão/ciclo; Excel usa os mesmos filtros, fórmulas e dados autorizados do painel. Snapshot imutável após primeira publicação, identidade/formato/hash protegidos no PostgreSQL.
+- Reserva serializada por usuário em READ COMMITTED, com até três pendentes, seguida de preparação em REPEATABLE READ sem segurar duas conexões. Reserva sem snapshot não entra na fila e expira após 15 min com REQUEST_INCOMPLETE; exige novo pedido. Criação/retry mantêm ordem usuário→relatório. RequestId/hash idempotentes; duplicação concorrente não produz novos pedidos.
+- Scope guard revalida papel, vínculo ativo e responsabilidade das identidades cobertas na geração, publicação e download. Metadados públicos não incluem snapshot nem chaves privadas. Administrador também não consulta exportações de outra pessoa. Download temporário conserva a política privada de 60 s.
+- Worker utiliza scanner/fila existente e renderizadores próprios; chave/tentativa persistida antes de I/O, lease de 15 min e fencing de tentativa. Duplicata de READY não regenera. Retry explícito limitado a cinco tentativas. Falha parcial remove chave; histórico durável permite limpeza posterior e recupera upload tardio após queda. Compensação preserva READY quando só a confirmação do commit foi perdida.
+- PDF com identificação, versão, respostas visíveis, notas, evidências/checksums, ocorrências e histórico de planos autorizados. Até cinco prévias JPEG/PNG com limites de bytes/pixels; ausências/limites explícitos. Fontes completas Noto Sans/Math e licença versionadas, sem consulta externa em execução. Verificação incluiu português e Δ/≥.
+- Excel tipado, com resumo, evolução, ocorrências completas, planos e filtros/metodologia; cabeçalhos fixos, filtros e formatação. Texto de usuário que parece fórmula permanece string. Sem fórmulas paralelas aos cálculos do servidor ou truncamento silencioso de listas.
+- Central paginada com polling/backoff preserva linhas prontas, pausa em aba oculta e recupera erros. Criação fecha confirmação e mantém link se navegação for cancelada. Preparação de download extraída para `PrivateDownload`, reutilizada pelas evidências sem alterar a interação anterior.
+- RED→GREEN: módulos ausentes, controles de exportação ausentes, duplicação sob REPEATABLE READ, IDs de submissão usados indevidamente no guard de inspeção, pool pequeno travado, retry excedendo teto, compensação apagando READY após commit aplicado, altura NaN de linhas Excel e confirmação presa após navegação cancelada. Revisão independente posterior sem bloqueadores. Decisões e limites em `reports.md`.
+
+### Evidências da tarefa 13
+
+- `pnpm test`: 74 aprovados; `pnpm test:e2e`: 104 aprovados; `pnpm test:integration`: 10 aprovados; `pnpm test:browser`: 42 cenários aprovados (21 desktop e 21 celular). Total: 230 testes/cenários distintos.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Revisão independente posterior sem bloqueadores. PDF examinado com Poppler/pypdf, incluindo paginação, imagem, português e símbolos; workbook recarregado e conferido com ExcelJS/openpyxl, incluindo tipos, porcentagens e texto semelhante a fórmula.
+- Migração 202610290003 aplicada ao banco local. Health ready confirmou PostgreSQL/Redis/MinIO up; API de relatórios sem sessão retorna 401 e página protegida redireciona a `/login`.
+- Limites: ambiente local; sem implantação de produção. Homologação física, empacotamento dos serviços/fontes, backup/restauração e endurecimento operacional permanecem na tarefa 14. Limites de volume, imagem e autorização estão documentados em `reports.md`.
 
 ## Tarefa 12 — painéis operacionais em 29/10/2026
 

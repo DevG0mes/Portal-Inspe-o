@@ -3,9 +3,10 @@ import { createSchedulingRuntime } from '@portal/api/scheduling';
 import { Redis } from 'ioredis';
 import { Queue, Worker, UnrecoverableError } from 'bullmq';
 import { processSchedulingJob } from './jobs/materialize-schedules.processor.js';
+import { renderReport } from './jobs/generate-report.processor.js';
 async function bootstrap() {
   const environment = loadEnvironment(process.env);
-  const runtime = await createSchedulingRuntime(environment.DATABASE_URL);
+  const runtime = await createSchedulingRuntime(environment.DATABASE_URL, renderReport);
   const connection = new Redis(environment.REDIS_URL, { maxRetriesPerRequest: null });
   connection.on('error', () => console.error('Worker connection unavailable.'));
   const queue = new Queue(environment.SCHEDULE_QUEUE_NAME, { connection });

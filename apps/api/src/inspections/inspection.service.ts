@@ -132,8 +132,13 @@ export class InspectionService {
       })),
     };
   }
-  async get(actor: AuthenticatedPrincipal, id: string, requestId: string) {
-    const em = this.entityManager.fork();
+  async get(
+    actor: AuthenticatedPrincipal,
+    id: string,
+    requestId: string,
+    snapshotEm?: EntityManager,
+  ) {
+    const em = snapshotEm ?? this.entityManager.fork();
     return this.view(actor, await this.load(actor, id, em, requestId, false), em);
   }
   /** Shared authorization/lock order for evidence mutations; caller owns the transaction. */

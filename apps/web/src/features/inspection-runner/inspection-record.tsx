@@ -10,6 +10,7 @@ import { localInstant } from '../schedules/presentation';
 import { priorityLabels } from '../form-builder/model';
 import { EvidenceDownload } from './evidence-download';
 import { displayAnswer } from '../shared/answer-display';
+import { ReportRequestButton } from '../reports/report-request-button';
 export function InspectionRecord({
   row,
   onReopened,
@@ -108,11 +109,18 @@ export function InspectionRecord({
           </Field>
         )}
         {submission && (
-          <p>
-            Conclusão registrada em{' '}
-            <time dateTime={submission.completedAt}>{localInstant(submission.completedAt)}</time>.
-            Revisão de origem {submission.sourceRevision}.
-          </p>
+          <>
+            <p>
+              Conclusão registrada em{' '}
+              <time dateTime={submission.completedAt}>{localInstant(submission.completedAt)}</time>.
+              Revisão de origem {submission.sourceRevision}.
+            </p>
+            <ReportRequestButton
+              key={submission.id}
+              label="Solicitar PDF desta conclusão"
+              input={{ format: 'PDF', inspectionId: row.id, submissionId: submission.id }}
+            />
+          </>
         )}
       </section>
       {row.snapshot.sections.map((section) => {

@@ -62,3 +62,7 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 ## Visão operacional
 
 `features/dashboard` substitui a ficha de preparação pelos indicadores reais. Mantém os cartões de leitura, tipografia e tokens existentes. Filtros por envio explícito, organização em disclosure e explicação das fórmulas no documento. Evolução usa meter nativo acompanhado dos mesmos números em tabela; distribuições têm tabelas por dimensão. Sem porcentagens decorativas, animações ou gráfico sem equivalente legível. Conteúdo vira coluna única no celular.
+
+## Relatórios
+
+`features/reports` acompanha pedidos em tabela que vira ficha móvel. Situações são textuais, sem percentuais fictícios. Criação usa confirmação existente; integridade fica em disclosure nativo. Download reutiliza a preparação privada comum a evidências. Não há segunda linguagem visual, modal de progresso bloqueante ou dependência de fontes externas. PDF mantém a identidade azul e leitura em A4 com fontes incorporadas; Excel separa resumo, evolução, ocorrências, planos e contexto dos filtros.

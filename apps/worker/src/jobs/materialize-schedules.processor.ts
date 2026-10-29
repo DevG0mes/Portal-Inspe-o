@@ -4,6 +4,8 @@ interface Runtime {
   materialize: (id: string, at: string, key: string) => Promise<{ id: string }>;
   cleanupUploads?: () => Promise<{ cleaned: number }>;
   notifyDeadlines?: () => Promise<{ emitted: number }>;
+  reportsDue?: () => Promise<{ id: string; attempts: number }[]>;
+  generateReport?: (id: string) => Promise<unknown>;
 }
 interface JobQueue {
   add: (name: string, data: object, options: object) => Promise<unknown> | unknown;
@@ -16,6 +18,18 @@ export async function processSchedulingJob(
   runtime: Runtime,
   queue: JobQueue,
 ) {
+  if (job.name === 'generate-report') {
+    if (
+      !runtime.generateReport ||
+      !job.data ||
+      typeof job.data !== 'object' ||
+      !('id' in job.data) ||
+      typeof job.data.id !== 'string' ||
+      !/^[a-f0-9-]{36}$/i.test(job.data.id)
+    )
+      throw new Error('Invalid report job.');
+    return runtime.generateReport(job.data.id);
+  }
   if (job.name === 'notify-deadlines') {
     if (!runtime.notifyDeadlines) throw new Error('Deadline notifications unavailable.');
     return runtime.notifyDeadlines();
@@ -25,6 +39,24 @@ export async function processSchedulingJob(
     return runtime.cleanupUploads();
   }
   if (job.name === 'scan') {
+    if (runtime.reportsDue)
+      for (const report of await runtime.reportsDue()) {
+        const jobId = `report-${report.id}-a${report.attempts + 1}`,
+          existing = await queue.getJob?.(jobId);
+        if (existing && (await existing.getState()) === 'failed') {
+          await existing.retry();
+          continue;
+        }
+        await queue.add(
+          'generate-report',
+          { id: report.id },
+          {
+            jobId,
+            removeOnComplete: { age: 86400, count: 1000 },
+            removeOnFail: { age: 604800, count: 1000 },
+          },
+        );
+      }
     const rows = await runtime.due();
     for (const row of rows) {
       if (!row.nextOccurrenceAt) continue;

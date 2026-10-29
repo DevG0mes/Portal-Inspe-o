@@ -9,13 +9,18 @@
     "start": "node --env-file=../../.env dist/main.js"
   },
   "dependencies": {
-    "@portal/config": "workspace:*",
     "@portal/api": "workspace:*",
+    "@portal/config": "workspace:*",
+    "@portal/contracts": "workspace:*",
     "@portal/scheduling": "workspace:*",
     "bullmq": "5.65.0",
-    "ioredis": "5.8.2"
+    "exceljs": "4.4.0",
+    "image-size": "2.0.4",
+    "ioredis": "5.8.2",
+    "pdfkit": "0.20.2"
   },
   "devDependencies": {
+    "@types/pdfkit": "^0.17.7",
     "tsx": "4.20.6"
   }
 }

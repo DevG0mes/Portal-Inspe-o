@@ -480,23 +480,23 @@
 **Interfaces:**
 - Produz: solicitar exportação, consultar estado `QUEUED | PROCESSING | READY | FAILED`, baixar arquivo autorizado e reprocessar falha controlada.
 
-- [ ] **Passo 1: Escrever testes de geração que falham**
+- [x] **Passo 1: Escrever testes de geração que falham**
 
   Validar workbook, cabeçalhos, filtros, locale, conteúdo do PDF de inspeção, evidências ausentes e acesso negado após mudança de escopo.
 
-- [ ] **Passo 2: Implementar snapshot autorizado do pedido**
+- [x] **Passo 2: Implementar snapshot autorizado do pedido**
 
   Gravar filtros, solicitante e escopo no pedido; no download, revalidar autorização atual. Jobs repetidos substituem apenas o artefato do mesmo pedido.
 
-- [ ] **Passo 3: Implementar renderizadores e armazenamento**
+- [x] **Passo 3: Implementar renderizadores e armazenamento**
 
   Gerar arquivos no worker, salvar no MinIO, persistir checksum/tamanho e remover artefato parcial em falha.
 
-- [ ] **Passo 4: Implementar experiência de exportação**
+- [x] **Passo 4: Implementar experiência de exportação**
 
   Exibir fila, progresso por polling com backoff, erro acionável e download quando pronto.
 
-- [ ] **Passo 5: Verificar e commit**
+- [x] **Passo 5: Verificar e commit**
 
   Executar: `pnpm --filter worker test reports && pnpm --filter api test:e2e -- reports.e2e-spec && pnpm --filter web test:e2e -- reports.spec.ts`
 
