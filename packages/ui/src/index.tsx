@@ -2,7 +2,9 @@ import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
+  Ref,
   SelectHTMLAttributes,
+  TextareaHTMLAttributes,
 } from 'react';
 export function Button({
   className = '',
@@ -41,8 +43,17 @@ export function Field({
     </div>
   );
 }
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
+export function Input(
+  props: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> },
+) {
   return <input {...props} />;
+}
+export function Textarea({
+  className = '',
+  rows = 3,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea className={`resize-none ${className}`} rows={rows} {...props} />;
 }
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} />;

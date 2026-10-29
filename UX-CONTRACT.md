@@ -42,3 +42,9 @@ Criação avulsa usa seletores remotos paginados e confirmação; navegar para o
 Autosave de 700 ms pausa em IME, serializa gerações e preserva digitação recente. Falha exige retry explícito; conflito interrompe a escrita e disponibiliza uma cópia local antes do descarte confirmado. Recarregamento explícito nunca monta o editor com dados da revisão anterior. Sem armazenamento offline. Beforeunload e DirtyGuard protegem alterações pendentes.
 
 Revisar/concluir espera a última gravação, valida o conteúdo visível com o motor compartilhado e foca o primeiro campo inválido. A confirmação bloqueia edição; concluir usa a revisão confirmada e o ciclo. Retentativa manual após falha de resposta é idempotente no servidor. Conclusões exibem perguntas/respostas aceitas e ocorrências por ciclo; reabertura exige justificativa. Verificação em `apps/web/e2e/inspection.spec.ts`, incluindo teclado/foco, falhas, duas abas, WCAG A/AA e viewport móvel.
+
+## Arquivos da inspeção
+
+`features/inspection-runner/evidence-controls.tsx` coordena seleção, transferência e retentativa com `lib/upload-client.ts`; notas e arquivos continuam sob revisão do rascunho. Antes de alterar evidências, o autosave grava a geração mais recente. A transferência bloqueia edição e conclusão, confirma somente após promoção e conserva seleção em caso de falha. Seleções locais pendentes também acionam DirtyGuard. A confirmação de remoção fica fora do fieldset bloqueado.
+
+`evidence-download.tsx` prepara um link privado de curta validade para abertura explícita. Observações usam `Textarea` em `@portal/ui`; estilos de campos, cores e foco continuam globais. Arquivos de ciclos anteriores são consultáveis durante a reabertura. Nenhuma URL assinada é gravada no histórico. Verificação: `inspection.spec.ts`, incluindo arquivo real, retentativa, conteúdo rejeitado, cancelamento, escopo e retenção histórica.

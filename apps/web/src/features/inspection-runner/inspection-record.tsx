@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../shared/confirm-dialog';
 import { ErrorNotice } from '../shared/error-notice';
 import { localInstant } from '../schedules/presentation';
 import { priorityLabels } from '../form-builder/model';
+import { EvidenceDownload } from './evidence-download';
 function displayAnswer(question: FormQuestion, answers: AnswerInput[]) {
   const value = answers.find((answer) => answer.questionId === question.id)?.value;
   if (value === null || value === undefined || value === '') return 'Sem resposta';
@@ -142,6 +143,20 @@ export function InspectionRecord({
                   <div key={question.id}>
                     <dt>{question.label}</dt>
                     <dd>{displayAnswer(question, answers)}</dd>
+                    {(submission?.notes ?? row.notes ?? [])
+                      .filter((note) => note.questionId === question.id)
+                      .map((note) => (
+                        <dd key={note.questionId}>
+                          <strong>Observação:</strong> {note.text}
+                        </dd>
+                      ))}
+                    {(submission?.evidence ?? row.evidence ?? [])
+                      .filter((file) => file.questionId === question.id && file.status === 'READY')
+                      .map((file) => (
+                        <dd key={file.id}>
+                          <EvidenceDownload file={file} />
+                        </dd>
+                      ))}
                   </div>
                 ))}
               </dl>

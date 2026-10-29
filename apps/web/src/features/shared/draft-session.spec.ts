@@ -3,6 +3,14 @@ import type { AnswerInput } from '@portal/contracts';
 import { DraftSession } from './draft-session';
 import { ApiError } from '../../lib/api-client';
 afterEach(() => vi.useRealTimers());
+it('accepts an evidence revision only when there is no unsaved local generation', () => {
+  const session = new DraftSession<AnswerInput[]>({ revision: 2, snapshot: [] }, vi.fn());
+  expect(session.acceptRevision(2, 3)).toBe(true);
+  session.edit([{ questionId: 'a', value: 0 }]);
+  expect(session.acceptRevision(3, 4)).toBe(false);
+  expect(session.getSnapshot()).toMatchObject({ revision: 3, status: 'conflict' });
+  session.dispose();
+});
 it('serializes answer drafts and does not replace newer typing with an older receipt', async () => {
   vi.useFakeTimers();
   let finish!: (result: { revision: number; snapshot: AnswerInput[] }) => void;

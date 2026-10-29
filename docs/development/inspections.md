@@ -1,6 +1,6 @@
 # Execução de inspeções
 
-Esta é a segunda parte da tarefa 9. Núcleo HTTP e interface de preenchimento estão disponíveis. O serviço de evidências segue pendente; não há upload, modo offline ou plano de ação nesta entrega.
+O ciclo da tarefa 9 inclui núcleo HTTP, preenchimento, observações e evidências privadas. Consulte `evidence.md` para tipos de arquivo, limites, compensação e limpeza. Planos de ação pertencem à etapa seguinte; não há modo offline.
 
 ## Contratos e organização
 
@@ -55,4 +55,4 @@ O salvamento reutiliza `features/shared/draft-session.ts`, extraído do construt
 
 Ruling: situação de prazo e situação de execução da atribuição são distintas — concluir não deve apagar o histórico de ocorrências vencidas — custo: a lista apresenta ambas, com ações de iniciar/continuar/consultar. O servidor busca vínculos de inspeção em lote.
 
-Ainda faltam para concluir a tarefa 9: observações por pergunta, evidências privadas no MinIO, promoção compensável, limpeza de uploads abandonados e testes de browser incluindo arquivos. O plano permanece aberto nesses itens.
+Observações e evidências agora integram o salvamento e cada conclusão. Evidências finalizadas têm retenção indefinida; remover do rascunho não altera um ciclo anterior. O fluxo de correção e validação de não conformidades será implementado na tarefa 10.

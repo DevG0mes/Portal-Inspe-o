@@ -29,6 +29,12 @@ const schema = z
     MINIO_ACCESS_KEY: z.string().min(3),
     MINIO_SECRET_KEY: z.string().min(8),
     MINIO_BUCKET: z.string().min(3).default('inspection-evidence'),
+    EVIDENCE_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1024)
+      .max(25 * 1024 * 1024)
+      .default(10 * 1024 * 1024),
   })
   .superRefine((environment, context) => {
     if (environment.NODE_ENV === 'production' && !environment.APP_ORIGIN.startsWith('https://')) {

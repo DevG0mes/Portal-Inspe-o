@@ -34,6 +34,22 @@ export class DraftSession<T = FormVersionSnapshot> {
     clearTimeout(this.timer);
     this.update({ status: 'conflict', error });
   }
+  /** Evidence changes share the inspection revision but must never acknowledge unsaved answers. */
+  acceptRevision(expected: number, revision: number) {
+    if (
+      this.disposed ||
+      this.running ||
+      this.state.status !== 'saved' ||
+      this.state.revision !== expected ||
+      this.generation !== this.savedGeneration ||
+      revision < expected
+    ) {
+      this.markConflict(new ApiError(409));
+      return false;
+    }
+    this.update({ revision });
+    return true;
+  }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {

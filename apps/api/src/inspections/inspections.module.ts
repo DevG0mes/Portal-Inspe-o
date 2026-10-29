@@ -18,5 +18,6 @@ import { InspectionsController } from './inspections.controller.js';
         new InspectionService(db.em, access, audit),
     },
   ],
+  exports: [InspectionService],
 })
 export class InspectionsModule {}

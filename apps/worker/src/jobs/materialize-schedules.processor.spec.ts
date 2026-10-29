@@ -1,5 +1,22 @@
 import { expect, it, vi } from 'vitest';
 import { processSchedulingJob } from './materialize-schedules.processor.js';
+it('dispatches upload cleanup and does not acknowledge an unavailable cleanup runtime', async () => {
+  const runtime = {
+    due: vi.fn(),
+    materialize: vi.fn(),
+    cleanupUploads: vi.fn().mockResolvedValue({ cleaned: 2 }),
+  };
+  expect(
+    await processSchedulingJob({ name: 'cleanup-uploads', data: {} }, runtime, { add: vi.fn() }),
+  ).toEqual({ cleaned: 2 });
+  await expect(
+    processSchedulingJob(
+      { name: 'cleanup-uploads', data: {} },
+      { due: vi.fn(), materialize: vi.fn() },
+      { add: vi.fn() },
+    ),
+  ).rejects.toThrow();
+});
 it('enqueues stable occurrence IDs and retries with the exact same domain key', async () => {
   const runtime = {
     due: vi

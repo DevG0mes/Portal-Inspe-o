@@ -352,7 +352,7 @@
 
   Cobrir escopo, autosave, conflito de versão, campos ocultos, obrigatórios, conclusão repetida, snapshot imutável, reabertura justificada e geração determinística de não conformidades.
 
-- [ ] **Passo 2: Escrever testes de arquivo que falham**
+- [x] **Passo 2: Escrever testes de arquivo que falham**
 
   Rejeitar MIME/extensão/tamanho inválido, chave pertencente a outro usuário e finalização sem objeto; remover upload abandonado por job de limpeza.
 
@@ -360,15 +360,15 @@
 
   Recalcular regras no backend dentro da transação de conclusão. Usar restrição única para impedir duas conclusões ou ocorrências iguais.
 
-- [ ] **Passo 4: Implementar armazenamento MinIO**
+- [x] **Passo 4: Implementar armazenamento MinIO**
 
   Expor URLs temporárias somente após autorização; promover upload temporário para vínculo definitivo de modo transacional compensável.
 
-- [ ] **Passo 5: Implementar runner responsivo**
+- [x] **Passo 5: Implementar runner responsivo**
 
   Mostrar progresso, autosave, perda de conexão, validações por seção, fotos e confirmação final. Não prometer funcionamento offline.
 
-- [ ] **Passo 6: Verificar e commit**
+- [x] **Passo 6: Verificar e commit**
 
   Executar: `pnpm --filter api test && pnpm --filter api test:e2e -- inspection.e2e-spec && pnpm --filter web test:e2e -- inspection.spec.ts`
 

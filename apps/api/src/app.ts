@@ -17,6 +17,10 @@ import { OrganizationModule } from './organization/organization.module.js';
 import { FormsModule } from './forms/forms.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
 import { InspectionsModule } from './inspections/inspections.module.js';
+import { FilesModule } from './files/files.module.js';
+import { MinioStorageAdapter } from './files/minio-storage.adapter.js';
+import type { StorageAdapter } from './files/storage.adapter.js';
+import { loadEnvironment } from '@portal/config';
 
 /** Compose without opening a port, allowing HTTP tests and production to share setup. */
 export async function createApplication(
@@ -27,7 +31,9 @@ export async function createApplication(
     secureCookies: process.env.NODE_ENV === 'production',
     origin: process.env.APP_ORIGIN ?? 'http://127.0.0.1:3000',
   },
+  storage?: StorageAdapter,
 ) {
+  const environment = database ? loadEnvironment(process.env) : undefined;
   @Module({
     imports: database
       ? [
@@ -39,6 +45,10 @@ export async function createApplication(
           FormsModule,
           SchedulesModule,
           InspectionsModule,
+          FilesModule.register(
+            storage ?? new MinioStorageAdapter(environment!),
+            environment!.EVIDENCE_MAX_BYTES,
+          ),
         ]
       : [],
     controllers: [HealthController],
@@ -54,6 +64,7 @@ export async function createApplication(
     abortOnError: false,
   });
   app.useBodyParser('json', { limit: '2mb' });
+  app.useBodyParser('raw', { type: 'application/octet-stream', limit: '25mb' });
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: authOptions.origin,

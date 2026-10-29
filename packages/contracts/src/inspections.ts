@@ -1,4 +1,13 @@
 import type { AnswerInput, FormVersionSnapshot, NonconformityOccurrence } from './forms.js';
+import type { EvidenceFile } from './files.js';
+export interface InspectionNote {
+  questionId: string;
+  text: string;
+}
+export interface InspectionDraftContent {
+  answers: AnswerInput[];
+  notes: InspectionNote[];
+}
 
 export interface InspectionSubmissionView {
   id: string;
@@ -8,6 +17,8 @@ export interface InspectionSubmissionView {
   completedById: string;
   answers: AnswerInput[];
   nonconformities: NonconformityOccurrence[];
+  notes: InspectionNote[];
+  evidence: EvidenceFile[];
 }
 export interface InspectionView {
   id: string;
@@ -23,6 +34,8 @@ export interface InspectionView {
   cycle: number;
   answers: AnswerInput[];
   submissions: InspectionSubmissionView[];
+  notes: InspectionNote[];
+  evidence: EvidenceFile[];
   canEdit: boolean;
   canReopen: boolean;
 }

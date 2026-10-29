@@ -19,6 +19,11 @@ export const parseInspectionDraft = (raw: unknown) =>
     z
       .object({
         revision,
+        notes: z
+          .array(z.object({ questionId: z.uuid(), text: z.string().max(2000) }).strict())
+          .max(500)
+          .refine((rows) => new Set(rows.map((row) => row.questionId)).size === rows.length)
+          .optional(),
         answers: z
           .array(
             z

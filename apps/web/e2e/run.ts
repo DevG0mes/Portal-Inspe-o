@@ -19,6 +19,8 @@ import {
   AssignmentResponsible,
 } from '../../api/src/schedules/schedule.entity.js';
 import { cleanupBrowserQueue } from '../../worker/src/test-support.js';
+import { loadEnvironment } from '../../../packages/config/src/index.js';
+import { cleanupEvidenceTestBucket } from '../../api/src/files/test-support.js';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 process.chdir(root);
@@ -38,6 +40,7 @@ const password = `Test-${randomBytes(20).toString('hex')}`;
 const queueName = `portal-browser-schedules-${randomBytes(8).toString('hex')}`;
 const env: NodeJS.ProcessEnv = {
   ...process.env,
+  MINIO_BUCKET: `portal-evidence-test-${randomBytes(8).toString('hex')}`,
   DATABASE_URL: database.orm.config.get('clientUrl'),
   APP_ORIGIN: 'http://127.0.0.1:3100',
   API_INTERNAL_URL: 'http://127.0.0.1:3101',
@@ -216,4 +219,5 @@ try {
     }
   await database.close();
   await cleanupBrowserQueue(queueName, process.env.REDIS_URL!);
+  await cleanupEvidenceTestBucket(loadEnvironment(env));
 }

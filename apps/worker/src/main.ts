@@ -45,6 +45,20 @@ async function bootstrap() {
   process.once('SIGTERM', () => void shutdown());
   try {
     await queue.upsertJobScheduler(
+      'cleanup-uploads',
+      { every: 900000 },
+      {
+        name: 'cleanup-uploads',
+        data: {},
+        opts: {
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: 100,
+          removeOnFail: 100,
+        },
+      },
+    );
+    await queue.upsertJobScheduler(
       'scan-schedules',
       { every: environment.SCHEDULE_POLL_MS },
       { name: 'scan', data: {}, opts: { removeOnComplete: 100, removeOnFail: 100 } },

@@ -29,7 +29,9 @@ try {
 }
 ```
 
-Não salvar essas variáveis em arquivos versionados. O comando imprime somente o identificador da conta criada. O primeiro acesso exige troca da senha temporária. Não foram criadas credenciais padrão nem um administrador real durante o desenvolvimento.
+Não salvar essas variáveis em arquivos versionados. O comando imprime somente o identificador da conta criada. O primeiro acesso exige troca da senha temporária. Não existem credenciais padrão.
+
+Em 29/10/2026, a pedido do usuário, foi provisionado o primeiro administrador do ambiente local para testes. A senha temporária aleatória é entregue somente na conversa e exige troca no primeiro acesso. Nenhuma senha dessa conta é mantida no repositório ou no arquivo de exemplo. O bootstrap não deve ser repetido para redefinir contas existentes.
 
 ## Contratos HTTP
 

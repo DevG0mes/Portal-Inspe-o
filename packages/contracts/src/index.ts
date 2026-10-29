@@ -11,3 +11,4 @@ export * from './organization.js';
 export * from './forms.js';
 export * from './schedules.js';
 export * from './inspections.js';
+export * from './files.js';

@@ -3,6 +3,10 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { FormQuestion } from '@portal/contracts';
 const origin = 'http://127.0.0.1:3100';
+const evidencePng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1sAAAAASUVORK5CYII=',
+  'base64',
+);
 async function role(page: Page, role: string) {
   const response = await page.request.post('/api/auth/login', {
     headers: { Origin: origin },
@@ -132,6 +136,17 @@ test('fills an inspection with typed answers, preserves immutable history and re
   await page
     .getByLabel('Condição do equipamento (obrigatória)', { exact: true })
     .selectOption({ label: 'Ajustar' });
+  await page
+    .getByLabel('Observação · Área segura?', { exact: true })
+    .fill('Proteção coletiva precisa ser instalada.');
+  const filename = `ronda-${info.project.name}.png`;
+  const evidence = page.getByRole('region', { name: 'Evidências de Área segura?', exact: true });
+  await page
+    .getByLabel('Evidência · Área segura?', { exact: true })
+    .setInputFiles({ name: filename, mimeType: 'image/png', buffer: evidencePng });
+  await evidence.getByRole('button', { name: 'Enviar arquivo', exact: true }).click();
+  await expect(evidence.getByText(/Evidência registrada/)).toBeVisible();
+  await evidence.screenshot({ path: `test-results/evidence-${info.project.name}.png` });
   await expect(page.getByText(/Respostas salvas · Revisão/)).toBeVisible();
   await accessible(page);
   await page.screenshot({
@@ -157,6 +172,16 @@ test('fills an inspection with typed answers, preserves immutable history and re
     page.getByText('Proteção coletiva · Prioridade alta', { exact: true }),
   ).toBeVisible();
   await expect(page.getByText('0,123456789', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Proteção coletiva precisa ser instalada.', { exact: false }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: `Preparar download de ${filename}`, exact: true }).click();
+  const signed = await page
+    .getByRole('link', { name: `Baixar ${filename}`, exact: true })
+    .getAttribute('href');
+  const downloaded = await page.request.get(signed!);
+  expect(downloaded.status()).toBe(200);
+  expect(await downloaded.body()).toEqual(evidencePng);
   await expect(page.getByRole('button', { name: 'Reabrir inspeção', exact: true })).toHaveCount(0);
   const id = url.split('/').at(-1)!;
   const completed = await (await page.request.get(`/api/inspections/${id}`)).json();
@@ -198,6 +223,12 @@ test('fills an inspection with typed answers, preserves immutable history and re
   await page.goto(url);
   await page.getByText('Consultar conclusões anteriores (1)', { exact: true }).click();
   await expect(page.getByText('Barreira ausente', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: `Remover ${filename}`, exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Remover evidência', exact: true })
+    .click();
+  await expect(evidence.getByText(filename, { exact: true })).toHaveCount(0);
   await page
     .getByLabel('Descrição do risco (obrigatória)', { exact: true })
     .fill('Barreira conferida novamente');
@@ -211,6 +242,11 @@ test('fills an inspection with typed answers, preserves immutable history and re
   ).toHaveCount(2);
   await page.getByLabel('Ciclo consultado', { exact: true }).selectOption('1');
   await expect(page.getByText('Barreira ausente', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: `Preparar download de ${filename}`, exact: true }).click();
+  const historical = await page
+    .getByRole('link', { name: `Baixar ${filename}`, exact: true })
+    .getAttribute('href');
+  expect((await page.request.get(historical!)).status()).toBe(200);
   await page.getByLabel('Ciclo consultado', { exact: true }).selectOption('2');
   await expect(page.getByText('Barreira conferida novamente', { exact: true })).toBeVisible();
   await page.goto('/inspections?state=COMPLETED');
@@ -301,4 +337,75 @@ test('starts a due assignment and displays its actual completion state', async (
   await expect(page.getByRole('button', { name: 'Revisar e concluir', exact: true })).toHaveCount(
     0,
   );
+});
+
+test('retries an interrupted evidence finalization and cancels rejected binary content without losing notes', async ({
+  page,
+}, info) => {
+  test.setTimeout(90000);
+  const name = `Arquivos ${info.project.name}`;
+  await fixture(page, name);
+  await role(page, 'collaborator');
+  await createThroughUI(page, name);
+  await page
+    .getByLabel('Observação · Área segura?', { exact: true })
+    .fill('Observação mantida durante a falha.');
+  let reject = true;
+  await page.route('**/api/files/*/finalize', (route) =>
+    reject ? route.fulfill({ status: 503, json: {} }) : route.continue(),
+  );
+  const group = page.getByRole('region', { name: 'Evidências de Área segura?', exact: true });
+  await page
+    .getByLabel('Evidência · Área segura?', { exact: true })
+    .setInputFiles({ name: 'retentativa.png', mimeType: 'image/png', buffer: evidencePng });
+  await group.getByRole('button', { name: 'Enviar arquivo', exact: true }).click();
+  await expect(
+    group.getByRole('button', { name: 'Tentar envio novamente', exact: true }),
+  ).toBeEnabled();
+  await expect(page.getByLabel('Observação · Área segura?', { exact: true })).toHaveValue(
+    'Observação mantida durante a falha.',
+  );
+  reject = false;
+  await group.getByRole('button', { name: 'Tentar envio novamente', exact: true }).click();
+  await expect(group.getByText(/Evidência registrada/)).toBeVisible();
+  await page.unroute('**/api/files/*/finalize');
+  await page.getByLabel('Evidência · Área segura?', { exact: true }).setInputFiles({
+    name: 'falsa.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('<html>não é imagem</html>'),
+  });
+  await group.getByRole('button', { name: 'Enviar arquivo', exact: true }).click();
+  await expect(group.getByRole('alert')).toBeVisible();
+  await group.getByRole('button', { name: 'Cancelar envio de falsa.png', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Remover evidência', exact: true })
+    .click();
+  await expect(group.getByText('falsa.png', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Observação · Área segura?', { exact: true })).toHaveValue(
+    'Observação mantida durante a falha.',
+  );
+  const row = await (
+    await page.request.get(`/api/inspections/${page.url().split('/').at(-1)}`)
+  ).json();
+  expect(row.evidence).toHaveLength(1);
+  expect(row.evidence[0].status).toBe('READY');
+  const contentPath = `/api/files/${row.evidence[0].id}/content`;
+  expect(
+    (
+      await page.request.put(contentPath, {
+        headers: { Origin: 'https://outside.invalid', 'Content-Type': 'application/octet-stream' },
+        data: evidencePng,
+      })
+    ).status(),
+  ).toBe(403);
+  expect(
+    (
+      await page.request.put(contentPath, {
+        headers: { Origin: origin, 'Content-Type': 'text/plain' },
+        data: 'invalid',
+      })
+    ).status(),
+  ).toBe(415);
+  await accessible(page);
 });

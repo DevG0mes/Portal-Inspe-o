@@ -46,3 +46,7 @@ O construtor continua a referência de ficha operacional: seções numeradas e p
 ## Preenchimento em campo
 
 `features/inspection-runner` mantém a ficha operacional em coluna única. Uma faixa superior mostra perguntas respondidas e confirmação de salvamento; não fica sobre os campos. Seções seguem a ordem da ficha publicada, com campos canônicos compartilhados com a prévia. Conclusões usam leitura por pergunta/resposta e seletor de ciclo. Rascunhos, erros e conflitos têm texto explícito e recuperação no mesmo documento. Sem promessa de operação offline.
+
+## Evidências e observações
+
+Cada pergunta visível agrupa resposta, observação opcional e evidências. Campos de texto multilinha pertencem a `Textarea` compartilhado. O envio usa seletor nativo de arquivo, situação textual e progresso de transferência; nomes longos quebram linha na lista. Registro finalizado e envio pendente são estados distintos. Download temporário é preparado e aberto por ação explícita. Desvinculação usa a confirmação canônica e preserva o histórico. A seleção de arquivo continua copiável enquanto uma falha é resolvida.

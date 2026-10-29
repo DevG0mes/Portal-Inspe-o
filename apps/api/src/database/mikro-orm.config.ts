@@ -21,6 +21,8 @@ import {
 } from '../schedules/schedule.entity.js';
 import { Migration202610280002 } from './migrations/Migration202610280002.js';
 import { Migration202610280003 } from './migrations/Migration202610280003.js';
+import { Migration202610280004 } from './migrations/Migration202610280004.js';
+import { evidenceArtifactSchema } from '../files/file.entity.js';
 import { inspectionSchema, inspectionSubmissionSchema } from '../inspections/inspection.entity.js';
 
 /** Explicit entities and migration classes work identically from source and compiled ESM. */
@@ -44,6 +46,7 @@ export function createDatabaseOptions(clientUrl: string) {
       assignmentResponsibleSchema,
       inspectionSchema,
       inspectionSubmissionSchema,
+      evidenceArtifactSchema,
     ],
     extensions: [Migrator],
     migrations: {
@@ -55,6 +58,7 @@ export function createDatabaseOptions(clientUrl: string) {
         Migration202610280001,
         Migration202610280002,
         Migration202610280003,
+        Migration202610280004,
       ],
       transactional: true,
       allOrNothing: true,

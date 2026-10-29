@@ -13,6 +13,7 @@ import { FormTemplate } from '../forms/entities/form-template.entity.js';
 import { FormVersion } from '../forms/entities/form-version.entity.js';
 import { InspectionAssignment, AssignmentResponsible } from '../schedules/schedule.entity.js';
 import { Inspection, InspectionSubmission } from './inspection.entity.js';
+import { EvidenceArtifact, evidenceView } from '../files/file.entity.js';
 import {
   parseCreateInspection,
   parseInspectionDraft,
@@ -106,6 +107,18 @@ export class InspectionService {
       canEdit,
       canReopen: user.role === 'ADMIN' || user.role === 'MANAGER',
       answers: row.answers,
+      notes: row.notes,
+      evidence: (
+        await em.find(
+          EvidenceArtifact,
+          {
+            inspection: row.id,
+            detachedAt: null,
+            status: { $in: ['PENDING', 'UPLOADED', 'READY'] },
+          },
+          { orderBy: { createdAt: 'asc', id: 'asc' } },
+        )
+      ).map(evidenceView),
       submissions: history.map((s) => ({
         id: s.id,
         cycle: s.cycle,
@@ -114,12 +127,24 @@ export class InspectionService {
         completedById: s.completedBy.id,
         answers: s.answers,
         nonconformities: s.nonconformities,
+        notes: s.notes,
+        evidence: s.evidence,
       })),
     };
   }
   async get(actor: AuthenticatedPrincipal, id: string, requestId: string) {
     const em = this.entityManager.fork();
     return this.view(actor, await this.load(actor, id, em, requestId, false), em);
+  }
+  /** Shared authorization/lock order for evidence mutations; caller owns the transaction. */
+  loadForEvidence(
+    actor: AuthenticatedPrincipal,
+    id: string,
+    em: EntityManager,
+    requestId: string,
+    write: boolean,
+  ) {
+    return this.load(actor, id, em, requestId, write, write);
   }
   async list(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const query = parseInspectionQuery(raw),
@@ -244,6 +269,12 @@ export class InspectionService {
       if (input.answers.some((a) => !ids.has(a.questionId)))
         throw new BadRequestException('Pergunta não pertence à versão desta inspeção.');
       row.answers = input.answers;
+      if (input.notes?.some((note) => !ids.has(note.questionId)))
+        throw new BadRequestException('Observação não pertence à versão desta inspeção.');
+      if (input.notes)
+        row.notes = input.notes
+          .filter((note) => note.text.trim())
+          .map((note) => ({ ...note, text: note.text.trim() }));
       row.revision++;
       await this.audit.record(
         {
@@ -282,6 +313,19 @@ export class InspectionService {
           errors: result.errors,
         });
       const submission = new InspectionSubmission();
+      const visible = new Set(result.visibleQuestionIds);
+      const artifacts = await em.find(EvidenceArtifact, {
+        inspection: row.id,
+        detachedAt: null,
+        status: { $in: ['PENDING', 'UPLOADED', 'READY'] },
+      });
+      if (
+        artifacts.some(
+          (file) =>
+            visible.has(file.questionId) && file.status !== 'READY' && file.expiresAt > new Date(),
+        )
+      )
+        throw new ConflictException('Finalize ou cancele os envios pendentes antes de concluir.');
       Object.assign(submission, {
         inspection: row,
         cycle: row.cycle,
@@ -289,9 +333,14 @@ export class InspectionService {
         completedBy: em.getReference(User, actor.userId),
         answers: result.acceptedAnswers,
         nonconformities: result.nonconformities,
+        notes: row.notes.filter((note) => visible.has(note.questionId)),
+        evidence: artifacts
+          .filter((file) => visible.has(file.questionId) && file.status === 'READY')
+          .map(evidenceView),
       });
       em.persist(submission);
       row.answers = result.acceptedAnswers;
+      row.notes = submission.notes;
       row.state = 'COMPLETED';
       row.revision++;
       await this.audit.record(

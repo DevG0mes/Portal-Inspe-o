@@ -1,5 +1,10 @@
 import { EntitySchema } from '@mikro-orm/core';
-import type { AnswerInput, NonconformityOccurrence } from '@portal/contracts';
+import type {
+  AnswerInput,
+  NonconformityOccurrence,
+  InspectionNote,
+  EvidenceFile,
+} from '@portal/contracts';
 import { BaseEntity } from '../database/base.entity.js';
 import { User } from '../identity/user.entity.js';
 import { Unit } from '../organization/unit.entity.js';
@@ -17,6 +22,7 @@ export class Inspection extends BaseEntity {
   revision = 1;
   cycle = 1;
   answers: AnswerInput[] = [];
+  notes: InspectionNote[] = [];
 }
 /** Each completion is append-only. Reopening creates another cycle, never edits this row. */
 export class InspectionSubmission extends BaseEntity {
@@ -27,6 +33,8 @@ export class InspectionSubmission extends BaseEntity {
   completedBy!: User;
   answers!: AnswerInput[];
   nonconformities!: NonconformityOccurrence[];
+  notes: InspectionNote[] = [];
+  evidence: EvidenceFile[] = [];
 }
 export const inspectionSchema = new EntitySchema<Inspection, BaseEntity>({
   class: Inspection,
@@ -48,6 +56,7 @@ export const inspectionSchema = new EntitySchema<Inspection, BaseEntity>({
     revision: { type: 'integer', default: 1 },
     cycle: { type: 'integer', default: 1 },
     answers: { type: 'json', columnType: 'jsonb' },
+    notes: { type: 'json', columnType: 'jsonb', defaultRaw: "'[]'::jsonb" },
   },
   indexes: [
     { properties: ['unit'] },
@@ -68,6 +77,8 @@ export const inspectionSubmissionSchema = new EntitySchema<InspectionSubmission,
     completedBy: { kind: 'm:1', entity: () => User, deleteRule: 'restrict' },
     answers: { type: 'json', columnType: 'jsonb' },
     nonconformities: { type: 'json', columnType: 'jsonb' },
+    notes: { type: 'json', columnType: 'jsonb', defaultRaw: "'[]'::jsonb" },
+    evidence: { type: 'json', columnType: 'jsonb', defaultRaw: "'[]'::jsonb" },
   },
   uniques: [{ properties: ['inspection', 'cycle'] }],
   indexes: [{ properties: ['completedBy'] }],

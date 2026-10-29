@@ -15,11 +15,38 @@ import { RecurrenceService } from '../src/schedules/recurrence.service.js';
 import { AuditService } from '../src/audit/audit.service.js';
 import { InspectionAssignment } from '../src/schedules/schedule.entity.js';
 import { materializationKey } from '@portal/scheduling';
+import { EvidenceArtifact } from '../src/files/file.entity.js';
+import { FileService } from '../src/files/file.service.js';
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>, app: INestApplication, origin: string;
 let unit: Unit, sector: Sector, formId: string;
 let users: User[];
 const cookies: string[] = [];
+const objects = new Map<string, Buffer>();
+let failCopyAfterWrite = false,
+  failRemoveKey: string | undefined;
+const storage = {
+  ensureBucket: async () => {},
+  put: async (key: string, bytes: Buffer) => {
+    objects.set(key, Buffer.from(bytes));
+  },
+  read: async (key: string) => {
+    const bytes = objects.get(key);
+    if (!bytes) throw new Error('Object absent');
+    return bytes;
+  },
+  copy: async (source: string, target: string) => {
+    const bytes = objects.get(source);
+    if (!bytes) throw new Error('Object absent');
+    objects.set(target, Buffer.from(bytes));
+    if (failCopyAfterWrite) throw new Error('Simulated copy response failure');
+  },
+  remove: async (key: string) => {
+    if (key === failRemoveKey) throw new Error('Simulated storage deletion failure');
+    objects.delete(key);
+  },
+  downloadUrl: async () => 'http://127.0.0.1:9000/private/signed',
+};
 const first = question('YES_NO_NA');
 const hidden = question('TEXT');
 first.required = true;
@@ -55,7 +82,7 @@ beforeAll(async () => {
     em.persist([parent, child]);
   }
   await em.flush();
-  app = await createApplication({}, undefined, database.orm);
+  app = await createApplication({}, undefined, database.orm, undefined, storage);
   await app.listen(0, '127.0.0.1');
   origin = await app.getUrl();
   for (const user of users) {
@@ -99,6 +126,268 @@ async function create() {
   expect(res.status).toBe(201);
   return res.json();
 }
+it('saves question notes with the draft revision and freezes only visible notes on completion', async () => {
+  const row = await create();
+  const response = await call(`/inspections/${row.id}/draft`, 'PUT', {
+    revision: 1,
+    answers: [{ questionId: first.id, value: 'NO' }],
+    notes: [
+      { questionId: first.id, text: 'Proteção ausente' },
+      { questionId: hidden.id, text: 'Nota oculta' },
+    ],
+  });
+  expect(response.status).toBe(200);
+  const saved = await response.json();
+  expect(saved.notes).toHaveLength(2);
+  const completed = await (
+    await call(`/inspections/${row.id}/complete`, 'POST', { revision: saved.revision, cycle: 1 })
+  ).json();
+  expect(completed.submissions[0].notes).toEqual([
+    { questionId: first.id, text: 'Proteção ausente' },
+  ]);
+});
+it('prepares private evidence, rejects unauthorized or absent objects and finalizes once per revision', async () => {
+  const row = await create();
+  await call(`/inspections/${row.id}/draft`, 'PUT', {
+    revision: 1,
+    answers: [{ questionId: first.id, value: 'NO' }],
+  });
+  const bytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1sAAAAASUVORK5CYII=',
+    'base64',
+  );
+  const prepared = await call('/files/prepare', 'POST', {
+    inspectionId: row.id,
+    questionId: first.id,
+    revision: 2,
+    filename: 'foto.png',
+    mime: 'image/png',
+    size: bytes.length,
+  });
+  expect(prepared.status).toBe(201);
+  const file = await prepared.json();
+  expect(
+    (
+      await call('/files/prepare', 'POST', {
+        inspectionId: row.id,
+        questionId: hidden.id,
+        revision: 2,
+        filename: 'oculta.png',
+        mime: 'image/png',
+        size: bytes.length,
+      })
+    ).status,
+  ).toBe(409);
+  expect(file).not.toHaveProperty('tempKey');
+  expect((await call(`/files/${file.id}/finalize`, 'POST', { revision: 2 })).status).toBe(409);
+  expect((await call(`/files/${file.id}/finalize`, 'POST', { revision: 2 }, 2)).status).toBe(403);
+  const uploaded = await fetch(`${origin}/api/files/${file.id}/content`, {
+    method: 'PUT',
+    headers: { cookie: cookies[1]!, 'content-type': 'application/octet-stream' },
+    body: bytes,
+  });
+  expect(uploaded.status).toBe(200);
+  const responses = await Promise.all(
+    [1, 2].map(() => call(`/files/${file.id}/finalize`, 'POST', { revision: 2 })),
+  );
+  expect(responses.map((r) => r.status)).toEqual([201, 201]);
+  const receipt = await responses[0]!.json();
+  expect(receipt.revision).toBe(3);
+  expect(receipt.files).toHaveLength(1);
+  const completed = await (
+    await call(`/inspections/${row.id}/complete`, 'POST', { revision: 3, cycle: 1 })
+  ).json();
+  expect(completed.submissions[0].evidence).toHaveLength(1);
+  expect(completed.submissions[0].evidence[0]).toMatchObject({
+    id: file.id,
+    questionId: first.id,
+    filename: 'foto.png',
+  });
+  expect((await call(`/files/${file.id}/download`, 'GET', undefined, 2)).status).toBe(403);
+  expect((await call(`/files/${file.id}/download`)).status).toBe(200);
+  expect(
+    (await call(`/files/${file.id}/detach`, 'POST', { revision: completed.revision })).status,
+  ).toBe(409);
+});
+
+it('deduplicates preparation and rejects forged binary content and completion with a pending upload', async () => {
+  const row = await create();
+  await call(`/inspections/${row.id}/draft`, 'PUT', {
+    revision: 1,
+    answers: [{ questionId: first.id, value: 'NO' }],
+  });
+  const body = {
+    uploadId: randomUUID(),
+    inspectionId: row.id,
+    questionId: first.id,
+    revision: 2,
+    filename: 'foto.png',
+    mime: 'image/png',
+    size: 68,
+  };
+  const one = await (await call('/files/prepare', 'POST', body)).json();
+  const two = await (await call('/files/prepare', 'POST', body)).json();
+  expect(two.id).toBe(one.id);
+  const invalid = await fetch(`${origin}/api/files/${one.id}/content`, {
+    method: 'PUT',
+    headers: { cookie: cookies[1]!, 'content-type': 'application/octet-stream' },
+    body: Buffer.from('<html>fake</html>'),
+  });
+  expect(invalid.status).toBe(400);
+  expect(
+    (await call(`/inspections/${row.id}/complete`, 'POST', { revision: 2, cycle: 1 })).status,
+  ).toBe(409);
+  expect(
+    (
+      await call('/files/prepare', 'POST', {
+        ...body,
+        uploadId: randomUUID(),
+        filename: 'arquivo.svg',
+        mime: 'image/svg+xml',
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await call('/files/prepare', 'POST', {
+        ...body,
+        uploadId: randomUUID(),
+        size: 26 * 1024 * 1024,
+      })
+    ).status,
+  ).toBe(400);
+  const removed = await (await call(`/files/${one.id}/detach`, 'POST', { revision: 2 })).json();
+  expect(removed.revision).toBe(3);
+  const repeated = await (await call(`/files/${one.id}/detach`, 'POST', { revision: 2 })).json();
+  expect(repeated.revision).toBe(3);
+  expect(repeated.files).toHaveLength(0);
+});
+
+it('compensates a partially successful promotion and allows a safe retry', async () => {
+  const row = await create(),
+    bytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1sAAAAASUVORK5CYII=',
+      'base64',
+    );
+  const prepared = await (
+    await call('/files/prepare', 'POST', {
+      inspectionId: row.id,
+      questionId: first.id,
+      revision: 1,
+      filename: 'foto.png',
+      mime: 'image/png',
+      size: bytes.length,
+    })
+  ).json();
+  await fetch(`${origin}/api/files/${prepared.id}/content`, {
+    method: 'PUT',
+    headers: { cookie: cookies[1]!, 'content-type': 'application/octet-stream' },
+    body: bytes,
+  });
+  const file = await database.orm.em.fork().findOneOrFail(EvidenceArtifact, prepared.id);
+  failCopyAfterWrite = true;
+  try {
+    expect((await call(`/files/${file.id}/finalize`, 'POST', { revision: 1 })).status).toBe(503);
+  } finally {
+    failCopyAfterWrite = false;
+  }
+  expect(objects.has(file.finalKey)).toBe(false);
+  expect(objects.has(file.tempKey)).toBe(true);
+  expect((await database.orm.em.fork().findOneOrFail(EvidenceArtifact, file.id)).status).toBe(
+    'UPLOADED',
+  );
+  expect((await call(`/files/${file.id}/finalize`, 'POST', { revision: 1 })).status).toBe(201);
+  expect(objects.has(file.finalKey)).toBe(true);
+});
+
+it('serializes evidence finalization against completion of the same revision', async () => {
+  const row = await create(),
+    bytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1sAAAAASUVORK5CYII=',
+      'base64',
+    );
+  await call(`/inspections/${row.id}/draft`, 'PUT', {
+    revision: 1,
+    answers: [{ questionId: first.id, value: 'NO' }],
+  });
+  const file = await (
+    await call('/files/prepare', 'POST', {
+      inspectionId: row.id,
+      questionId: first.id,
+      revision: 2,
+      filename: 'foto.png',
+      mime: 'image/png',
+      size: bytes.length,
+    })
+  ).json();
+  await fetch(`${origin}/api/files/${file.id}/content`, {
+    method: 'PUT',
+    headers: { cookie: cookies[1]!, 'content-type': 'application/octet-stream' },
+    body: bytes,
+  });
+  const results = await Promise.all([
+    call(`/files/${file.id}/finalize`, 'POST', { revision: 2 }),
+    call(`/inspections/${row.id}/complete`, 'POST', { revision: 2, cycle: 1 }),
+  ]);
+  expect(results.map((response) => response.status)).toEqual([201, 409]);
+  const completed = await (
+    await call(`/inspections/${row.id}/complete`, 'POST', { revision: 3, cycle: 1 })
+  ).json();
+  expect(completed.submissions[0].evidence.map((evidence: { id: string }) => evidence.id)).toEqual([
+    file.id,
+  ]);
+});
+
+it('enforces the per-question upload count before transferring any objects', async () => {
+  const row = await create();
+  for (let index = 0; index < 6; index++) {
+    const response = await call('/files/prepare', 'POST', {
+      inspectionId: row.id,
+      questionId: first.id,
+      revision: 1,
+      filename: `foto${index}.png`,
+      mime: 'image/png',
+      size: 68,
+    });
+    expect(response.status).toBe(index < 5 ? 201 : 400);
+  }
+});
+
+it('cleans expired temporary and orphan promotion keys, retries failures and retains completed evidence', async () => {
+  const row = await create();
+  const prepared = await (
+    await call('/files/prepare', 'POST', {
+      inspectionId: row.id,
+      questionId: first.id,
+      revision: 1,
+      filename: 'foto.png',
+      mime: 'image/png',
+      size: 68,
+    })
+  ).json();
+  const em = database.orm.em.fork(),
+    file = await em.findOneOrFail(EvidenceArtifact, prepared.id);
+  file.expiresAt = new Date(Date.now() - 1000);
+  await em.flush();
+  objects.set(file.tempKey, Buffer.from('temporary'));
+  objects.set(file.finalKey, Buffer.from('orphan'));
+  failRemoveKey = file.tempKey;
+  try {
+    await expect(app.get(FileService).cleanup()).rejects.toThrow();
+  } finally {
+    failRemoveKey = undefined;
+  }
+  await app.get(FileService).cleanup();
+  expect(objects.has(file.tempKey)).toBe(false);
+  expect(objects.has(file.finalKey)).toBe(false);
+  expect((await em.fork().findOneOrFail(EvidenceArtifact, file.id)).status).toBe('CLEANED');
+  const ready = await em.fork().findOneOrFail(EvidenceArtifact, { status: 'READY' });
+  await em.fork().nativeUpdate(EvidenceArtifact, ready.id, { tempCleaned: false });
+  objects.set(ready.tempKey, Buffer.from('leftover'));
+  await app.get(FileService).cleanup();
+  expect(objects.has(ready.tempKey)).toBe(false);
+  expect(objects.has(ready.finalKey)).toBe(true);
+});
 it('creates a pinned draft and enforces current scope on every operation', async () => {
   const row = await create();
   expect(row).toMatchObject({ revision: 1, cycle: 1, state: 'DRAFT', formVersionNumber: 1 });
@@ -335,6 +624,23 @@ it('shares one assigned inspection, prevents early starts and keeps its pinned v
       )
     ).status,
   ).toBe(200);
+  const owned = await (
+    await call('/files/prepare', 'POST', {
+      inspectionId: a.id,
+      questionId: first.id,
+      revision: 2,
+      filename: 'outro-responsavel.png',
+      mime: 'image/png',
+      size: 68,
+    })
+  ).json();
+  expect((await call(`/files/${owned.id}/finalize`, 'POST', { revision: 2 }, 3)).status).toBe(403);
+  const denied = await fetch(`${origin}/api/files/${owned.id}/content`, {
+    method: 'PUT',
+    headers: { cookie: cookies[3]!, 'content-type': 'application/octet-stream' },
+    body: Buffer.alloc(68),
+  });
+  expect(denied.status).toBe(403);
 });
 
 it('rejects invalid answer shapes, unknown questions and computed client results', async () => {

@@ -2,9 +2,33 @@
 
 ## Estado atual
 
-Tarefas 1 a 8 concluídas. Tarefa 9 em andamento: núcleo HTTP e interface de preenchimento implementados. Próximo incremento: observações por pergunta e evidências privadas no MinIO, incluindo limpeza de uploads abandonados.
+Tarefas 1 a 9 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Próxima etapa funcional: planos de ação e validação gerencial (tarefa 10).
+
+## Tarefa 9 — evidências e observações em 28–29/10/2026
+
+- Criado módulo `files`, contratos públicos de arquivo/política/recibo e adapter MinIO. Migração 202610280004 adiciona notas por pergunta, metadados de evidências em cada conclusão e registros duráveis de preparo. Rascunhos e ciclos anteriores preservados.
+- Observações opcionais de até 2.000 caracteres compartilham autosave/revisão das respostas. Conclusão recalcula visibilidade no servidor e congela somente notas e evidências READY de perguntas visíveis.
+- Preparo idempotente por ID de envio; chaves internas independentes geradas no servidor. Binário atravessa BFF com origem e rota estritas, sem multipart, limitado a 25 MiB absolutos. Política efetiva: padrão 10 MiB por arquivo configurável, 5 vínculos por pergunta e 20 ativos por inspeção. Extensão/MIME/assinatura/tamanho/SHA-256 verificados.
+- Ruling: promoção faz I/O sob lock da inspeção e artefato — evita vínculo tardio após conclusão e corridas de compensação — custo: mutações da mesma inspeção aguardam armazenamento. Requests têm cancelamento real de 15 s; retries prolongados do SDK são impedidos nesse trecho. Ambas as chaves são persistidas antes do upload, permitindo recuperar queda do processo ou falha do commit. Compensação acontece antes de liberar o lock.
+- READY tem retenção indefinida; desvincular no ciclo reaberto não altera o histórico. Cleanup BullMQ a cada 15 minutos remove somente preparos expirados e sobras temporárias de READY, com retries e lote de 100. Nunca remove o destino de uma evidência READY.
+- Downloads exigem autorização atual e retornam URL assinada de 60 s, sem URL persistida no histórico. Bucket sem política pública; política anônima preexistente é rejeitada no preparo. O controle do TTL de um link já emitido é documentado em `evidence.md`.
+- Interface oferece observação, seleção, transferência com progresso, retry sem duplicar, cópia local da seleção e cancelamento/desvinculação confirmado. Última geração é salva antes do arquivo; `acceptRevision` não reconhece evidência sobre respostas locais pendentes. Confirmação fica fora do fieldset bloqueado. Download é preparado e aberto explicitamente.
+- Testes iniciais falharam por módulo/rota ausentes e notas rejeitadas. Testes adicionais reproduzem conteúdo forjado, MIME herdado do protótipo, promoção parcialmente bem-sucedida, limpeza com falha, concorrência concluir/finalizar e escopo/proprietário. Revisão independente sem P1/P2.
+- Integração real MinIO verifica bloqueio anônimo e downloads assinados. Browser usa bucket aleatório exclusivo; helper de limpeza recusa buckets não pertencentes ao teste ou endpoints não locais. Banco/fila continuam isolados.
+- Build teve bloqueio EPERM no cache gerado do Next dentro do OneDrive; removido apenas `.next` após validar o caminho absoluto dentro do workspace. Compilação posterior aprovada. A execução foi interrompida pelo limite da revisão automática de permissões em 28/10 e retomada em 29/10, sem contorno da aprovação.
+- Ambiente reativado em 29/10 com volumes existentes. Bootstrap local criou a conta solicitada sem alterar contas anteriores; senha aleatória somente na conversa. Login/sessão retornaram 200, papel ADMIN e redirecionamento para troca obrigatória; sessão técnica de conferência encerrada. Nenhuma senha foi adicionada aos arquivos.
+
+### Evidências finais da tarefa 9 em 29/10/2026
+
+- `pnpm test`: 66 testes aprovados. `pnpm test:e2e`: 80 aprovados. `pnpm test:integration`: 10 aprovados. `pnpm test:browser`: 30 cenários aprovados, 15 desktop e 15 celular. Total: 186 testes/cenários distintos. Rodadas focadas anteriores não são contadas novamente.
+- Lint, tipos, formatação e build aprovados. Auditoria premium estrita sem apontamentos. Axe WCAG A/AA sem violações nas telas exercitadas; viewport móvel sem overflow horizontal. Captura móvel do envio finalizado examinada.
+- Migração 202610280004 aplicada ao banco local. API e frontend compilados em execução; readiness confirmou PostgreSQL/Redis/MinIO up. Redis confirmou um worker e schedulers `scan-schedules`/`cleanup-uploads` registrados.
+- Login da conta local solicitada validado pelo BFF; senha temporária exige troca antes de abrir o portal. Credenciais não fazem parte do commit. Testes automáticos mantêm contas, bancos, filas e buckets próprios.
+- Limites: ambiente local de desenvolvimento. Não houve publicação, envio de mensagens ou implantação de produção. Homologação em celular físico e controles operacionais de produção pertencem às etapas posteriores. Planos de ação ainda pertencem à tarefa 10.
 
 ## Tarefa 9 — interface de execução em 28/10/2026
+
+Este incremento anterior foi seguido pela implementação de evidências e observações descrita em `evidence.md`; a verificação final foi retomada em 29/10 após interrupção por limite da revisão automática de execução.
 
 - Rotas protegidas `/inspections`, `/inspections/new` e `/inspections/:id`; navegação comum, lista paginada, filtros por situação, criação com seletores remotos e confirmação. API aplica escopo/autoria antes da contagem e retorna metadados sem respostas no DTO de lista.
 - Campos dos cinco tipos, condições de visibilidade, progresso das perguntas respondidas, autosave, validação com foco no primeiro erro, confirmação final e consulta das respostas/ocorrências de cada ciclo. Gestor não responsável recebe consulta do rascunho, sem edição.

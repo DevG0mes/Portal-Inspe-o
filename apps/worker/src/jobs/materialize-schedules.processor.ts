@@ -2,6 +2,7 @@ import { materializationKey } from '@portal/scheduling';
 interface Runtime {
   due: () => Promise<{ id: string; nextOccurrenceAt: Date | null; revision?: number }[]>;
   materialize: (id: string, at: string, key: string) => Promise<{ id: string }>;
+  cleanupUploads?: () => Promise<{ cleaned: number }>;
 }
 interface JobQueue {
   add: (name: string, data: object, options: object) => Promise<unknown> | unknown;
@@ -14,6 +15,10 @@ export async function processSchedulingJob(
   runtime: Runtime,
   queue: JobQueue,
 ) {
+  if (job.name === 'cleanup-uploads') {
+    if (!runtime.cleanupUploads) throw new Error('Upload cleanup unavailable.');
+    return runtime.cleanupUploads();
+  }
   if (job.name === 'scan') {
     const rows = await runtime.due();
     for (const row of rows) {

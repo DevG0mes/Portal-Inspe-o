@@ -7,7 +7,7 @@ const MAX_BODY = 2 * 1024 * 1024;
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   if (
-    !['auth', 'users', 'organization', 'forms', 'schedules', 'inspections'].includes(
+    !['auth', 'users', 'organization', 'forms', 'schedules', 'inspections', 'files'].includes(
       path[0] ?? '',
     ) ||
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
@@ -17,6 +17,12 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const cookie = sessionCookie(request.headers.get('cookie'));
   if (cookie) headers.set('Cookie', cookie);
   let body: Uint8Array | undefined;
+  const binary =
+    request.method === 'PUT' &&
+    path.length === 3 &&
+    path[0] === 'files' &&
+    /^[a-f0-9-]{36}$/i.test(path[1] ?? '') &&
+    path[2] === 'content';
   if (!['GET', 'HEAD'].includes(request.method)) {
     const origin = process.env.APP_ORIGIN ?? 'http://127.0.0.1:3000';
     if (
@@ -24,10 +30,11 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       request.headers.get('sec-fetch-site') === 'cross-site'
     )
       return NextResponse.json({ message: 'Origem inválida.' }, { status: 403 });
-    if (!request.headers.get('content-type')?.startsWith('application/json'))
+    const expectedType = binary ? 'application/octet-stream' : 'application/json';
+    if (request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== expectedType)
       return new NextResponse(null, { status: 415 });
     headers.set('Origin', origin);
-    headers.set('Content-Type', 'application/json');
+    headers.set('Content-Type', expectedType);
     const reader = request.body?.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -36,7 +43,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
         const item = await reader.read();
         if (item.done) break;
         size += item.value.byteLength;
-        if (size > MAX_BODY) {
+        if (size > (binary ? 25 * 1024 * 1024 : MAX_BODY)) {
           await reader.cancel();
           return new NextResponse(null, { status: 413 });
         }
@@ -57,7 +64,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       body: body as BodyInit | undefined,
       cache: 'no-store',
       redirect: 'manual',
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(path[0] === 'files' ? 90000 : 10000),
     });
     const response = new NextResponse(upstream.body, {
       status: upstream.status,
