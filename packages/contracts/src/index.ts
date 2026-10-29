@@ -14,3 +14,4 @@ export * from './inspections.js';
 export * from './files.js';
 export * from './action-plans.js';
 export * from './notifications.js';
+export * from './analytics.js';

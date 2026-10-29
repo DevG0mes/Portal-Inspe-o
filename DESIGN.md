@@ -58,3 +58,7 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 ## Central de avisos
 
 `features/notifications` apresenta avisos em lista cronológica paginada, com tipo, data em São Paulo e rótulo de leitura. Divisórias e ações seguem o histórico de planos; não há overlay ou toast novo. Indicador textual junto à navegação informa não lidas. Links indisponíveis têm explicação explícita e não convidam a uma ação sem acesso.
+
+## Visão operacional
+
+`features/dashboard` substitui a ficha de preparação pelos indicadores reais. Mantém os cartões de leitura, tipografia e tokens existentes. Filtros por envio explícito, organização em disclosure e explicação das fórmulas no documento. Evolução usa meter nativo acompanhado dos mesmos números em tabela; distribuições têm tabelas por dimensão. Sem porcentagens decorativas, animações ou gráfico sem equivalente legível. Conteúdo vira coluna única no celular.

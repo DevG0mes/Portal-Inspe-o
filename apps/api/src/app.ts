@@ -20,6 +20,7 @@ import { InspectionsModule } from './inspections/inspections.module.js';
 import { FilesModule } from './files/files.module.js';
 import { ActionPlansModule } from './action-plans/action-plans.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { MinioStorageAdapter } from './files/minio-storage.adapter.js';
 import type { StorageAdapter } from './files/storage.adapter.js';
 import { loadEnvironment } from '@portal/config';
@@ -49,6 +50,7 @@ export async function createApplication(
           InspectionsModule,
           ActionPlansModule,
           NotificationsModule,
+          AnalyticsModule,
           FilesModule.register(
             storage ?? new MinioStorageAdapter(environment!),
             environment!.EVIDENCE_MAX_BYTES,

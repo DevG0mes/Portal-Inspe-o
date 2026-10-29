@@ -1036,3 +1036,30 @@ dialog::backdrop {
   padding-block: 16px;
   border-block-end: 1px solid var(--border);
 }
+.analytics-groups,
+.analytics-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 24px;
+}
+.analytics-groups table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.analytics-groups th,
+.analytics-groups td {
+  text-align: start;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.analytics-admin dd {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+.analytics-meter {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  accent-color: var(--brand);
+}

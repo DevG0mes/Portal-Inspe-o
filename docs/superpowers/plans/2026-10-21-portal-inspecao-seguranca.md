@@ -448,23 +448,23 @@
 **Interfaces:**
 - Produz: `GET /api/analytics/summary`, `/trends`, `/nonconformities`, `/action-plans`; filtros tipados de período, unidade, setor, formulário, categoria e prioridade.
 
-- [ ] **Passo 1: Escrever fixtures e testes de métricas que falham**
+- [x] **Passo 1: Escrever fixtures e testes de métricas que falham**
 
   Fixar fórmulas para taxa de conformidade e tempo médio de resolução; cobrir período vazio, timezone, registros arquivados e isolamento de escopo.
 
-- [ ] **Passo 2: Implementar consultas agregadas**
+- [x] **Passo 2: Implementar consultas agregadas**
 
   Aplicar filtros na consulta, índices comprovados por `EXPLAIN ANALYZE` e paginação para listas de detalhe.
 
-- [ ] **Passo 3: Implementar painéis de colaborador, gestor e administrador**
+- [x] **Passo 3: Implementar painéis de colaborador, gestor e administrador**
 
   Cada visualização terá estado vazio, filtros persistidos na URL, tabela acessível equivalente aos gráficos e drill-down autorizado.
 
-- [ ] **Passo 4: Verificar desempenho e autorização**
+- [x] **Passo 4: Verificar desempenho e autorização**
 
   Semear volume representativo e confirmar que nenhuma consulta retorna dados fora do escopo.
 
-- [ ] **Passo 5: Commit**
+- [x] **Passo 5: Commit**
 
   `git commit -m "feat: add scoped operational dashboards"`
 

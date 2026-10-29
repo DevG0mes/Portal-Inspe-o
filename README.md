@@ -4,7 +4,7 @@ Portal interno para programar inspeções, registrar evidências e acompanhar n�
 
 ## Estado do desenvolvimento
 
-O repositório segue uma especificação e um plano de 14 tarefas, na branch `codex/portal-foundation`. Já oferece autenticação, administração de usuários e organização, formulários versionados, programação recorrente, execução de inspeções com evidências privadas e planos de ação com validação gerencial. A central de notificações internas acompanha atribuições, prazos e decisões. Restam painéis de indicadores, relatórios PDF/Excel e preparação operacional de produção. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
+O repositório segue uma especificação e um plano de 14 tarefas, na branch `codex/portal-foundation`. Já oferece autenticação, administração de usuários e organização, formulários versionados, programação recorrente, execução de inspeções com evidências privadas e planos de ação com validação gerencial. A central de notificações acompanha atribuições, prazos e decisões. Painéis por perfil apresentam conformidade, pendências, correções, evolução e recortes organizacionais autorizados. Restam relatórios PDF/Excel e preparação operacional de produção. Consulte [o registro de progresso](docs/development/progress.md) antes de retomar trabalho.
 
 ## Requisitos
 

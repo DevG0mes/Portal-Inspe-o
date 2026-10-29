@@ -2,7 +2,27 @@
 
 ## Estado atual
 
-Tarefas 1 a 11 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam métricas (12), relatórios (13) e preparação operacional de produção (14).
+Tarefas 1 a 12 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam relatórios (13) e preparação operacional de produção (14).
+
+## Tarefa 12 — painéis operacionais em 29/10/2026
+
+- Módulo analytics, contratos e consultas parametrizadas para resumo, evolução diária, distribuição/detalhe de ocorrências e planos. Filtros de período, unidade, setor, formulário, categoria e prioridade; paginação de cada detalhe e seletor remoto de formulários autorizados, inclusive arquivados.
+- Escopo e responsabilidade aplicados antes de contagens/agregações. Gestor vê setores vigentes; colaborador vê inspeções próprias/atribuídas e planos sob responsabilidade atual. Receber plano permite filtrar seu formulário, sem consultar a inspeção de origem. Administrador recebe contagens globais da estrutura separadas dos filtros operacionais.
+- Ruling: última conclusão por inspeção selecionada antes do período evita duplicar ciclos; categoria/prioridade filtram perguntas avaliáveis e ocorrências. Sem denominador retorna null/“Sem base”. Literal NA de TEXT entra no denominador; apenas NA de YES_NO_NA é excluído. Média usa criação até aprovação de planos concluídos criados no período. Famílias e limites documentados em `analytics.md` e na própria tela.
+- Janela padrão de 30 dias, máxima de 366. Limites inclusivos por dia em America/Sao_Paulo calculados pelo PostgreSQL; sem offset fixo. Histórico de formulários arquivados preservado; estrutura inativa não é recorte operacional.
+- Painéis por perfil com atalhos de trabalho, cartões reais, evolução em tabela/meter nativo, distribuições por cinco dimensões (top dez explícito), detalhes paginados e links autorizados. Filtros e páginas na URL; mudança de unidade limpa setor; leituras anteriores canceladas; erro exige atualização explícita. Reutiliza campos, seletor, avisos, tabelas móveis e paginação existentes.
+- RED→GREEN da API: endpoints ausentes; distribuições ausentes; NA literal contado incorretamente; formulário de plano atribuído omitido no seletor. Fixtures cobrem bordas de São Paulo, reabertura, arquivamento, ausência de base, escopo, filtros inválidos e tempo médio.
+- Volume: 4.500 inspeções adicionais em dois escopos; EXPLAIN ANALYZE/BUFFERS confirma índices existentes, execução inferior a cinco segundos no teste e ausência de contagens cruzadas. Sem migração nova ou dependência de gráficos.
+- Ruling: limite de quatro suítes HTTP simultâneas — duas execuções com paralelismo irrestrito passaram nas asserções, mas excederam 10 s na limpeza de bancos descartáveis; quatro suítes passaram integralmente — reduz concorrência de DDL/checkpoints locais sem aumentar timeouts ou retirar testes. Custo: execução mais limitada em máquinas muito maiores.
+- Revisão independente encontrou numerador de conformidade incluindo ocorrências NA excluídas do denominador. Reproduzido com RuleEngine real e regra NEQ YES (NO + NA geravam −100%). Corrigido com EXISTS sobre as mesmas respostas avaliáveis; campo `nonconformingAnswers` separado do total operacional. Regressão passou de −100% para 0%, mantendo duas ocorrências e uma resposta avaliável com falha. Revisão posterior sem bloqueadores.
+
+### Evidências da tarefa 12
+
+- `pnpm test`: 70 aprovados; `pnpm test:e2e`: 94 aprovados; `pnpm test:integration`: 10 aprovados. Inclui sete testes novos de métricas e volume representativo com EXPLAIN ANALYZE/BUFFERS.
+- `pnpm test:browser`: 38 cenários aprovados, 19 desktop e 19 celular. Total: 212 testes/cenários distintos. Painel usa dados reais de conclusão, filtra categoria, abre inspeção autorizada, recupera falha de consulta, exibe ausência de base e diferencia administrador/gestor.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Axe WCAG A/AA sem violações nas telas exercitadas; sem overflow horizontal móvel. Capturas de computador e celular examinadas visualmente.
+- Sem migração nova. API/web/worker reiniciados com a versão compilada. Health ready confirmou PostgreSQL/Redis/MinIO up; API de métricas sem sessão retorna 401 e dashboard protegido redireciona a `/login`.
+- Limites: leituras atuais por recorte, sem snapshot único entre endpoints; distribuições limitadas aos dez maiores grupos, detalhe completo paginado. Última conclusão substitui ciclos anteriores nos indicadores; histórico permanece na inspeção. Homologação física e capacidade de produção continuam posteriores.
 
 ## Tarefa 11 — notificações internas em 29/10/2026
 

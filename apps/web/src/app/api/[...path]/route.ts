@@ -17,6 +17,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       'files',
       'action-plans',
       'notifications',
+      'analytics',
     ].includes(path[0] ?? '') ||
     path.some((part) => !/^[a-zA-Z0-9-]+$/.test(part))
   )
