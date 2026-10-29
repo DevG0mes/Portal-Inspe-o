@@ -12,3 +12,4 @@ export * from './forms.js';
 export * from './schedules.js';
 export * from './inspections.js';
 export * from './files.js';
+export * from './action-plans.js';

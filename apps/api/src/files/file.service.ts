@@ -13,6 +13,9 @@ import { parseId } from '../common/input.js';
 import { User } from '../identity/user.entity.js';
 import { Inspection } from '../inspections/inspection.entity.js';
 import { InspectionService } from '../inspections/inspection.service.js';
+import { ActionPlan } from '../action-plans/action-plan.entity.js';
+import { ActionPlanAccess } from '../action-plans/action-plan.access.js';
+import { AccessPolicy } from '../access/access-policy.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EvidenceArtifact, evidenceView } from './file.entity.js';
 import { parseFileRevision, parsePrepareFile } from './files.dto.js';
@@ -27,6 +30,7 @@ export class FileService {
     private readonly storage: StorageAdapter,
     private readonly maxBytes = 10 * 1024 * 1024,
     private readonly now = () => new Date(),
+    private readonly actionAccess = new ActionPlanAccess(new AccessPolicy(entityManager, audit)),
   ) {}
   policy() {
     return {
@@ -39,18 +43,28 @@ export class FileService {
         .join(','),
     };
   }
-  private async files(row: Inspection, em: EntityManager) {
+  private root(row: Inspection | ActionPlan) {
+    return row instanceof Inspection ? { inspection: row.id } : { actionPlan: row.id };
+  }
+  private isEditable(row: Inspection | ActionPlan) {
+    return row instanceof Inspection ? row.state === 'DRAFT' : row.state === 'IN_PROGRESS';
+  }
+  private async files(row: Inspection | ActionPlan, em: EntityManager) {
     return (
       await em.find(
         EvidenceArtifact,
-        { inspection: row.id, detachedAt: null, status: { $in: ['PENDING', 'UPLOADED', 'READY'] } },
+        { ...this.root(row), detachedAt: null, status: { $in: ['PENDING', 'UPLOADED', 'READY'] } },
         { orderBy: { createdAt: 'asc', id: 'asc' } },
       )
     ).map(evidenceView);
   }
-  private async editable(row: Inspection, file: EvidenceArtifact, em: EntityManager) {
-    if (row.state !== 'DRAFT' || file.detachedAt || file.status === 'CLEANED')
+  private async editable(row: Inspection | ActionPlan, file: EvidenceArtifact, em: EntityManager) {
+    if (!this.isEditable(row) || file.detachedAt || file.status === 'CLEANED')
       throw new ConflictException('Evidência não está disponível para alteração.');
+    if (row instanceof ActionPlan) {
+      if (row.questionId !== file.questionId) throw new ConflictException('Ocorrência incorreta.');
+      return;
+    }
     await em.populate(row, ['formVersion']);
     if (
       !new RuleEngine()
@@ -68,13 +82,39 @@ export class FileService {
   ) {
     const file = await em.findOne(EvidenceArtifact, parseId(id));
     if (!file) throw new ForbiddenException('Evidência não permitida.');
-    const row = await this.inspections.loadForEvidence(
-      actor,
-      file.inspection.id,
-      em,
-      requestId,
-      write,
-    );
+    let row: Inspection | ActionPlan;
+    if (file.actionPlan)
+      row = await this.actionAccess.load(
+        actor,
+        file.actionPlan.id,
+        em,
+        requestId,
+        write,
+        [],
+        write,
+      );
+    else {
+      try {
+        row = await this.inspections.loadForEvidence(
+          actor,
+          file.inspection!.id,
+          em,
+          requestId,
+          write,
+        );
+      } catch (error) {
+        if (write || !(error instanceof ForbiddenException)) throw error;
+        await this.actionAccess.sourceEvidence(
+          actor,
+          file.inspection!.id,
+          file.questionId,
+          file.id,
+          em,
+          requestId,
+        );
+        row = await em.findOneOrFail(Inspection, file.inspection!.id);
+      }
+    }
     if (write) await em.refresh(file, { lockMode: LockMode.PESSIMISTIC_WRITE });
     return { row, file };
   }
@@ -88,20 +128,17 @@ export class FileService {
     const input = parsePrepareFile(raw),
       metadata = validateMetadata(input, this.maxBytes);
     return this.entityManager.fork().transactional(async (em) => {
-      const row = await this.inspections.loadForEvidence(
-        actor,
-        input.inspectionId,
-        em,
-        requestId,
-        true,
-      );
-      if (row.state !== 'DRAFT' || row.revision !== input.revision)
+      const row = input.actionPlanId
+        ? await this.actionAccess.load(actor, input.actionPlanId, em, requestId, true, [], true)
+        : await this.inspections.loadForEvidence(actor, input.inspectionId!, em, requestId, true);
+      if (!this.isEditable(row) || row.revision !== input.revision)
         throw new ConflictException('Inspeção alterada. Salve e revise antes de enviar.');
       if (input.uploadId) {
         const prior = await em.findOne(EvidenceArtifact, input.uploadId);
         if (prior) {
           if (
-            prior.inspection.id !== row.id ||
+            prior.inspection?.id !== (row instanceof Inspection ? row.id : undefined) ||
+            prior.actionPlan?.id !== (row instanceof ActionPlan ? row.id : undefined) ||
             prior.owner.id !== actor.userId ||
             prior.questionId !== input.questionId ||
             prior.filename !== metadata.filename ||
@@ -125,7 +162,8 @@ export class FileService {
         filename: metadata.filename,
         mime: metadata.mime,
         size: metadata.size,
-        inspection: row,
+        inspection: row instanceof Inspection ? row : null,
+        actionPlan: row instanceof ActionPlan ? row : null,
         owner: em.getReference(User, actor.userId),
         questionId: input.questionId,
         tempKey: `temporary/${randomUUID()}`,
@@ -227,7 +265,7 @@ export class FileService {
             resource: 'evidence',
             resourceId: file.id,
             requestId,
-            changes: { inspectionId: row.id, revision: row.revision },
+            changes: { ...this.root(row), revision: row.revision },
           },
           em,
         );
@@ -265,7 +303,7 @@ export class FileService {
         row.revision === file.attachedRevision
       )
         return { revision: row.revision, files: await this.files(row, em) };
-      if (row.state !== 'DRAFT' || row.revision !== input.revision)
+      if (!this.isEditable(row) || row.revision !== input.revision)
         throw new ConflictException('Inspeção alterada. Recarregue antes de remover.');
       if (file.detachedAt) throw new ConflictException('Evidência já removida.');
       file.detachedAt = this.now();
@@ -307,14 +345,23 @@ export class FileService {
           { status: 'READY', tempCleaned: false },
         ],
       },
-      { fields: ['id', 'inspection'], limit: 100, orderBy: { createdAt: 'asc', id: 'asc' } },
+      {
+        fields: ['id', 'inspection', 'actionPlan'],
+        limit: 100,
+        orderBy: { createdAt: 'asc', id: 'asc' },
+      },
     );
     let cleaned = 0;
     for (const candidate of candidates) {
       await this.entityManager.fork().transactional(async (tx) => {
-        await tx.findOneOrFail(Inspection, candidate.inspection.id, {
-          lockMode: LockMode.PESSIMISTIC_WRITE,
-        });
+        if (candidate.actionPlan)
+          await tx.findOneOrFail(ActionPlan, candidate.actionPlan.id, {
+            lockMode: LockMode.PESSIMISTIC_WRITE,
+          });
+        else
+          await tx.findOneOrFail(Inspection, candidate.inspection!.id, {
+            lockMode: LockMode.PESSIMISTIC_WRITE,
+          });
         const file = await tx.findOneOrFail(EvidenceArtifact, candidate.id, {
           lockMode: LockMode.PESSIMISTIC_WRITE,
         });

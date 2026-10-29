@@ -16,6 +16,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
     ['/dashboard', 'Visão geral'],
     ['/assignments', 'Atribuições'],
     ['/inspections', 'Inspeções'],
+    ['/action-plans', 'Planos de ação'],
     ...(role !== 'COLLABORATOR' ? [['/schedules', 'Programações']] : []),
     ...(role === 'ADMIN'
       ? [

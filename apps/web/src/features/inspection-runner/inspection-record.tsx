@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import type { AnswerInput, FormQuestion, InspectionView } from '@portal/contracts';
+import type { InspectionView } from '@portal/contracts';
 import { RuleEngine } from '@portal/form-engine';
 import { Button, Field, Input, Notice, Select } from '@portal/ui';
 import { api } from '../../lib/api-client';
@@ -9,22 +9,7 @@ import { ErrorNotice } from '../shared/error-notice';
 import { localInstant } from '../schedules/presentation';
 import { priorityLabels } from '../form-builder/model';
 import { EvidenceDownload } from './evidence-download';
-function displayAnswer(question: FormQuestion, answers: AnswerInput[]) {
-  const value = answers.find((answer) => answer.questionId === question.id)?.value;
-  if (value === null || value === undefined || value === '') return 'Sem resposta';
-  if (question.type === 'YES_NO_NA')
-    return (
-      ({ YES: 'Sim', NO: 'Não', NA: 'Não se aplica' } as Record<string, string>)[String(value)] ??
-      String(value)
-    );
-  if (question.type === 'SELECT')
-    return question.options?.find((option) => option.id === value)?.label ?? String(value);
-  if (question.type === 'DATE' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value))
-    return value.split('-').reverse().join('/');
-  return typeof value === 'number'
-    ? new Intl.NumberFormat('pt-BR', { maximumSignificantDigits: 21 }).format(value)
-    : String(value);
-}
+import { displayAnswer } from '../shared/answer-display';
 export function InspectionRecord({
   row,
   onReopened,
@@ -167,6 +152,11 @@ export function InspectionRecord({
       {submission && (
         <section className="card">
           <h2>Não conformidades deste ciclo</h2>
+          {row.canReopen && submission.nonconformities.length > 0 && (
+            <p>
+              <a href="/action-plans/occurrences">Gerenciar planos de ação</a>
+            </p>
+          )}
           {submission.nonconformities.length ? (
             <ul>
               {submission.nonconformities.map((item) => (

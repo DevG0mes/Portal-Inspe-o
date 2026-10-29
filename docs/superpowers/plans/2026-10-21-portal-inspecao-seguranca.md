@@ -385,23 +385,23 @@
 **Interfaces:**
 - Produz: máquina de estados `OPEN | IN_PROGRESS | AWAITING_VALIDATION | COMPLETED`; indicador derivado `overdue`; comandos assign, start, comment, requestValidation, approve e return.
 
-- [ ] **Passo 1: Escrever tabela de transições que falha**
+- [x] **Passo 1: Escrever tabela de transições que falha**
 
   Testar ator permitido, origem/destino, justificativa obrigatória na devolução, evidência de correção e cálculo de vencimento sem substituir o estado.
 
-- [ ] **Passo 2: Implementar máquina de estados pura**
+- [x] **Passo 2: Implementar máquina de estados pura**
 
   `transition(current, command, actor): TransitionResult` não acessa banco e rejeita toda transição não listada.
 
-- [ ] **Passo 3: Implementar persistência e endpoints**
+- [x] **Passo 3: Implementar persistência e endpoints**
 
   Persistir histórico append-only na mesma transação da mudança; aplicar escopo do gestor e responsabilidade do colaborador.
 
-- [ ] **Passo 4: Implementar interface operacional**
+- [x] **Passo 4: Implementar interface operacional**
 
   Criar caixas por estado, detalhe com timeline, comentários, evidências, solicitação e decisão gerencial.
 
-- [ ] **Passo 5: Verificar e commit**
+- [x] **Passo 5: Verificar e commit**
 
   Executar: `pnpm --filter api test action-plans && pnpm --filter api test:e2e -- action-plans.e2e-spec && pnpm --filter web test:e2e -- action-plans.spec.ts`
 

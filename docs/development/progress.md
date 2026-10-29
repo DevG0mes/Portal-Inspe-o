@@ -2,7 +2,25 @@
 
 ## Estado atual
 
-Tarefas 1 a 9 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Próxima etapa funcional: planos de ação e validação gerencial (tarefa 10).
+Tarefas 1 a 10 concluídas. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Restam notificações internas (11), métricas (12), relatórios (13) e preparação operacional de produção (14).
+
+## Tarefa 10 — planos de ação em 29/10/2026
+
+- Ocorrências pendentes paginadas por escopo; criação de plano vinculada a uma pergunta de uma conclusão imutável. Constraint única e retry idempotente evitam planos duplicados para a mesma ocorrência. Ciclos posteriores têm ocorrências próprias.
+- Máquina pura OPEN/IN_PROGRESS/AWAITING_VALIDATION/COMPLETED. Início e solicitação exigem responsabilidade atual; atribuição e decisão exigem gestor/administrador no setor. Solicitação requer justificativa e evidência finalizada; devolução requer motivo. Vencimento é derivado da data inclusiva em São Paulo, sem substituir o estado.
+- Migração 202610290001, contratos e módulo próprios; histórico append-only e auditoria na mesma transação do comando. Atribuição/criação congelam responsável, prazo, prioridade e descrição; solicitações congelam evidências. Revisão otimista e commandId protegem concorrência e retries.
+- Evidências corretivas reutilizam arquivos privados, validação de conteúdo, retenção e limpeza. Responsável recebe somente a pergunta de origem e seus arquivos no snapshot; não ganha acesso às outras perguntas ou ao restante da inspeção. Revogar vínculo impede o download e a consulta.
+- Telas de lista, criação pela ocorrência e detalhe com comentários, evidências, atribuição, validação e histórico paginado. Campos, seleção remota, diálogos, proteção de saída e recuperação de conflitos são compartilhados. Formatador de respostas em leitura extraído para `features/shared/answer-display.ts`.
+- Revisão independente encontrou perda de edição independente após salvar comentário/atribuição e ausência dos metadados anteriores no histórico. Reproduzidos e corrigidos; testes preservam comentário não enviado e atribuição ainda local. Revisão posterior sem bloqueadores. Browser reproduziu perda de foco ao fechar confirmação por conflito; fechamento e foco passaram a ocorrer em etapas distintas.
+- Regras operacionais e decisões de escopo documentadas em `action-plans.md`; DESIGN e UX-CONTRACT atualizados. Nenhuma dependência nova. Não houve publicação externa.
+
+### Evidências da tarefa 10
+
+- `pnpm test`: 70 aprovados; `pnpm test:e2e`: 84 aprovados; `pnpm test:integration`: 10 aprovados, incluindo schema e ciclo das migrações em banco temporário.
+- `pnpm test:browser`: 34 cenários aprovados, 17 desktop e 17 celular. Total: 198 testes/cenários distintos. Fluxo de correção com arquivo real e conflito em duas abas passaram de falha para sucesso; regressão completa inclui administração, construtor, programação e inspeção.
+- Lint, tipos, formatação, build e auditoria premium estrita aprovados. Axe WCAG A/AA sem violações nas telas exercitadas; sem overflow horizontal na viewport móvel. Captura móvel do detalhe examinada visualmente.
+- Migração 202610290001 aplicada ao banco local; API/web/worker reiniciados. Health ready confirmou PostgreSQL/Redis/MinIO up; API de planos sem sessão retornou 401 e página protegida redirecionou a `/login`.
+- Limites: acesso local, sem notificações automáticas nesta etapa. Testes móveis usam Edge com viewport/touch; homologação física e controles de produção permanecem nas etapas posteriores.
 
 ## Tarefa 9 — evidências e observações em 28–29/10/2026
 

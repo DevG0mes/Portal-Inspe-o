@@ -8,6 +8,7 @@ import { ErrorNotice } from '../shared/error-notice';
 import { EvidenceDownload } from './evidence-download';
 export function EvidenceControls({
   inspectionId,
+  actionPlanId,
   questionId,
   questionLabel,
   files,
@@ -20,7 +21,8 @@ export function EvidenceControls({
   onSelection,
   onFailure,
 }: {
-  inspectionId: string;
+  inspectionId?: string;
+  actionPlanId?: string;
   questionId: string;
   questionLabel: string;
   files: EvidenceFile[];
@@ -95,7 +97,7 @@ export function EvidenceControls({
           method: 'POST',
           body: JSON.stringify({
             uploadId,
-            inspectionId,
+            ...(actionPlanId ? { actionPlanId } : { inspectionId }),
             questionId,
             revision,
             filename: selected.name,

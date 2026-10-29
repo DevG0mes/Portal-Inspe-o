@@ -6,14 +6,16 @@ export const parsePrepareFile = (raw: unknown) =>
     z
       .object({
         uploadId: z.uuid().optional(),
-        inspectionId: z.uuid(),
+        inspectionId: z.uuid().optional(),
+        actionPlanId: z.uuid().optional(),
         questionId: z.uuid(),
         revision: revisionSchema,
         filename: z.string().min(1).max(200),
         mime: z.string().max(80),
         size: z.number().int().positive(),
       })
-      .strict(),
+      .strict()
+      .refine((value) => !!value.inspectionId !== !!value.actionPlanId),
     raw,
   );
 export const parseFileRevision = (raw: unknown) =>

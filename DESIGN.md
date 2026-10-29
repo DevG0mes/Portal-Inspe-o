@@ -50,3 +50,7 @@ O construtor continua a referência de ficha operacional: seções numeradas e p
 ## Evidências e observações
 
 Cada pergunta visível agrupa resposta, observação opcional e evidências. Campos de texto multilinha pertencem a `Textarea` compartilhado. O envio usa seletor nativo de arquivo, situação textual e progresso de transferência; nomes longos quebram linha na lista. Registro finalizado e envio pendente são estados distintos. Download temporário é preparado e aberto por ação explícita. Desvinculação usa a confirmação canônica e preserva o histórico. A seleção de arquivo continua copiável enquanto uma falha é resolvida.
+
+## Correções e validação
+
+`features/action-plans` organiza ocorrências pendentes, atribuição e execução da correção. Detalhe em coluna única com origem, prazo, evidências e histórico cronológico paginado. Estado e vencimento têm rótulos separados. Ações dependem das permissões recebidas da API; responsáveis usam os mesmos controles privados de evidência da inspeção. Comentário e edição de atribuição preservam conteúdo independente até o envio explícito. Conflito oferece cópia local e descarte confirmado, seguindo a recuperação existente.

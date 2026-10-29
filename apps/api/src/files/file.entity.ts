@@ -3,8 +3,10 @@ import type { EvidenceFile } from '@portal/contracts';
 import { BaseEntity } from '../database/base.entity.js';
 import { User } from '../identity/user.entity.js';
 import { Inspection } from '../inspections/inspection.entity.js';
+import { ActionPlan } from '../action-plans/action-plan.entity.js';
 export class EvidenceArtifact extends BaseEntity {
-  inspection!: Inspection;
+  inspection: Inspection | null = null;
+  actionPlan: ActionPlan | null = null;
   owner!: User;
   questionId!: string;
   filename!: string;
@@ -37,8 +39,15 @@ export const evidenceArtifactSchema = new EntitySchema<EvidenceArtifact, BaseEnt
   class: EvidenceArtifact,
   extends: BaseEntity,
   tableName: 'evidence_artifact',
+  checks: [
+    {
+      name: 'evidence_artifact_owner_check',
+      expression: '(inspection_id is null) <> (action_plan_id is null)',
+    },
+  ],
   properties: {
-    inspection: { kind: 'm:1', entity: () => Inspection, deleteRule: 'restrict' },
+    inspection: { kind: 'm:1', entity: () => Inspection, deleteRule: 'restrict', nullable: true },
+    actionPlan: { kind: 'm:1', entity: () => ActionPlan, deleteRule: 'restrict', nullable: true },
     owner: { kind: 'm:1', entity: () => User, deleteRule: 'restrict' },
     questionId: { type: 'uuid' },
     filename: { type: 'string', length: 160 },
@@ -60,6 +69,7 @@ export const evidenceArtifactSchema = new EntitySchema<EvidenceArtifact, BaseEnt
   },
   indexes: [
     { properties: ['inspection'] },
+    { properties: ['actionPlan'] },
     { properties: ['owner'] },
     { properties: ['status', 'expiresAt'] },
   ],

@@ -1024,3 +1024,13 @@ dialog::backdrop {
 .evidence-list > li + li {
   margin-block-start: 16px;
 }
+.occurrence-list,
+.action-timeline {
+  padding-inline-start: 24px;
+  overflow-wrap: anywhere;
+}
+.occurrence-list > li,
+.action-timeline > li {
+  padding-block: 16px;
+  border-block-end: 1px solid var(--border);
+}

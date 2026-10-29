@@ -16,6 +16,9 @@ test('manager schedules shared inspections and worker restores a paused occurren
   await page.goto('/schedules');
   await page.getByRole('link', { name: 'Nova programação', exact: true }).click();
   await page.getByLabel('Nome', { exact: true }).fill(`Ronda ${info.project.name}`);
+  const formPicker = page.getByRole('group', { name: 'Formulário', exact: true });
+  await formPicker.getByLabel('Buscar formulário').fill('Ficha de testes');
+  await formPicker.getByRole('button', { name: 'Buscar', exact: true }).click();
   await page.getByLabel('Selecionar formulário').selectOption({ label: 'Ficha de testes' });
   await page.getByLabel('Selecionar unidade').selectOption({ label: 'Unidade de testes' });
   await page.getByLabel('Selecionar setor').selectOption({ label: 'Setor de testes' });
