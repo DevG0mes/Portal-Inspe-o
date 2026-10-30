@@ -1,5 +1,5 @@
 import { Collection, EntitySchema } from '@mikro-orm/core';
-import { FREQUENCIES, type Frequency } from '@portal/contracts';
+import { FREQUENCIES, type Frequency, type InspectionContext } from '@portal/contracts';
 import { BaseEntity } from '../database/base.entity.js';
 import { Unit } from '../organization/unit.entity.js';
 import { Sector } from '../organization/sector.entity.js';
@@ -7,6 +7,7 @@ import { User } from '../identity/user.entity.js';
 import { FormTemplate } from '../forms/entities/form-template.entity.js';
 import { FormVersion } from '../forms/entities/form-version.entity.js';
 export class InspectionSchedule extends BaseEntity {
+  context: InspectionContext | null = null;
   name!: string;
   unit!: Unit;
   sector!: Sector;
@@ -28,6 +29,7 @@ export class ScheduleResponsible extends BaseEntity {
   user!: User;
 }
 export class InspectionAssignment extends BaseEntity {
+  context: InspectionContext | null = null;
   schedule!: InspectionSchedule;
   formVersion!: FormVersion;
   occurrenceAt!: Date;
@@ -50,6 +52,7 @@ export const scheduleSchema = new EntitySchema<InspectionSchedule, BaseEntity>({
     },
   ],
   properties: {
+    context: { type: 'json', columnType: 'jsonb', nullable: true },
     name: { type: 'string', length: 160 },
     unit: { kind: 'm:1', entity: () => Unit, deleteRule: 'restrict' },
     sector: { kind: 'm:1', entity: () => Sector, deleteRule: 'restrict' },
@@ -90,6 +93,7 @@ export const assignmentSchema = new EntitySchema<InspectionAssignment, BaseEntit
   extends: BaseEntity,
   tableName: 'inspection_assignment',
   properties: {
+    context: { type: 'json', columnType: 'jsonb', nullable: true },
     schedule: { kind: 'm:1', entity: () => InspectionSchedule, deleteRule: 'restrict' },
     formVersion: { kind: 'm:1', entity: () => FormVersion, deleteRule: 'restrict' },
     occurrenceAt: { type: 'datetime', columnType: 'timestamptz' },

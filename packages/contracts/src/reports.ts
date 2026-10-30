@@ -49,6 +49,7 @@ interface SnapshotBase {
   scope: ReportScope;
 }
 export interface InspectionReportSnapshot extends SnapshotBase {
+  context?: import('./organization.js').InspectionContext | null;
   kind: 'INSPECTION';
   inspectionId: string;
   unitName: string;

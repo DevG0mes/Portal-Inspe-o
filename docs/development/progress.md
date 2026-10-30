@@ -4,6 +4,20 @@
 
 Tarefas 1 a 14 concluídas e verificadas localmente. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Instalação real depende do servidor interno, DNS, certificado confiável, credenciais e janela operacional definidos pela empresa; não houve publicação de produção.
 
+## Importação e identificação operacional — 30/10/2026
+
+- Desenho e plano em `docs/superpowers/` aprovados pelo usuário com “pode seguir”. Implementação na branch existente, na pasta autorizada.
+- CSV EPC: somente cabeçalhos; 30 perguntas principais (a 3 é texto) e 29 ações de texto condicionais e obrigatórias quando a resposta é Não. Nenhuma das 173 respostas históricas será importada.
+- Importação administrativa gera rascunho idempotente, com unidades, categoria e prioridade escolhidas explicitamente; publicação continua separada. Os quatro tipos EPC sem conteúdo fornecido ficam indisponíveis.
+- Clientes atendem várias unidades; locais pertencem ao cliente. Participantes são nomes descritivos e não concedem acesso. Identificação congelada em inspeções, atribuições e relatórios.
+- Compatibilidade: unidades legadas nunca configuradas podem continuar sem identificação. Após qualquer vínculo de cliente à unidade, a identificação passa a ser exigida mesmo se os cadastros forem inativados; modelos importados sempre exigem identificação. Atribuições antigas sem contexto são preservadas. Custo: unidades configuradas precisam manter cliente/local válidos para novas inspeções.
+- As quatro etapas compartilham contratos, migrações e serviços; integração conjunta na branch existente, evitando commits intermediários inconsistentes. Migrações 202610300001–4 verificadas em bancos temporários e aplicadas ao banco local, sem importar as respostas históricas.
+- Testes RED→GREEN do conversor e endpoints; revisão independente encontrou troca indevida dos nomes históricos ao materializar/iniciar atribuição. Reproduzida por teste de renomeação antes de cada etapa; corrigida validando atividade/vínculos sem substituir os snapshots. Revisão posterior confirmou a correção, sem outro P1/P2.
+- Verificação: 79 testes unitários, 110 HTTP, 10 de integração e 48 cenários de navegador (24 desktop e 24 celular), total 247. Inclui cabeçalhos originais, prova de que a linha sintética não é enviada, publicação, cliente multiunidade/local, obrigatoriedade de ação, conclusão, denominador de 29 respostas e PDF pelo worker real. Axe sem violações nas telas exercitadas e sem overflow móvel. Capturas de identificação e páginas inicial/final do PDF examinadas; texto extraído confirmou cliente/local/participantes/ação.
+- Schema sem drift e ciclo down/up aprovados. Uma rodada HTTP teve todos os 110 testes aprovados, mas dois hooks de limpeza excederam 10 s com testes de navegador concorrentes; repetição com dois workers passou integralmente. Não foram aumentados os timeouts nem alterados os testes para ocultar falhas.
+- Auditoria premium estrita sem apontamentos; build, tipos, lint e formatação aprovados. API/web/worker reiniciados: readiness com PostgreSQL/Redis/MinIO up, um worker conectado, login/logo/CSS respondendo 200 e estilos dos novos tipos presentes. Documentação operacional em `importing-inspections.md`, mapa canônico e contexto de design atualizados. Conta administrativa e senha existentes preservadas; nenhum envio de convite ou publicação externa.
+- Limites: os quatro questionários especializados ainda precisam de seus CSV/conteúdos aprovados. O administrador cadastra clientes/locais e importa/publica o modelo na base de uso; os testes criaram dados somente em bancos temporários. Homologação em aparelho físico e produção permanecem posteriores.
+
 ## Identidade PSI Energy — 30/10/2026
 
 - Paleta harmonizada ao logo fornecido: laranja nos destaques/botões, grafite no login e navegação, superfícies claras e texto com contraste. Cores semânticas de sucesso/falha preservadas. Valores e papéis compartilhados em `tokens.css`/`DESIGN.md`, sem biblioteca ou fonte externa.

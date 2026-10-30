@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contextInputSchema } from '../organization/customer.dto.js';
 import { FREQUENCIES } from '@portal/contracts';
 import { validDate } from '@portal/scheduling';
 import { paginationShape, searchQuery, activeQuery, parseInput } from '../common/input.js';
@@ -9,6 +10,7 @@ export const parseCreateSchedule = (raw: unknown) =>
     z
       .object({
         name: z.string().trim().min(1).max(160),
+        context: contextInputSchema.optional(),
         unitId: z.uuid(),
         sectorId: z.uuid(),
         formId: z.uuid(),

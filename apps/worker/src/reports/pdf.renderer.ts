@@ -105,6 +105,12 @@ export async function renderPdf(
     heading('Relatório de inspeção');
     text(s.form.title);
     text(`${s.unitName} · ${s.sectorName}`);
+    if (s.context) {
+      text(`Cliente: ${s.context.customerName}`);
+      text(`Local: ${s.context.locationName}`);
+      if (s.context.participants.length)
+        text(`Participantes: ${s.context.participants.join('; ')}`);
+    }
     text(
       `Formulário v${s.versionNumber} · Ciclo ${s.submission.cycle} · Revisão concluída ${s.submission.sourceRevision}`,
     );

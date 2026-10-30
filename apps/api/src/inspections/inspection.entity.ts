@@ -4,6 +4,7 @@ import type {
   NonconformityOccurrence,
   InspectionNote,
   EvidenceFile,
+  InspectionContext,
 } from '@portal/contracts';
 import { BaseEntity } from '../database/base.entity.js';
 import { User } from '../identity/user.entity.js';
@@ -13,6 +14,7 @@ import { FormVersion } from '../forms/entities/form-version.entity.js';
 import { InspectionAssignment } from '../schedules/schedule.entity.js';
 
 export class Inspection extends BaseEntity {
+  context: InspectionContext | null = null;
   unit!: Unit;
   sector!: Sector;
   assignment: InspectionAssignment | null = null;
@@ -41,6 +43,7 @@ export const inspectionSchema = new EntitySchema<Inspection, BaseEntity>({
   extends: BaseEntity,
   tableName: 'inspection',
   properties: {
+    context: { type: 'json', columnType: 'jsonb', nullable: true },
     unit: { kind: 'm:1', entity: () => Unit, deleteRule: 'restrict' },
     sector: { kind: 'm:1', entity: () => Sector, deleteRule: 'restrict' },
     assignment: {

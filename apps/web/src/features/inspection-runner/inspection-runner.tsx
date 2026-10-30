@@ -1,4 +1,5 @@
 'use client';
+import { IdentificationSummary } from '../shared/identification-summary';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type {
   EvidenceFile,
@@ -63,6 +64,7 @@ function InspectionWorkspace({
           Formulário · versão {row.formVersionNumber} · Ciclo {row.cycle}
         </p>
       </div>
+      <IdentificationSummary context={row.context} />
       {row.state === 'DRAFT' && row.canEdit ? (
         <DraftRunner key={row.cycle} initial={row} onCompleted={setRow} onReload={onReload} />
       ) : (

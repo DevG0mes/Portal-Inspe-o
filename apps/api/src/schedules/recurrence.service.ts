@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { CustomerService } from '../organization/customer.service.js';
+import { AccessPolicy } from '../access/access-policy.service.js';
 import { LockMode } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import { materializationKey, nextOccurrence } from '@portal/scheduling';
@@ -59,6 +61,7 @@ export class RecurrenceService {
         throw new ConflictException('Ocorrência fora do cursor ou da janela de programação.');
       await em.populate(schedule, ['responsibles.user']);
       let checked;
+      const context = schedule.context;
       try {
         checked = await validateOperational(em, {
           unitId: schedule.unit.id,
@@ -66,8 +69,17 @@ export class RecurrenceService {
           formId: schedule.form.id,
           responsibleIds: schedule.responsibles.getItems().map((link) => link.user.id),
         });
+        if (context)
+          await new CustomerService(em, new AccessPolicy(em, this.audit), this.audit).context(
+            em,
+            schedule.unit.id,
+            context.customerId,
+            context.locationId,
+            context.participants,
+          );
       } catch (error) {
-        if (!(error instanceof BadRequestException)) throw error;
+        if (!(error instanceof BadRequestException) && !(error instanceof ForbiddenException))
+          throw error;
         schedule.isActive = false;
         schedule.suspensionReason = error.message;
         schedule.revision++;
@@ -89,6 +101,7 @@ export class RecurrenceService {
       });
       const assignment = previous ?? new InspectionAssignment();
       if (!previous) {
+        assignment.context = context;
         assignment.schedule = schedule;
         assignment.formVersion = version;
         assignment.occurrenceAt = at;

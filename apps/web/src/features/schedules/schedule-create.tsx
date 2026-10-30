@@ -11,6 +11,13 @@ import { ConfirmDialog } from '../shared/confirm-dialog';
 import { ErrorNotice } from '../shared/error-notice';
 import { frequencyLabels } from './presentation';
 import { useRouter } from 'next/navigation';
+import {
+  IdentificationFields,
+  emptyIdentification,
+  identificationErrors,
+  identificationPayload,
+  useIdentification,
+} from '../shared/identification-fields';
 export function ScheduleCreate() {
   const router = useRouter();
   const hydrated = useHydrated();
@@ -24,6 +31,9 @@ export function ScheduleCreate() {
   const [busy, setBusy] = useState(false),
     [dirty, setDirty] = useState(false);
   const [error, setError] = useState<unknown>();
+  const [identification, setIdentification] = useState(emptyIdentification),
+    [lookupRevision, setLookupRevision] = useState(0);
+  const context = useIdentification(unit, form, lookupRevision);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -34,6 +44,7 @@ export function ScheduleCreate() {
       sectorId: sector,
       formId: form,
       responsibleIds: responsibles.map((user) => user.id),
+      ...(identification.customerId ? { context: identificationPayload(identification) } : {}),
       frequency: String(data.get('frequency')) as Frequency,
       startDate: String(data.get('startDate')),
       time: String(data.get('time')),
@@ -62,7 +73,13 @@ export function ScheduleCreate() {
       body.deadlineHours > 8760
     )
       next.deadlineHours = 'Use de 1 a 8760 horas.';
+    Object.assign(next, identificationErrors(identification, context.required));
     setErrors(next);
+    if (context.loading) return;
+    if (context.error) {
+      setError(context.error);
+      return;
+    }
     setError(undefined);
     if (Object.keys(next).length) {
       document.getElementById(Object.keys(next)[0]!)?.focus();
@@ -117,7 +134,7 @@ export function ScheduleCreate() {
           <RemotePicker
             id="form"
             label="Formulário"
-            endpoint="forms?state=PUBLISHED"
+            endpoint={`forms?state=PUBLISHED${unit ? `&unitId=${unit}` : ''}`}
             activeOnly={false}
             value={form}
             error={errors.form}
@@ -134,6 +151,8 @@ export function ScheduleCreate() {
             error={errors.unit}
             onChange={(value) => {
               setUnit(value);
+              if (context.typed) setForm('');
+              setIdentification(emptyIdentification());
               setSector('');
               setResponsibles([]);
               setCandidate({ id: '', name: '' });
@@ -155,6 +174,29 @@ export function ScheduleCreate() {
                 setDirty(true);
               }}
             />
+          )}
+          {unit && context.required && (
+            <IdentificationFields
+              unit={unit}
+              value={identification}
+              onChange={(value) => {
+                setIdentification(value);
+                setDirty(true);
+              }}
+              errors={errors}
+            />
+          )}
+          {context.error !== undefined && (
+            <>
+              <ErrorNotice error={context.error} />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setLookupRevision(lookupRevision + 1)}
+              >
+                Tentar carregar identificação novamente
+              </Button>
+            </>
           )}
           <section id="responsibles" tabIndex={-1} aria-label="Responsáveis">
             <h2>Responsáveis</h2>

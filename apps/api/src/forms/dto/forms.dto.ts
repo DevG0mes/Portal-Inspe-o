@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FORM_STATES, PRIORITIES, QUESTION_TYPES } from '@portal/contracts';
+import { FORM_STATES, INSPECTION_KINDS, PRIORITIES, QUESTION_TYPES } from '@portal/contracts';
 import { paginationShape, parseInput, searchQuery } from '../../common/input.js';
 
 const scalar = z.union([z.string().max(10000), z.number().finite()]);
@@ -56,6 +56,36 @@ const answers = z
   .array(z.object({ questionId: z.uuid(), value: scalar.nullable() }).strict())
   .max(500);
 
+export const parseImportForm = (raw: unknown) =>
+  parseInput(
+    z
+      .object({
+        importId: z.uuid().transform((v) => v.toLowerCase()),
+        unitIds: z
+          .array(z.uuid())
+          .min(1)
+          .max(100)
+          .refine((ids) => new Set(ids).size === ids.length),
+        name: z
+          .string()
+          .trim()
+          .min(1)
+          .max(160)
+          .transform((v) => v.normalize('NFC')),
+        headers: z.array(z.string().min(1).max(400)).min(1).max(504),
+        textQuestions: z
+          .array(z.number().int().min(1).max(500))
+          .max(250)
+          .refine((v) => new Set(v).size === v.length),
+        required: z.boolean(),
+        category: z.string().trim().min(1).max(120),
+        priority: z.enum(PRIORITIES),
+        inspectionKind: z.enum(INSPECTION_KINDS).default('EPC_GENERAL'),
+      })
+      .strict(),
+    raw,
+  );
+
 export const parseCreateForm = (input: unknown) =>
   parseInput(
     z
@@ -73,7 +103,13 @@ export const parseCreateForm = (input: unknown) =>
 export const parseFormQuery = (input: unknown) =>
   parseInput(
     z
-      .object({ ...paginationShape, q: searchQuery, state: z.enum(FORM_STATES).optional() })
+      .object({
+        ...paginationShape,
+        q: searchQuery,
+        state: z.enum(FORM_STATES).optional(),
+        unitId: z.uuid().optional(),
+        inspectionKind: z.enum(INSPECTION_KINDS).optional(),
+      })
       .strict(),
     input,
   );

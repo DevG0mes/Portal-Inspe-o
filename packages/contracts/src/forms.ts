@@ -1,5 +1,13 @@
 export const QUESTION_TYPES = ['TEXT', 'NUMBER', 'DATE', 'SELECT', 'YES_NO_NA'] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
+export const INSPECTION_KINDS = [
+  'EPC_GENERAL',
+  'WORK_AT_HEIGHT',
+  'CONFINED_SPACE',
+  'EXCAVATION',
+  'WELDING',
+] as const;
+export type InspectionKind = (typeof INSPECTION_KINDS)[number];
 export const FORM_STATES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
 export type FormState = (typeof FORM_STATES)[number];
 export const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
@@ -67,6 +75,7 @@ export interface EvaluationResult {
   nonconformities: NonconformityOccurrence[];
 }
 export interface FormTemplateSummary {
+  inspectionKind?: InspectionKind | null;
   id: string;
   name: string;
   state: FormState;

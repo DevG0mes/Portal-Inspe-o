@@ -1,4 +1,16 @@
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { createHash, randomUUID } from 'node:crypto';
+import { importQuestions } from '@portal/form-engine';
+import { LockMode } from '@mikro-orm/core';
+import { Unit } from '../organization/unit.entity.js';
+import { User } from '../identity/user.entity.js';
+import { FormUnitBinding } from './entities/form-unit.entity.js';
+import { INSPECTION_KINDS } from '@portal/contracts';
 import type { FilterQuery } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import type { AuthenticatedPrincipal } from '@portal/contracts';
@@ -9,6 +21,7 @@ import { FormTemplate } from './entities/form-template.entity.js';
 import { FormVersion } from './entities/form-version.entity.js';
 import {
   parseCreateForm,
+  parseImportForm,
   parseFormQuery,
   parsePreview,
   parseRevision,
@@ -26,17 +39,134 @@ export class FormTemplateService {
     private readonly engine: RuleEngine,
   ) {}
 
-  async list(actor: AuthenticatedPrincipal, raw: unknown) {
+  async importCsv(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
+    const input = parseImportForm(raw);
+    const { importId, ...content } = input;
+    const hash = createHash('sha256').update(JSON.stringify(content)).digest('hex');
+    return withUniqueConflict(() =>
+      this.entityManager.fork().transactional(async (em) => {
+        // One transaction/connection; serialize the client request key across administrators.
+        await em.execute('select pg_advisory_xact_lock(hashtextextended(?,0))', [importId]);
+        await em.findOne(User, actor.userId, {
+          lockMode: LockMode.PESSIMISTIC_READ,
+          refresh: true,
+        });
+        await this.access.assertAdministrator(actor, em);
+        const previous = await em.findOne(FormTemplate, importId);
+        if (previous) {
+          if (previous.importHash !== hash)
+            throw new ConflictException(
+              'Este pedido de importação já foi usado com outro conteúdo.',
+            );
+          return templateSummary(previous);
+        }
+        const units = await em.find(
+          Unit,
+          { id: { $in: input.unitIds }, isActive: true },
+          { lockMode: LockMode.PESSIMISTIC_READ, orderBy: { id: 'asc' }, refresh: true },
+        );
+        if (units.length !== input.unitIds.length)
+          throw new BadRequestException('Selecione unidades ativas para este modelo.');
+        let snapshot;
+        try {
+          snapshot = importQuestions(input.headers, { ...input, title: input.name }, randomUUID);
+        } catch (error) {
+          throw new BadRequestException(
+            error instanceof Error ? error.message : 'Cabeçalho inválido.',
+          );
+        }
+        if (this.engine.validateDefinition(snapshot).length)
+          throw new BadRequestException('O modelo importado contém referências inválidas.');
+        const template = new FormTemplate();
+        Object.assign(template, {
+          id: importId,
+          name: input.name,
+          nameKey: input.name.toLowerCase(),
+          draftSnapshot: snapshot,
+          importHash: hash,
+          inspectionKind: input.inspectionKind,
+        });
+        em.persist(template);
+        for (const unit of units) {
+          const binding = new FormUnitBinding();
+          Object.assign(binding, { unit, form: template });
+          em.persist(binding);
+        }
+        await this.audit.record(
+          {
+            actorId: actor.userId,
+            action: 'forms.imported',
+            resource: 'form',
+            resourceId: template.id,
+            requestId,
+          },
+          em,
+        );
+        return templateSummary(template);
+      }),
+    );
+  }
+
+  async availableKinds(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
+    const q = parseFormQuery(raw),
+      em = this.entityManager.fork();
+    if (!q.unitId) throw new BadRequestException('Selecione uma unidade.');
+    const scope = await this.access.unitFilter(actor, requestId, em);
+    const unit = await em.findOne(Unit, { $and: [{ id: q.unitId, isActive: true }, scope] });
+    if (!unit) throw new ForbiddenException('Unidade não disponível.');
+    const links = await em.find(
+      FormUnitBinding,
+      { unit: unit.id, isActive: true },
+      { fields: ['form'] },
+    );
+    const forms = await em.find(
+      FormTemplate,
+      { id: { $in: links.map((l) => l.form.id) }, state: 'PUBLISHED' },
+      { fields: ['id', 'inspectionKind'] },
+    );
+    return {
+      configured: links.length > 0,
+      types: INSPECTION_KINDS.map((kind) => {
+        const matches = forms.filter((f) => f.inspectionKind === kind);
+        return {
+          kind,
+          count: matches.length,
+          formId: matches.length === 1 ? matches[0]!.id : null,
+        };
+      }),
+    };
+  }
+
+  async list(actor: AuthenticatedPrincipal, raw: unknown, requestId: string = randomUUID()) {
     const query = parseFormQuery(raw),
       em = this.entityManager.fork();
     const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    let eligibility: FilterQuery<FormTemplate> = {};
+    if (query.unitId || user.role !== 'ADMIN') {
+      const scope = await this.access.unitFilter(actor, requestId, em);
+      const units = await em.find(
+        Unit,
+        { $and: [scope, { isActive: true }, query.unitId ? { id: query.unitId } : {}] },
+        { fields: ['id'] },
+      );
+      const links = await em.find(
+        FormUnitBinding,
+        { isActive: true, unit: { $in: units.map((u) => u.id) } },
+        { fields: ['form'] },
+      );
+      eligibility =
+        query.unitId && !units.length
+          ? { id: { $in: [] } }
+          : { $or: [{ inspectionKind: null }, { id: { $in: links.map((l) => l.form.id) } }] };
+    }
     const filter: FilterQuery<FormTemplate> = {
       ...(query.state ? { state: query.state } : {}),
+      ...(query.inspectionKind ? { inspectionKind: query.inspectionKind } : {}),
       ...(query.q ? { nameKey: { $ilike: `%${escapeLike(query.q.toLowerCase())}%` } } : {}),
     };
     const [rows, total] = await em.findAndCount(
       FormTemplate,
-      { $and: [user.role === 'ADMIN' ? {} : { state: 'PUBLISHED' }, filter] },
+      { $and: [user.role === 'ADMIN' ? {} : { state: 'PUBLISHED' }, filter, eligibility] },
       {
         limit: query.pageSize,
         offset: (query.page - 1) * query.pageSize,

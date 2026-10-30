@@ -3,6 +3,7 @@ import { LockMode, type FilterQuery } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import type { AuthenticatedPrincipal } from '@portal/contracts';
 import { nextOccurrence, occurrence } from '@portal/scheduling';
+import { CustomerService } from '../organization/customer.service.js';
 import { AccessPolicy } from '../access/access-policy.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { escapeLike, parseId } from '../common/input.js';
@@ -111,6 +112,22 @@ export class ScheduleService {
       await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
       await this.access.assertUnitSector(actor, input.unitId, input.sectorId, requestId, em);
       const row = new InspectionSchedule();
+      const customers = new CustomerService(em, this.access, this.audit);
+      if (
+        !input.context &&
+        (await customers.requiresContext(em, input.unitId, !!checked.form.inspectionKind))
+      )
+        throw new BadRequestException('Selecione cliente e local para a programação.');
+      if (input.context) {
+        const c = input.context;
+        row.context = await customers.context(
+          em,
+          input.unitId,
+          c.customerId,
+          c.locationId,
+          c.participants,
+        );
+      }
       Object.assign(row, {
         name: input.name,
         frequency: input.frequency,
@@ -178,6 +195,16 @@ export class ScheduleService {
           );
           await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
           await this.access.assertUnitSector(actor, row.unit.id, row.sector.id, requestId, em);
+          if (row.context) {
+            const c = row.context;
+            await new CustomerService(em, this.access, this.audit).context(
+              em,
+              row.unit.id,
+              c.customerId,
+              c.locationId,
+              c.participants,
+            );
+          }
           const next = nextOccurrence(row, new Date(this.now().getTime() - 1).toISOString());
           if (!next) throw new BadRequestException('A vigência terminou. Crie outra programação.');
           row.nextOccurrenceAt = new Date(next);

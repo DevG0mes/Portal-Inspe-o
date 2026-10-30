@@ -3,6 +3,7 @@ import { assignmentState } from '@portal/scheduling';
 import type { InspectionSchedule, InspectionAssignment } from './schedule.entity.js';
 export function scheduleSummary(row: InspectionSchedule): ScheduleSummary {
   return {
+    context: row.context,
     id: row.id,
     name: row.name,
     unitId: row.unit.id,
@@ -27,6 +28,7 @@ export function scheduleSummary(row: InspectionSchedule): ScheduleSummary {
 }
 export function assignmentSummary(row: InspectionAssignment, now = new Date()): AssignmentSummary {
   return {
+    context: row.context,
     inspectionId: null,
     inspectionState: null,
     canStart: false,

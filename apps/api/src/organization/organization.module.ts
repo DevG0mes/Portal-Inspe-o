@@ -9,11 +9,19 @@ import { OrganizationService } from './organization.service.js';
 import { OrganizationController } from './organization.controller.js';
 import { MembershipsService } from './memberships.service.js';
 import { MembershipsController } from './memberships.controller.js';
+import { CustomerController } from './customer.controller.js';
+import { CustomerService } from './customer.service.js';
 
 @Module({
   imports: [AccessModule, AuditModule],
-  controllers: [OrganizationController, MembershipsController],
+  controllers: [OrganizationController, MembershipsController, CustomerController],
   providers: [
+    {
+      provide: CustomerService,
+      inject: [DATABASE, AccessPolicy, AuditService],
+      useFactory: (database: MikroORM, access: AccessPolicy, audit: AuditService) =>
+        new CustomerService(database.em, access, audit),
+    },
     {
       provide: OrganizationService,
       inject: [DATABASE, AccessPolicy, AuditService],
@@ -27,6 +35,6 @@ import { MembershipsController } from './memberships.controller.js';
         new MembershipsService(database.em, access, audit),
     },
   ],
-  exports: [OrganizationService, MembershipsService],
+  exports: [OrganizationService, MembershipsService, CustomerService],
 })
 export class OrganizationModule {}

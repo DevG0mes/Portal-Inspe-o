@@ -67,6 +67,13 @@ const pdf: InspectionReportSnapshot = {
   ...base,
   kind: 'INSPECTION',
   inspectionId: 'i',
+  context: {
+    customerId: 'c',
+    customerName: 'Cliente histórico São João',
+    locationId: 'l',
+    locationName: 'Canteiro histórico',
+    participants: ['Maria de Campo', 'José de Campo'],
+  },
   unitName: 'Usina São João',
   sectorName: 'Operação',
   versionNumber: 2,

@@ -102,6 +102,7 @@ export class ReportSnapshotService {
       requestedAt: new Date().toISOString(),
       requestedBy: user.name,
       inspectionId: id,
+      context: view.context,
       unitName: root.unit.name,
       sectorName: root.sector.name,
       versionNumber: root.formVersion.number,

@@ -1,4 +1,5 @@
 'use client';
+import { IdentificationSummary } from '../shared/identification-summary';
 import { useState, type FormEvent } from 'react';
 import type { ScheduleSummary } from '@portal/contracts';
 import { Button, Field, Input, Notice, Skeleton } from '@portal/ui';
@@ -70,6 +71,7 @@ function Editor({ data, reload }: { data: ScheduleSummary; reload: () => void })
           {data.isActive ? 'Ativa' : 'Pausada'} · Revisão {data.revision}
         </p>
       </div>
+      <IdentificationSummary context={data.context} />
       {data.suspensionReason && (
         <Notice error>Programação suspensa: {data.suspensionReason}</Notice>
       )}

@@ -3,6 +3,23 @@ export interface UnitSummary {
   name: string;
   isActive: boolean;
 }
+export interface CustomerSummary extends UnitSummary {
+  revision: number;
+  unitIds: string[];
+  units: { id: string; name: string; isActive: boolean }[];
+}
+export interface CustomerLocationSummary extends UnitSummary {
+  revision: number;
+  customerId: string;
+  customerName: string;
+}
+export interface InspectionContext {
+  customerId: string;
+  customerName: string;
+  locationId: string;
+  locationName: string;
+  participants: string[];
+}
 export interface SectorSummary extends UnitSummary {
   unitId: string;
   unitName: string;

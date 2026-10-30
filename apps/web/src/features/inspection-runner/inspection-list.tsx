@@ -30,7 +30,7 @@ export function InspectionList() {
         <span className="eyebrow">OPERAÇÃO · REGISTROS</span>
         <h1>Inspeções</h1>
         <p>Continue um rascunho ou consulte o histórico das inspeções no seu escopo.</p>
-        <a className="button primary" href="/inspections/new">
+        <a className="button primary" href="/inspections/start">
           Nova inspeção avulsa
         </a>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 import { useState, type FormEvent } from 'react';
+import { UnitBindings } from '../shared/unit-bindings';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Field, Input, Select, Skeleton } from '@portal/ui';
@@ -69,6 +70,10 @@ function Editor({
   const [error, setError] = useState<unknown>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [unitId, setUnitId] = useState('');
+  const [customerId, setCustomerId] = useState(initial?.customerId ?? '');
+  const [bindings, setBindings] = useState(
+    initial?.units?.map((u) => ({ id: u.id, name: u.name })) ?? [],
+  );
   const [pending, setPending] = useState<Record<string, unknown>>();
   async function save(body: Record<string, unknown>) {
     if (busy) return;
@@ -127,6 +132,16 @@ function Editor({
         if (!unitId) next.unitId = 'Selecione uma unidade.';
         body.unitId = unitId;
       }
+      if (kind === 'customers') {
+        if (!bindings.length) next['binding-unit'] = 'Vincule pelo menos uma unidade.';
+        const ids = bindings.map((u) => u.id).sort();
+        if (!initial || JSON.stringify(ids) !== JSON.stringify([...(initial.unitIds ?? [])].sort()))
+          body.unitIds = ids;
+      }
+      if (kind === 'locations' && !initial) {
+        if (!customerId) next.customerId = 'Selecione um cliente.';
+        body.customerId = customerId;
+      }
     }
     setErrors(next);
     setError(undefined);
@@ -140,6 +155,7 @@ function Editor({
       router.push(back);
       return;
     }
+    if (initial && (kind === 'customers' || kind === 'locations')) body.revision = initial.revision;
     if (
       reset ||
       (kind === 'users' &&
@@ -237,6 +253,35 @@ function Editor({
                 error={errors.unitId}
                 onChange={(value) => {
                   setUnitId(value);
+                  setDirty(true);
+                }}
+              />
+            ))}
+          {kind === 'customers' && (
+            <UnitBindings
+              items={bindings}
+              error={errors['binding-unit']}
+              onChange={(items) => {
+                setBindings(items);
+                setDirty(true);
+              }}
+            />
+          )}
+          {kind === 'locations' &&
+            (initial ? (
+              <p>
+                Cliente: <strong>{initial.customerName}</strong>. O cliente do local não pode ser
+                alterado.
+              </p>
+            ) : (
+              <RemotePicker
+                id="customerId"
+                label="Cliente"
+                endpoint="organization/customers"
+                value={customerId}
+                error={errors.customerId}
+                onChange={(id) => {
+                  setCustomerId(id);
                   setDirty(true);
                 }}
               />

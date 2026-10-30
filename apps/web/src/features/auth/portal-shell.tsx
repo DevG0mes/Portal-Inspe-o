@@ -27,6 +27,8 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
           ['/users', 'Usuários'],
           ['/units', 'Unidades'],
           ['/sectors', 'Setores'],
+          ['/customers', 'Clientes'],
+          ['/locations', 'Locais'],
           ['/admin/forms', 'Formulários'],
         ]
       : []),

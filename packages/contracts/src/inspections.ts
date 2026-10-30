@@ -1,5 +1,6 @@
 import type { AnswerInput, FormVersionSnapshot, NonconformityOccurrence } from './forms.js';
 import type { EvidenceFile } from './files.js';
+import type { InspectionContext } from './organization.js';
 export interface InspectionNote {
   questionId: string;
   text: string;
@@ -21,6 +22,7 @@ export interface InspectionSubmissionView {
   evidence: EvidenceFile[];
 }
 export interface InspectionView {
+  context?: InspectionContext | null;
   id: string;
   unitId: string;
   sectorId: string;

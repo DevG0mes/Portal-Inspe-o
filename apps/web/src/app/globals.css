@@ -163,6 +163,24 @@ small {
   font-size: 14px;
   font-weight: 600;
 }
+.inspection-type {
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-height: 104px;
+  padding: 16px;
+}
+.inspection-type span {
+  font-size: 13px;
+}
+.inspection-type[aria-pressed='true'] {
+  border: 2px solid var(--brand);
+  background: var(--brand-soft);
+}
+.unit-choice {
+  text-decoration: none;
+  border-left: 4px solid var(--accent);
+}
 input,
 select,
 textarea {

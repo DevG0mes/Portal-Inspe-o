@@ -99,6 +99,13 @@ beforeAll(async () => {
     createdBy: users[1],
     formVersion: v,
     state: 'COMPLETED',
+    context: {
+      customerId: randomUUID(),
+      customerName: 'Cliente histórico',
+      locationId: randomUUID(),
+      locationName: 'Local histórico',
+      participants: ['Pessoa participante'],
+    },
   });
   const submission = new InspectionSubmission();
   Object.assign(submission, {
@@ -157,6 +164,7 @@ it('pins an authorized snapshot, deduplicates requests and privately serves a co
       service.generate(row.id, async (snapshot) => {
         renders++;
         expect(snapshot.kind).toBe('INSPECTION');
+        if (snapshot.kind === 'INSPECTION') expect(snapshot.context).toEqual(inspection.context);
         return Buffer.from('private report');
       }),
     ),

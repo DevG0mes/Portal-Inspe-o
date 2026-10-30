@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contextInputSchema } from '../organization/customer.dto.js';
 import { paginationShape, parseInput } from '../common/input.js';
 const revision = z.number().int().positive().max(2147483646);
 export const parseInspectionQuery = (raw: unknown) =>
@@ -10,7 +11,14 @@ export const parseCreateInspection = (raw: unknown) =>
   parseInput(
     z.union([
       z.object({ assignmentId: z.uuid() }).strict(),
-      z.object({ unitId: z.uuid(), sectorId: z.uuid(), formId: z.uuid() }).strict(),
+      z
+        .object({
+          unitId: z.uuid(),
+          sectorId: z.uuid(),
+          formId: z.uuid(),
+          context: contextInputSchema.optional(),
+        })
+        .strict(),
     ]),
     raw,
   );

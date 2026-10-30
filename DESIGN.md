@@ -74,3 +74,9 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 ## Relatórios
 
 `features/reports` acompanha pedidos em tabela que vira ficha móvel. Situações são textuais, sem percentuais fictícios. Criação usa confirmação existente; integridade fica em disclosure nativo. Download reutiliza a preparação privada comum a evidências. Não há segunda linguagem visual, modal de progresso bloqueante ou dependência de fontes externas. PDF mantém a identidade azul e leitura em A4 com fontes incorporadas; Excel separa resumo, evolução, ocorrências, planos e contexto dos filtros.
+
+## Importação e identificação operacional
+
+A importação em `features/form-builder/import-form.tsx` usa arquivo nativo, prévia textual e confirmação comum antes de criar rascunho. Escolha de prioridade explícita; publicação no construtor. `features/shared/unit-bindings.tsx` estende RemotePicker para vínculos múltiplos sem outra linguagem visual. Clientes e locais usam ResourceList/ResourceForm existentes, com revisão e inativação.
+
+A entrada por unidade usa cartões com links e busca paginada. Tipos são botões com estado selecionado textual e aria-pressed; indisponíveis têm explicação junto ao rótulo. Identificação e participantes pertencem a `identification-fields.tsx`, compartilhado com programação. `identification-summary.tsx` mantém a identificação histórica legível no detalhe. Layout usa tokens PSI, coluna única móvel e controles nativos; nenhuma imagem, fonte ou animação nova.

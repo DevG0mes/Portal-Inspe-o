@@ -3,6 +3,8 @@ import { LockMode, type FilterQuery } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import type { AuthenticatedPrincipal, InspectionView } from '@portal/contracts';
 import { RuleEngine } from '@portal/form-engine';
+import { CustomerService } from '../organization/customer.service.js';
+import { assertFormAvailable } from '../forms/form-availability.js';
 import { AccessPolicy } from '../access/access-policy.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { parseId } from '../common/input.js';
@@ -94,6 +96,7 @@ export class InspectionService {
     );
     return {
       id: row.id,
+      context: row.context,
       unitId: row.unit.id,
       sectorId: row.sector.id,
       assignmentId: row.assignment?.id ?? null,
@@ -229,6 +232,17 @@ export class InspectionService {
         if (assignment.status !== 'PLANNED' || assignment.occurrenceAt > new Date())
           throw new ConflictException('Atribuição cancelada ou ainda não disponível.');
         row.formVersion = assignment.formVersion;
+        if (assignment.context) {
+          const c = assignment.context;
+          await new CustomerService(em, this.access, this.audit).context(
+            em,
+            row.unit.id,
+            c.customerId,
+            c.locationId,
+            c.participants,
+          );
+          row.context = structuredClone(c);
+        }
       } else {
         await this.lockScope(input.unitId, input.sectorId, em);
         await this.access.assertUnitSector(actor, input.unitId, input.sectorId, requestId, em);
@@ -238,6 +252,7 @@ export class InspectionService {
           { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
         if (!form) throw new BadRequestException('Selecione um formulário publicado.');
+        await assertFormAvailable(em, form, input.unitId);
         const version = await em.findOne(FormVersion, {
           template: form.id,
           number: form.latestVersion,
@@ -246,6 +261,22 @@ export class InspectionService {
         row.unit = em.getReference(Unit, input.unitId);
         row.sector = em.getReference(Sector, input.sectorId);
         row.formVersion = version;
+        const customers = new CustomerService(em, this.access, this.audit);
+        if (
+          !input.context &&
+          (await customers.requiresContext(em, input.unitId, !!form.inspectionKind))
+        )
+          throw new BadRequestException('Selecione cliente e local antes de iniciar a inspeção.');
+        if (input.context) {
+          const c = input.context;
+          row.context = await customers.context(
+            em,
+            input.unitId,
+            c.customerId,
+            c.locationId,
+            c.participants,
+          );
+        }
       }
       em.persist(row);
       await this.audit.record(

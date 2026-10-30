@@ -1,5 +1,19 @@
-export type ResourceKind = 'users' | 'units' | 'sectors';
+export type ResourceKind = 'users' | 'units' | 'sectors' | 'customers' | 'locations';
 export const resources = {
+  customers: {
+    title: 'Clientes',
+    singular: 'cliente',
+    create: 'Novo cliente',
+    endpoint: 'organization/customers',
+    description: 'Clientes podem atender várias unidades de negócio.',
+  },
+  locations: {
+    title: 'Locais',
+    singular: 'local',
+    create: 'Novo local',
+    endpoint: 'organization/locations',
+    description: 'Locais pertencem a um cliente. Desativar preserva as inspeções anteriores.',
+  },
   users: {
     title: 'Usuários',
     singular: 'usuário',
@@ -28,6 +42,11 @@ export const roleLabels = {
   COLLABORATOR: 'Colaborador',
 };
 export interface AdminRow {
+  revision?: number;
+  customerId?: string;
+  customerName?: string;
+  unitIds?: string[];
+  units?: { id: string; name: string; isActive: boolean }[];
   id: string;
   name: string;
   isActive: boolean;

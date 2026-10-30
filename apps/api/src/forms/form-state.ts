@@ -6,6 +6,7 @@ import { FormTemplate } from './entities/form-template.entity.js';
 import type { FormVersion } from './entities/form-version.entity.js';
 
 export const templateSummary = (template: FormTemplate): FormTemplateSummary => ({
+  inspectionKind: template.inspectionKind,
   id: template.id,
   name: template.name,
   state: template.state,

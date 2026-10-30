@@ -1,7 +1,9 @@
 'use client';
-import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import type { InspectionView } from '@portal/contracts';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import type { InspectionView, Paginated, SectorSummary } from '@portal/contracts';
+import { useResource } from '../shared/use-resource';
+import { kindLabels, type AvailableTypes } from '../shared/inspection-kinds';
 import { Button } from '@portal/ui';
 import { api } from '../../lib/api-client';
 import { RemotePicker } from '../shared/remote-picker';
@@ -9,10 +11,18 @@ import { ConfirmDialog } from '../shared/confirm-dialog';
 import { DirtyGuard } from '../shared/dirty-guard';
 import { ErrorNotice } from '../shared/error-notice';
 import { useHydrated } from '../shared/use-hydrated';
+import {
+  IdentificationFields,
+  emptyIdentification,
+  identificationErrors,
+  identificationPayload,
+  useIdentification,
+} from '../shared/identification-fields';
 export function InspectionCreate() {
   const router = useRouter(),
     hydrated = useHydrated();
-  const [unit, setUnit] = useState(''),
+  const params = useSearchParams();
+  const [unit, setUnit] = useState(params.get('unitId') ?? ''),
     [sector, setSector] = useState(''),
     [form, setForm] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({}),
@@ -20,6 +30,23 @@ export function InspectionCreate() {
   const [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false),
     [dirty, setDirty] = useState(false);
+  const [identification, setIdentification] = useState(emptyIdentification),
+    [lookupRevision, setLookupRevision] = useState(0);
+  const context = useIdentification(unit, form, lookupRevision);
+  const [kind, setKind] = useState(''),
+    [legacy, setLegacy] = useState(false);
+  const types = useResource<AvailableTypes>(
+    unit ? `forms/available-types?unitId=${unit}` : null,
+    lookupRevision,
+  );
+  const sectors = useResource<Paginated<SectorSummary>>(
+    unit && params.get('unitId')
+      ? `organization/sectors?unitId=${unit}&isActive=true&pageSize=2`
+      : null,
+  );
+  useEffect(() => {
+    if (!sector && sectors.data?.total === 1) setSector(sectors.data.data[0]!.id);
+  }, [sector, sectors.data]);
   function review(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
@@ -27,6 +54,16 @@ export function InspectionCreate() {
     if (!unit) next['inspection-unit'] = 'Selecione uma unidade.';
     if (!sector) next['inspection-sector'] = 'Selecione um setor.';
     if (!form) next['inspection-form'] = 'Selecione um formulário publicado.';
+    Object.assign(next, identificationErrors(identification, context.required));
+    if (context.loading) return;
+    if (context.error) {
+      setError(context.error);
+      return;
+    }
+    if (types.error) {
+      setError(types.error);
+      return;
+    }
     setErrors(next);
     setError(undefined);
     if (Object.keys(next).length) {
@@ -42,7 +79,12 @@ export function InspectionCreate() {
     try {
       const row = await api<InspectionView>('inspections', {
         method: 'POST',
-        body: JSON.stringify({ unitId: unit, sectorId: sector, formId: form }),
+        body: JSON.stringify({
+          unitId: unit,
+          sectorId: sector,
+          formId: form,
+          ...(identification.customerId ? { context: identificationPayload(identification) } : {}),
+        }),
       });
       setDirty(false);
       setConfirm(false);
@@ -70,6 +112,10 @@ export function InspectionCreate() {
             onChange={(id) => {
               setUnit(id);
               setSector('');
+              setForm('');
+              setIdentification(emptyIdentification());
+              setKind('');
+              setLegacy(false);
               setDirty(true);
             }}
           />
@@ -89,20 +135,110 @@ export function InspectionCreate() {
             />
           )}
           {!unit && <p>Selecione uma unidade para escolher o setor.</p>}
-          <RemotePicker
-            id="inspection-form"
-            label="Formulário"
-            endpoint="forms?state=PUBLISHED"
-            activeOnly={false}
-            value={form}
-            error={errors['inspection-form']}
-            onChange={(id) => {
-              setForm(id);
-              setDirty(true);
-            }}
-          />
+          {unit && context.required && (
+            <IdentificationFields
+              unit={unit}
+              value={identification}
+              onChange={(value) => {
+                setIdentification(value);
+                setDirty(true);
+              }}
+              errors={errors}
+            />
+          )}
+          {context.error !== undefined && (
+            <>
+              <ErrorNotice error={context.error} />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setLookupRevision(lookupRevision + 1)}
+              >
+                Tentar carregar identificação novamente
+              </Button>
+            </>
+          )}
+          {unit &&
+            types.data?.configured &&
+            (!context.required || (identification.customerId && identification.locationId)) && (
+              <fieldset className="picker">
+                <legend>Tipo de inspeção</legend>
+                <div className="summary-grid">
+                  {types.data.types.map((type) => (
+                    <Button
+                      key={type.kind}
+                      type="button"
+                      className="inspection-type"
+                      variant="secondary"
+                      aria-pressed={kind === type.kind && !legacy}
+                      disabled={!type.count}
+                      onClick={() => {
+                        setKind(type.kind);
+                        setLegacy(false);
+                        setForm(type.formId ?? '');
+                        setDirty(true);
+                      }}
+                    >
+                      <strong>{kindLabels[type.kind]}</strong>
+                      <span>
+                        {!type.count
+                          ? 'Sem formulário publicado'
+                          : kind === type.kind && !legacy
+                            ? 'Selecionado'
+                            : `${type.count} modelo(s) disponível(is)`}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setLegacy(true);
+                    setKind('');
+                    setForm('');
+                  }}
+                >
+                  Usar outra ficha publicada
+                </Button>
+              </fieldset>
+            )}
+          {unit &&
+            types.data?.configured &&
+            context.required &&
+            (!identification.customerId || !identification.locationId) && (
+              <p>Selecione cliente e local para escolher o tipo de inspeção.</p>
+            )}
+          {types.error !== undefined && (
+            <>
+              <ErrorNotice error={types.error} />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setLookupRevision(lookupRevision + 1)}
+              >
+                Tentar carregar tipos novamente
+              </Button>
+            </>
+          )}
+          {(!types.data?.configured || kind || legacy) && (
+            <RemotePicker
+              id="inspection-form"
+              label="Formulário"
+              endpoint={`forms?state=PUBLISHED${unit ? `&unitId=${unit}` : ''}${kind && !legacy ? `&inspectionKind=${kind}` : ''}`}
+              activeOnly={false}
+              value={form}
+              error={errors['inspection-form']}
+              onChange={(id) => {
+                setForm(id);
+                setDirty(true);
+              }}
+            />
+          )}
           <div className="actions">
-            <Button type="submit">Revisar inspeção</Button>
+            <Button type="submit" disabled={context.loading || (!!unit && types.loading)}>
+              Revisar inspeção
+            </Button>
             <a className="button secondary" href="/inspections">
               Cancelar
             </a>

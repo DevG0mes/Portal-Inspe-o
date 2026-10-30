@@ -60,7 +60,10 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
     try {
       await api(`${config.endpoint}/${target.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ isActive: !target.isActive }),
+        body: JSON.stringify({
+          isActive: !target.isActive,
+          ...(kind === 'customers' || kind === 'locations' ? { revision: target.revision } : {}),
+        }),
       });
       if (kind === 'users' && target.id === ownId) {
         window.location.assign('/login');
@@ -174,6 +177,8 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
                         <th scope="col">Nome</th>
                         {kind === 'users' && <th scope="col">Perfil</th>}
                         {kind === 'sectors' && <th scope="col">Unidade</th>}
+                        {kind === 'customers' && <th scope="col">Unidades atendidas</th>}
+                        {kind === 'locations' && <th scope="col">Cliente</th>}
                         <th scope="col">Situação</th>
                         <th scope="col">Ações</th>
                       </tr>
@@ -189,6 +194,12 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
                             <td data-label="Perfil">{row.role && roleLabels[row.role]}</td>
                           )}
                           {kind === 'sectors' && <td data-label="Unidade">{row.unitName}</td>}
+                          {kind === 'customers' && (
+                            <td data-label="Unidades atendidas">
+                              {row.units?.map((u) => u.name).join(', ')}
+                            </td>
+                          )}
+                          {kind === 'locations' && <td data-label="Cliente">{row.customerName}</td>}
                           <td data-label="Situação">
                             <Badge active={row.isActive} />
                             {row.mustChangePassword && (

@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { assertFormAvailable } from '../forms/form-availability.js';
 import { LockMode } from '@mikro-orm/core';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import { User } from '../identity/user.entity.js';
@@ -53,6 +54,7 @@ export async function validateOperational(
   );
   if (!form || !form.latestVersion)
     throw new BadRequestException('Selecione um formulário publicado.');
+  await assertFormAvailable(em, form, unit.id);
   return {
     unit,
     sector,

@@ -63,6 +63,9 @@ export function FormCatalog() {
         <span className="eyebrow">ADMINISTRAÇÃO · MODELOS</span>
         <h1>Formulários</h1>
         <p>Organize as perguntas da inspeção e publique versões para uso em campo.</p>
+        <a className="button secondary" href="/admin/forms/import">
+          Importar CSV
+        </a>
       </div>
       <section className="card create-form">
         <h2>Novo modelo</h2>

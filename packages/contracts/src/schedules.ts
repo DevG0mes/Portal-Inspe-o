@@ -1,4 +1,5 @@
 export const FREQUENCIES = ['ONCE', 'DAILY', 'WEEKLY', 'MONTHLY'] as const;
+import type { InspectionContext } from './organization.js';
 export type Frequency = (typeof FREQUENCIES)[number];
 export interface CalendarRule {
   frequency: Frequency;
@@ -7,6 +8,7 @@ export interface CalendarRule {
   endDate: string | null;
 }
 export interface ScheduleSummary extends CalendarRule {
+  context?: InspectionContext | null;
   id: string;
   name: string;
   unitId: string;
@@ -24,6 +26,7 @@ export interface ScheduleSummary extends CalendarRule {
 }
 export type AssignmentState = 'UPCOMING' | 'PENDING' | 'OVERDUE' | 'CANCELLED';
 export interface AssignmentSummary {
+  context?: InspectionContext | null;
   id: string;
   scheduleId: string;
   name: string;

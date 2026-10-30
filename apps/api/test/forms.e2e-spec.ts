@@ -70,6 +70,95 @@ async function save(id: string, revision: number, snapshot = definition([questio
 }
 
 describe('form lifecycle and immutable history', () => {
+  it('imports a typed draft idempotently, rejects changed retries and enforces NO actions', async () => {
+    const unitResponse = await fetch(`${origin}/api/organization/units`, {
+      method: 'POST',
+      headers: { cookie: adminCookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: `EPC ${randomUUID()}` }),
+    });
+    const unit = await unitResponse.json();
+    const input = {
+      unitIds: [unit.id],
+      importId: randomUUID(),
+      name: `EPC ${randomUUID()}`,
+      headers: ['Status', '1. Proteção?', '1. Ação Realizada', '3. Tema?'],
+      textQuestions: [3],
+      required: true,
+      category: 'EPC',
+      priority: 'HIGH',
+    };
+    expect((await call('/import-csv', 'POST', input, collaboratorCookie)).status).toBe(403);
+    const responses = await Promise.all([
+      call('/import-csv', 'POST', input),
+      call('/import-csv', 'POST', input),
+    ]);
+    expect(responses.map((r) => r.status)).toEqual([201, 201]);
+    const a = await responses[0]!.json(),
+      b = await responses[1]!.json();
+    expect(a.id).toBe(b.id);
+    expect(a).toMatchObject({ state: 'DRAFT', latestVersion: 0 });
+    expect((await call('/import-csv', 'POST', { ...input, name: 'Alterado' })).status).toBe(409);
+    const draft = await (await call(`/${a.id}/draft`)).json();
+    expect(draft.snapshot.sections[0].questions.map((q: { type: string }) => q.type)).toEqual([
+      'YES_NO_NA',
+      'TEXT',
+      'TEXT',
+    ]);
+    const [q, action, text] = draft.snapshot.sections[0].questions;
+    const result = await (
+      await call(`/${a.id}/preview`, 'POST', {
+        revision: 1,
+        answers: [
+          { questionId: q.id, value: 'NO' },
+          { questionId: text.id, value: 'Tema' },
+        ],
+      })
+    ).json();
+    expect(result.result.errors).toContainEqual({ questionId: action.id, code: 'REQUIRED' });
+    const before = await (await call(`/available-types?unitId=${unit.id}`)).json();
+    expect(before.configured).toBe(true);
+    expect(before.types.every((t: { count: number }) => t.count === 0)).toBe(true);
+    expect((await call(`/${a.id}/publish`, 'POST', { revision: draft.revision })).status).toBe(200);
+    const after = await (await call(`/available-types?unitId=${unit.id}`)).json();
+    expect(after.types).toHaveLength(5);
+    expect(after.types.filter((t: { count: number }) => t.count > 0)).toEqual([
+      { kind: 'EPC_GENERAL', count: 1, formId: a.id },
+    ]);
+    expect(
+      (await call(`/available-types?unitId=${unit.id}`, 'GET', undefined, collaboratorCookie))
+        .status,
+    ).toBe(403);
+    const anotherUnit = await (
+      await fetch(`${origin}/api/organization/units`, {
+        method: 'POST',
+        headers: { cookie: adminCookie, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: `Outra ${randomUUID()}` }),
+      })
+    ).json();
+    const sector = await (
+      await fetch(`${origin}/api/organization/sectors`, {
+        method: 'POST',
+        headers: { cookie: adminCookie, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Campo', unitId: anotherUnit.id }),
+      })
+    ).json();
+    const unavailable = await fetch(`${origin}/api/inspections`, {
+      method: 'POST',
+      headers: { cookie: adminCookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ formId: a.id, unitId: anotherUnit.id, sectorId: sector.id }),
+    });
+    expect(unavailable.status).toBe(400);
+
+    expect(
+      (
+        await call('/import-csv', 'POST', {
+          ...input,
+          importId: randomUUID(),
+          headers: ['unrecognized'],
+        })
+      ).status,
+    ).toBe(400);
+  });
   it('supports valid Unicode names whose lowercase comparison key expands', async () => {
     const name = 'İ'.repeat(160);
     const response = await call('', 'POST', { name });

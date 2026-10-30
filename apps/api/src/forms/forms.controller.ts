@@ -25,13 +25,22 @@ export class FormsController {
   ) {}
 
   @Get() list(@Req() request: AuthenticatedRequest, @Query() query: unknown) {
-    return this.templates.list(request.principal, query);
+    return this.templates.list(request.principal, query, request.requestId);
+  }
+  @Get('available-types') kinds(@Req() request: AuthenticatedRequest, @Query() query: unknown) {
+    return this.templates.availableKinds(request.principal, query, request.requestId);
   }
   @Get(':id') get(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
     return this.templates.get(request.principal, id);
   }
   @Post() @Roles('ADMIN') create(@Req() request: AuthenticatedRequest, @Body() body: unknown) {
     return this.templates.create(request.principal, body, request.requestId);
+  }
+  @Post('import-csv') @Roles('ADMIN') importCsv(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: unknown,
+  ) {
+    return this.templates.importCsv(request.principal, body, request.requestId);
   }
   @Get(':id/draft') @Roles('ADMIN') draft(
     @Req() request: AuthenticatedRequest,
