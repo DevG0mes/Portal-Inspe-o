@@ -14,7 +14,7 @@ Portal interno pt-BR. A API é a autoridade de permissões e estado. Nenhuma cre
 
 Busca de usuários contém dados pessoais e fica em memória; paginação e filtros não sensíveis usam URL. Senhas nunca entram na URL. Ações sem sessão exibem erro e link de reautenticação, sem repetição automática de gravações. Cancelar edição com alterações pede confirmação; beforeunload protege fechamento real. Não há exclusão definitiva, seleção em massa ou seletor de data nesta etapa.
 
-Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Componentes e comportamento recorrentes devem ser estendidos nesses proprietários, sem cópias locais. Dashboard apresenta somente dados reais disponíveis. Não exibir ações para etapas futuras ainda inexistentes.
+Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Marca: `features/shared/brand-logo.tsx`, compartilhada entre login e navegação. Componentes e comportamento recorrentes devem ser estendidos nesses proprietários, sem cópias locais. Dashboard apresenta somente dados reais disponíveis. Não exibir ações para etapas futuras ainda inexistentes. A navegação desktop pode rolar quando a altura for insuficiente; no celular permanece em fluxo. Dimensões do logo são reservadas para evitar deslocamento no carregamento.
 
 ## Canonical UI Map
 

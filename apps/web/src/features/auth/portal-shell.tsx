@@ -8,6 +8,7 @@ import { ErrorNotice } from '../shared/error-notice';
 import type { Principal } from '../../lib/session';
 import { roleLabels } from '../admin/config';
 import { UnreadIndicator } from '../notifications/unread-indicator';
+import { BrandLogo } from '../shared/brand-logo';
 export function PortalShell({ role, children }: { role: Principal['role']; children: ReactNode }) {
   const path = usePathname();
   const [expanded, setExpanded] = useState(false);
@@ -47,12 +48,9 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
         Ir para o conteúdo
       </a>
       <aside className="sidebar">
-        <Link className="wordmark" href="/dashboard">
-          <span>PSI ENERGY</span>
-          <strong>
-            Portal de <br />
-            Segurança
-          </strong>
+        <Link className="wordmark" href="/dashboard" aria-label="PSI Energy · Portal de Segurança">
+          <BrandLogo />
+          <strong>Portal de Segurança</strong>
         </Link>
         <button
           className="menu-toggle button secondary"
@@ -85,7 +83,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
       <div className="portal-content">
         <header className="portal-header">
           <span>SEGURANÇA DO TRABALHO</span>
-          <span>Ambiente interno</span>
+          <span>PSI Energy · Ambiente interno</span>
         </header>
         <main id="main" tabIndex={-1}>
           {error !== undefined && <ErrorNotice error={error} />}

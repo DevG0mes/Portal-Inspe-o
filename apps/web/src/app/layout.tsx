@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Portal de Inspeção de Segurança',
+  title: 'PSI Energy | Portal de Inspeção de Segurança',
   description: 'Inspeções de segurança, evidências e acompanhamento de ações corretivas.',
 };
 

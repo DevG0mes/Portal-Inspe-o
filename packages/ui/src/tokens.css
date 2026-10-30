@@ -1,20 +1,28 @@
 :root {
-  --background: #eef3f7;
+  --background: #f4f5f7;
   --surface: #ffffff;
-  --text: #182e40;
-  --muted: #4b6273;
-  --brand: #12547a;
+  --text: #20242b;
+  --muted: #59616d;
+  --brand: #a8470c;
+  --accent: #ff962e;
+  --accent-hover: #ffad59;
+  --on-accent: #20242b;
   --notice: #755000;
-  --border: #cedae3;
-  --brand-dark: #0c3149;
-  --brand-soft: #e6f0f6;
+  --border: #d7dce2;
+  --brand-dark: #1c1f25;
+  --brand-soft: #fff1e4;
+  --sidebar-hover: #2c313a;
+  --on-dark-muted: #c2c8d1;
+  --border-on-dark: #414752;
   --danger: #a02828;
   --danger-soft: #fff0ee;
   --success: #22603c;
   --success-soft: #e8f4eb;
-  --overlay: #0c314970;
-  --focus-on-dark: #ffd180;
-  --radius: 6px;
+  --overlay: #15182080;
+  --focus-on-dark: #ffad59;
+  --shadow: 0 6px 24px #20242b08;
+  --shadow-deep: 0 20px 64px #20242b12;
+  --radius: 10px;
   --font-heading: 'Bahnschrift', 'Arial Narrow', sans-serif;
   --font-body: 'Segoe UI', Arial, sans-serif;
 }

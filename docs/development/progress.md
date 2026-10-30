@@ -4,6 +4,14 @@
 
 Tarefas 1 a 14 concluídas e verificadas localmente. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Instalação real depende do servidor interno, DNS, certificado confiável, credenciais e janela operacional definidos pela empresa; não houve publicação de produção.
 
+## Identidade PSI Energy — 30/10/2026
+
+- Paleta harmonizada ao logo fornecido: laranja nos destaques/botões, grafite no login e navegação, superfícies claras e texto com contraste. Cores semânticas de sucesso/falha preservadas. Valores e papéis compartilhados em `tokens.css`/`DESIGN.md`, sem biblioteca ou fonte externa.
+- Logo original 260×87 com transparência, preservado byte a byte, usado por `BrandLogo` no login e no menu. Dimensões reservadas, texto alternativo e carregamento local. Docker web inclui `public`; imagem construída e hash do logo conferido no runtime UID 1000.
+- Login com painel de acesso branco, marca no fundo grafite, espaçamentos ajustados e botão laranja. Cartões com elevação discreta, seleção de navegação laranja e transições curtas com reduced-motion. Navegação longa no desktop permanece alcançável por rolagem; celular em fluxo. Nenhuma regra de negócio foi alterada.
+- Teste inicial falhou pela ausência da marca; primeira conferência posterior detectou seletores de teste ambíguos/ocultos, corrigidos para os proprietários reais da navegação. Build, lint, tipos, formatação, 76 testes unitários e auditoria premium estrita aprovados. Regressão completa: 46 cenários de navegador aprovados, 23 desktop e 23 celular; capturas de login/painel/administração examinadas e verificações WCAG sem violações nos fluxos exercitados. Revisão independente sem P1/P2. Interface local em standalone com logo/CSS respondendo 200 e API pronta com PostgreSQL/Redis/MinIO up.
+- Fonte, decisões e verificação documentadas em `docs/development/branding.md`.
+
 ## Tarefa 14 — preparação operacional concluída em 29/10/2026
 
 - Base: e41fb78. Proteções HTTP, logs sanitizados, limite local de autenticação, heartbeat do worker, imagens e Compose HTTPS. Backup usa pausa dos escritores/MinIO e restaura somente recursos descartáveis novos.
