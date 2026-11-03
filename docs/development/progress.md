@@ -4,6 +4,23 @@
 
 Tarefas 1 a 14 concluídas e verificadas localmente. Conta administrativa local de teste provisionada a pedido do usuário em 29/10/2026, com troca obrigatória de senha. Instalação real depende do servidor interno, DNS, certificado confiável, credenciais e janela operacional definidos pela empresa; não houve publicação de produção.
 
+## Tipos por unidade e exclusão de formulários — 03/11/2026
+
+### Atualização: CSV Pergunta/Tipo
+
+- Padrão definido pelo usuário: duas colunas Pergunta e Tipo, um campo por linha; valores Escolha/Texto explícitos. Novo leitor puro suporta BOM, vírgula/ponto e vírgula/tab, aspas e quebras em campos. Rejeita esquema extra, tipos desconhecidos, ações de escolha, arquivo acima de 256 KiB e mais de 500 campos. O conversor existente valida pares, referências e condições antes da importação e novamente na API.
+- Tela deriva as exceções de texto do arquivo e as mostra somente para leitura. Arquivos horizontais antigos não são aceitos pela tela; contrato interno legado da API permanece compatível. Nenhuma migração ou dependência nova.
+- Exemplo de Trabalho em Altura com vinte campos disponível para download na tela e em `public/models/trabalho-em-altura.csv`. Arquivo real validado pelo leitor e motor: dez escolhas, dez ações, pergunta 3 de escolha. Guia `import-format.md` substitui o formato anterior.
+- Verificação RED→GREEN do leitor; seis testes de conversão/leitura aprovados, tipos, lint focado, build e formatação aprovados. Quatro cenários desktop/celular passaram, incluindo novo CSV → prévia → publicação → conclusão condicional e PDF real. Download local do exemplo retornou 200.
+
+- Usuário aprovou unificar Setor com Tipo de Inspeção. Cadastros, permissões, execução, programação, relatórios e administração usam o novo vocabulário; IDs e rotas técnicas preservados. Tipos são cadastráveis por unidade, sem depender dos cinco rótulos fixos.
+- Modelo possui vínculo opcional ao tipo. Criação manual/importação permitem seleção; catálogo oferece associação explícita dos modelos existentes e mostra o tipo vinculado. API valida compatibilidade na execução e programação. Legados não vinculados preservam escopo anterior até associação; nomes existentes não são convertidos por inferência. Programações existentes impedem troca do vínculo do modelo.
+- Catálogo oferece Excluir com nome e consequência em confirmação. ADMIN e revisão revalidados na transação. Rascunho nunca publicado e sem programação é removido com vínculos auxiliares; publicado é removido logicamente, liberando nome para novo modelo, mantendo versões, inspeções, PDFs e auditoria. Nenhuma inspeção de teste foi apagada. Novos usos do modelo removido são bloqueados, inclusive início de atribuição ainda sem inspeção.
+- Importação inicia sem exceções de texto; EPC geral exige informar 3, Trabalho em Altura mantém as dez principais como escolhas, inclusive a 3, e dez ações condicionais. Teste específico confirma essa estrutura.
+- RED→GREEN da exclusão. Revisão independente apontou omissão de importados legados no filtro novo e formulário obsoleto ao trocar tipo na programação. Corrigidos, com cobertura HTTP/navegador; releitura sem outro P1/P2.
+- Verificação: 80 testes unitários, rodada completa de 112 testes HTTP, rodada final de 17 testes de formulários (inclui concorrência exclusão/publicação), 10 testes de integração e 8 cenários desktop/celular de importação, vínculo, exclusão e programação. Tipos, lint, formatação e build aprovados; auditoria premium estrita sem achados. Axe sem violações e captura móvel examinada. Migração 202611030001 sem drift, down/up verificado e aplicada localmente. Login 200 e readiness com PostgreSQL/Redis/MinIO up.
+- Guia `inspection-types.md`. Alterações anteriores de inicialização e filtros preservadas. Modelos/cadastros de uso não foram apagados nem renomeados; associação dos legados é administrativa. Homologação física e produção continuam posteriores.
+
 ## Importação e identificação operacional — 30/10/2026
 
 - Desenho e plano em `docs/superpowers/` aprovados pelo usuário com “pode seguir”. Implementação na branch existente, na pasta autorizada.
@@ -374,6 +391,21 @@ Na primeira sessão Docker não estava instalado. Depois da instalação pelo us
 - `pnpm test:browser`: 18 cenários aprovados, 9 desktop e 9 celular. Inclui os fluxos anteriores, v1/v2 imutáveis, autosave/retry, conflito com modal, tipos seleção/número/data, revisão na API, arquivamento e autorização. Total: 128 testes/cenários.
 - Axe WCAG A/AA sem violações nas telas exercitadas; viewport móvel sem overflow horizontal. Captura da prévia móvel examinada. Auditoria premium estrita sem apontamentos; lint, tipos, formatação e build aprovados.
 - Limites: testes móveis usam Edge com viewport/touch simulado; homologação em aparelho físico e produção continuam posteriores. Cópia local de conflito fica apenas na memória da aba e é perdida se o usuário confirmar seu descarte; não há cache offline, merge automático ou force overwrite.
+
+## Visualização Desktop/Celular e área do colaborador — 03/11/2026
+
+- Após o login e a troca obrigatória de senha, `/experience` oferece os modos Desktop e Celular. A preferência fica no cookie de sessão e pode ser trocada em Minha conta.
+- O início Meu trabalho reúne inspeções criadas e atribuídas. O modo Celular apresenta navegação inferior, cartões e preenchimento por seção com foco na primeira resposta pendente durante a revisão.
+- A API restringe indicadores, Excel e planos de ação à gestão. PDF da própria inspeção é acessível pelo registro. Correções já atribuídas a colaboradores são preservadas para reatribuição por um gestor. O sino do colaborador exibe avisos de inspeção.
+- Verificados login, troca de visualização, registros próprios e atribuídos, bloqueio de registros alheios, etapa com resposta condicional, conclusão e recarga. Testados 116 casos HTTP e o fluxo completo no navegador em desktop e viewport móvel.
+
+## Dashboard QSSMA — 03/11/2026
+
+- Analisadas 42 medidas DAX e 27 visuais do PBIX local, sem importar registros ou executar conexões externas. Implementados nove gráficos, metas de 12 inspeções/mês e 95% de conformidade, medidas por colaborador/dia e filtros de cliente/local/colaborador.
+- Tratado exige plano concluído e aprovado. Agregação usa a última conclusão por inspeção e datas em São Paulo; total sem filtros preserva autorização. Locais renomeados agrupam pelo ID e exibem o nome mais recente. Sem denominador exibe Sem base.
+- Relatório Excel mantém o resumo anterior por resposta e recebe filtros e detalhes de cliente/local/ação/status; novos cartões QSSMA não foram incorporados à exportação. Fórmulas e limites em `dashboard-qssma.md`.
+- Evidências: 82 testes unitários, 115 HTTP e 10 de integração aprovados; rodada final HTTP focada com 9 casos incluindo volume de 4.500 inspeções. Seis cenários de dashboard/relatórios desktop/celular aprovados. Após ajuste responsivo, os dois cenários de dashboard passaram novamente, com axe e regressão de largura dos gráficos. Build, tipos, lint e auditoria visual estática aprovados; captura móvel conferida. Revisão independente sem P1/P2 após correção de locais renomeados.
+- Limites: celular validado por viewport/touch simulado; homologação em aparelho físico e implantação continuam posteriores. Nenhuma credencial alterada.
 
 ## Tarefa 8 — programação e recorrências em 28/10/2026
 

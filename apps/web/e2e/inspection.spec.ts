@@ -84,8 +84,8 @@ async function createThroughUI(page: Page, name: string) {
     .getByLabel('Selecionar unidade', { exact: true })
     .selectOption({ label: 'Unidade de testes' });
   await page
-    .getByLabel('Selecionar setor', { exact: true })
-    .selectOption({ label: 'Setor de testes' });
+    .getByLabel('Selecionar tipo de inspeção', { exact: true })
+    .selectOption({ label: 'Tipo de inspeção de testes' });
   const picker = page.getByRole('group', { name: 'Formulário', exact: true });
   await picker.getByLabel('Buscar formulário').fill(name);
   await picker.getByRole('button', { name: 'Buscar', exact: true }).click();

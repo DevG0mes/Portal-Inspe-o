@@ -48,6 +48,20 @@ export class FormsController {
   ) {
     return this.templates.getDraft(request.principal, id);
   }
+  @Post(':id/remove') @Roles('ADMIN') @HttpCode(200) remove(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.templates.remove(request.principal, id, body, request.requestId);
+  }
+  @Put(':id/inspection-type') @Roles('ADMIN') bindType(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.templates.bindType(request.principal, id, body, request.requestId);
+  }
   @Post(':id/draft') @Roles('ADMIN') @HttpCode(200) createDraft(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,

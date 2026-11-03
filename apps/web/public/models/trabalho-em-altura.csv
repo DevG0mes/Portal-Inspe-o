@@ -1,0 +1,21 @@
+Pergunta;Tipo
+1. Existe trabalho em altura ocorrendo no momento da inspeção?;Escolha
+1. Ação Realizada;Texto
+2. As escadas são de material isolante?;Escolha
+2. Ação Realizada;Texto
+3. A escada está fixada em local seguro com dois pontos de fixação?;Escolha
+3. Ação Realizada;Texto
+4. Os colaboradores utilizam todos os EPIs necessários para Trabalho em Altura? Estão ancorados de forma correta? Ex: cinto paraquedista, sistema trava-quedas, talabarte etc;Escolha
+4. Ação Realizada;Texto
+5. O Cesto Aéreo está em condições segura e com a devida identificação conforme item 3.14 da NR12?;Escolha
+5. Ação Realizada;Texto
+6. O controle de operação do cesto está sendo realizado pelo montador via controle remoto no cesto?;Escolha
+6. Ação Realizada;Texto
+7. O operador do guindauto está responsável pelo controle inferior e sem contato com o solo (Em execução de serviços em proximidade de energia elétrica);Escolha
+7. Ação Realizada;Texto
+8. Ao utilizar a PEMT, as ferramentas manuais estão amarradas?;Escolha
+8. Ação Realizada;Texto
+9. As áreas logo abaixo de trabalhos em altura onde haja risco de queda de materiais e/ou ferramentas estão isoladas e sinalizadas por meio de fitas de sinalização, telas ou cordas?;Escolha
+9. Ação Realizada;Texto
+10. Todos os colaboradores envolvidos possuem aptidão para trabalho em altura? (Checar ASO, PGR, PCMSO, NR 35 e curso de PEMT se necessário).;Escolha
+10. Ação Realizada;Texto

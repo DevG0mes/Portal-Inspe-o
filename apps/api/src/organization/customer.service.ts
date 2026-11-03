@@ -51,14 +51,25 @@ export class CustomerService {
       units: links.map((l) => ({ id: l.unit.id, name: l.unit.name, isActive: l.unit.isActive })),
     };
   }
+  private async isLodging(em: EntityManager, unitId: string) {
+    return !!(await em.findOne(Unit, { id: unitId, nameKey: 'alojamento' }));
+  }
+  private async canReadAddresses(em: EntityManager, allowed: Set<string>) {
+    return !!(await em.count(Unit, {
+      id: { $in: [...allowed] },
+      nameKey: 'alojamento',
+      isActive: true,
+    }));
+  }
   private locationView(row: CustomerLocation) {
     return {
       id: row.id,
       name: row.name,
       isActive: row.isActive,
       revision: row.revision,
-      customerId: row.customer.id,
-      customerName: row.customer.name,
+      customerId: row.customer?.id,
+      customerName: row.customer?.name,
+      city: row.city ?? null,
     };
   }
   async list(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
@@ -97,6 +108,7 @@ export class CustomerService {
     });
     return {
       data: rows.map((r) => this.view(r, scope.allowed)),
+      locationKind: q.unitId && (await this.isLodging(em, q.unitId)) ? 'address' : 'substation',
       configured:
         !!q.unitId &&
         (!scope.allowed || scope.allowed.has(q.unitId)) &&
@@ -187,6 +199,9 @@ export class CustomerService {
       scope = await this.scope(actor, em, requestId);
     if (q.unitId && scope.allowed && !scope.allowed.has(q.unitId))
       return { data: [], total: 0, page: q.page, pageSize: q.pageSize };
+    const address = q.unitId ? await this.isLodging(em, q.unitId) : q.kind === 'address';
+    if (address && scope.allowed && !(await this.canReadAddresses(em, scope.allowed)))
+      return { data: [], total: 0, page: q.page, pageSize: q.pageSize };
     const customer: FilterQuery<Customer> = {
       $and: [
         scope.customer,
@@ -200,8 +215,16 @@ export class CustomerService {
     const [rows, total] = await em.findAndCount(
       CustomerLocation,
       {
-        customer,
-        ...(q.q ? { nameKey: { $ilike: `%${escapeLike(q.q.toLowerCase())}%` } } : {}),
+        ...(address ? {} : { customer }),
+        city: address ? { $ne: null } : null,
+        ...(q.q
+          ? {
+              $or: [
+                { nameKey: { $ilike: `%${escapeLike(q.q.toLowerCase())}%` } },
+                { city: { $ilike: `%${escapeLike(q.q)}%` } },
+              ],
+            }
+          : {}),
         ...(q.isActive !== undefined ? { isActive: q.isActive } : {}),
       },
       {
@@ -212,7 +235,10 @@ export class CustomerService {
       },
     );
     return {
-      data: rows.map((r) => this.locationView(r)),
+      data: rows.map((r) => ({
+        ...this.locationView(r),
+        ...(q.unitId && r.city ? { name: `${r.name} · ${r.city}` } : {}),
+      })),
       total,
       page: q.page,
       pageSize: q.pageSize,
@@ -223,10 +249,15 @@ export class CustomerService {
       scope = await this.scope(actor, em, requestId);
     const row = await em.findOne(
       CustomerLocation,
-      { id: parseId(rawId), customer: scope.customer },
+      {
+        id: parseId(rawId),
+        $or: [{ city: { $ne: null } }, { city: null, customer: scope.customer }],
+      },
       { populate: ['customer'] },
     );
     if (!row) throw new ForbiddenException('Local não disponível.');
+    if (row.city && scope.allowed && !(await this.canReadAddresses(em, scope.allowed)))
+      throw new ForbiddenException('Endereço não disponível.');
     return this.locationView(row);
   }
   async saveLocation(
@@ -241,13 +272,16 @@ export class CustomerService {
       this.entityManager.fork().transactional(async (em) => {
         await this.administrator(actor, em);
         const previous = id ? await em.findOne(CustomerLocation, id) : undefined;
-        const customerId = 'customerId' in input ? input.customerId : previous?.customer.id;
-        if (!customerId) throw new ForbiddenException('Local não disponível.');
-        const customer = await em.findOne(Customer, customerId, {
-          lockMode: LockMode.PESSIMISTIC_READ,
-          refresh: true,
-        });
-        if (!customer || (!id && !customer.isActive))
+        const customerId = 'customerId' in input ? input.customerId : previous?.customer?.id;
+        const address = id ? !!previous?.city : !!input.city;
+        const customer =
+          !address && customerId
+            ? await em.findOne(Customer, customerId, {
+                lockMode: LockMode.PESSIMISTIC_READ,
+                refresh: true,
+              })
+            : undefined;
+        if (!address && (!customer || (!id && !customer.isActive)))
           throw new BadRequestException('Selecione um cliente ativo.');
         const row = id
           ? await em.findOne(CustomerLocation, id, {
@@ -258,11 +292,18 @@ export class CustomerService {
         if (!row) throw new ForbiddenException('Local não disponível.');
         if ('revision' in input && input.revision !== row.revision)
           throw new ConflictException('O local mudou. Recarregue antes de salvar.');
-        row.customer = customer;
+        if (input.city !== undefined) {
+          if (id && !row.city)
+            throw new BadRequestException('Cadastre o endereço separadamente da subestação.');
+          row.city = input.city;
+        }
+        if (!address) row.customer = customer ?? undefined;
         if (input.name !== undefined) {
           row.name = input.name;
-          row.nameKey = input.name.toLowerCase();
         }
+        row.nameKey = row.city
+          ? `endereco:${row.city.toLowerCase()}:${row.name.toLowerCase()}`
+          : row.name.toLowerCase();
         if ('isActive' in input && input.isActive !== undefined) row.isActive = input.isActive;
         if (id) row.revision++;
         em.persist(row);
@@ -284,6 +325,7 @@ export class CustomerService {
   async requiresContext(em: EntityManager, unitId: string, typed = false) {
     return (
       typed ||
+      (await this.isLodging(em, unitId)) ||
       (await em.count(CustomerUnit, {
         unit: unitId,
       })) > 0
@@ -295,6 +337,7 @@ export class CustomerService {
     customerId: string,
     locationId: string,
     participants: string[],
+    savedKind?: InspectionContext['locationKind'],
   ): Promise<InspectionContext> {
     const customer = await em.findOne(
       Customer,
@@ -306,9 +349,15 @@ export class CustomerService {
       : undefined;
     if (!customer || !link)
       throw new ForbiddenException('Cliente não disponível para esta unidade.');
+    const address = savedKind ? savedKind === 'address' : await this.isLodging(em, unitId);
     const location = await em.findOne(
       CustomerLocation,
-      { id: locationId, customer: customer.id, isActive: true },
+      {
+        id: locationId,
+        ...(address ? {} : { customer: customer.id }),
+        isActive: true,
+        city: address ? { $ne: null } : null,
+      },
       { lockMode: LockMode.PESSIMISTIC_READ, refresh: true },
     );
     if (!location) throw new ForbiddenException('Local não pertence ao cliente ou está inativo.');
@@ -316,7 +365,8 @@ export class CustomerService {
       customerId: customer.id,
       customerName: customer.name,
       locationId: location.id,
-      locationName: location.name,
+      locationName: location.city ? `${location.name} · ${location.city}` : location.name,
+      locationKind: address ? 'address' : 'substation',
       participants,
     };
   }

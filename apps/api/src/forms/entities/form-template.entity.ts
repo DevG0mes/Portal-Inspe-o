@@ -7,8 +7,11 @@ import {
   type FormVersionSnapshot,
 } from '@portal/contracts';
 import { BaseEntity } from '../../database/base.entity.js';
+import { Sector } from '../../organization/sector.entity.js';
 
 export class FormTemplate extends BaseEntity {
+  inspectionType: Sector | null = null;
+  deletedAt: Date | null = null;
   importHash: string | null = null;
   inspectionKind: InspectionKind | null = null;
   name!: string;
@@ -24,6 +27,8 @@ export const formTemplateSchema = new EntitySchema<FormTemplate, BaseEntity>({
   extends: BaseEntity,
   tableName: 'form_template',
   properties: {
+    inspectionType: { kind: 'm:1', entity: () => Sector, nullable: true, deleteRule: 'restrict' },
+    deletedAt: { type: 'datetime', columnType: 'timestamptz', nullable: true },
     importHash: { type: 'string', length: 64, nullable: true, hidden: true },
     inspectionKind: { enum: true, items: () => INSPECTION_KINDS, nullable: true },
     name: { type: 'string', length: 160 },

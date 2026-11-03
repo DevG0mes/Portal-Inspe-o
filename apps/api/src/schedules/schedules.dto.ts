@@ -45,7 +45,15 @@ export const parseScheduleQuery = (raw: unknown) =>
   parseInput(z.object({ ...paginationShape, q: searchQuery, isActive: activeQuery }).strict(), raw);
 export const parseCandidateQuery = (raw: unknown) =>
   parseInput(
-    z.object({ ...paginationShape, q: searchQuery, unitId: z.uuid(), sectorId: z.uuid() }).strict(),
+    z
+      .object({
+        ...paginationShape,
+        q: searchQuery,
+        unitId: z.uuid(),
+        sectorId: z.uuid(),
+        purpose: z.enum(['correction']).optional(),
+      })
+      .strict(),
     raw,
   );
 export const parseAssignmentQuery = (raw: unknown) =>

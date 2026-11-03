@@ -17,7 +17,7 @@ export class DeadlineNotifications {
           select a.id,a.recipient_id,concat('${action ? 'ACTION' : 'ASSIGNMENT'}_',case when a.due_at < ? then 'OVERDUE' else 'DUE' end) as kind,
             concat('deadline-${type}-',a.id,'-',extract(epoch from a.due_at),'-',case when a.due_at < ? then 'late' else 'soon' end) as event_key
           from source a join portal_user u on u.id=a.recipient_id join organization_unit un on un.id=a.unit_id join organization_sector se on se.id=a.sector_id
-          where a.due_at <= ? and u.is_active and not u.must_change_password and un.is_active and se.is_active and
+          where a.due_at <= ? and u.is_active and not u.must_change_password and un.is_active and se.is_active ${action ? "and u.role in ('ADMIN','MANAGER')" : ''} and
           (u.role='ADMIN' or exists(select 1 from sector_membership sm join unit_membership um on um.id=sm.unit_membership_id where sm.sector_id=a.sector_id and sm.is_active and um.is_active and um.unit_id=a.unit_id and um.user_id=u.id))
         ) select c.* from candidates c where not exists(select 1 from notification n where n.recipient_id=c.recipient_id and n.event_key=c.event_key) order by c.event_key,c.recipient_id limit 100`,
             [now, now, new Date(now.getTime() + 86400000)],

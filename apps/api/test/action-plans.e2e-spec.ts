@@ -31,7 +31,7 @@ beforeAll(async () => {
   database = await createTestDatabase();
   const em = database.orm.em.fork();
   const hash = await new PasswordService().hash('Senha segura de teste 2026!');
-  users = ['ADMIN', 'MANAGER', 'COLLABORATOR', 'COLLABORATOR'].map((role) => {
+  users = ['ADMIN', 'MANAGER', 'MANAGER', 'COLLABORATOR'].map((role) => {
     const user = new User();
     Object.assign(user, {
       name: role,
@@ -187,16 +187,24 @@ it('emits due and overdue notices once per deadline, skips completed plans and r
     ]);
   await deadlines.run(new Date(at.getTime() + 2 * 86400000));
   expect((await (await call('/notifications', 'GET', undefined, 3)).json()).total).toBe(0);
-  const oldRecipient = (
-    await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json()
-  ).data;
-  expect(
-    oldRecipient
-      .filter((n: { resourceId: string }) => n.resourceId === row.id)
-      .every((n: { href: string | null }) => n.href === null),
-  ).toBe(true);
+  const em = database.orm.em.fork();
+  await em.nativeUpdate(UnitMembership, { user: users[2]!.id, unit: unit.id }, { isActive: false });
+  try {
+    const oldRecipient = (
+      await (await call('/notifications?pageSize=100', 'GET', undefined, 2)).json()
+    ).data;
+    expect(oldRecipient.filter((n: { resourceId: string }) => n.resourceId === row.id)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ href: null })]),
+    );
+  } finally {
+    await em.nativeUpdate(
+      UnitMembership,
+      { user: users[2]!.id, unit: unit.id },
+      { isActive: true },
+    );
+  }
 });
-it('lists authorized occurrences, creates once per occurrence and filters responsibility before counting', async () => {
+it('lists authorized occurrences, creates once per occurrence and denies collaborator management', async () => {
   const input = await occurrence();
   const list = await call('/action-plans/occurrences');
   expect(list.status).toBe(200);
@@ -218,9 +226,9 @@ it('lists authorized occurrences, creates once per occurrence and filters respon
     one.description,
   );
   expect(notices.filter((n: { resourceId: string }) => n.resourceId === one.id)).toHaveLength(1);
-  expect((await (await call('/action-plans', 'GET', undefined, 3)).json()).total).toBe(0);
+  expect((await call('/action-plans', 'GET', undefined, 3)).status).toBe(403);
   expect((await call(`/action-plans/${one.id}`, 'GET', undefined, 3)).status).toBe(403);
-  expect((await call('/action-plans', 'POST', await occurrence(), 2)).status).toBe(403);
+  expect((await call('/action-plans', 'POST', await occurrence(), 3)).status).toBe(403);
 });
 it('requires correction evidence, records decisions immutably and retries commands without duplication', async () => {
   let row = await create();
@@ -263,7 +271,7 @@ it('requires correction evidence, records decisions immutably and retries comman
     })
   ).json();
   expect(row.state).toBe('AWAITING_VALIDATION');
-  expect((await command(row.id, row.revision, 'APPROVE')).status).toBe(403);
+  expect((await command(row.id, row.revision, 'APPROVE', {}, 3)).status).toBe(403);
   expect((await command(row.id, row.revision, 'RETURN', { text: '' }, 1)).status).toBe(400);
   row = await (
     await command(row.id, row.revision, 'RETURN', { text: 'Ajustar fixação da proteção' }, 1)
@@ -292,7 +300,13 @@ it('requires correction evidence, records decisions immutably and retries comman
       .filter((n: { resourceId: string }) => n.resourceId === row.id)
       .map((n: { kind: string }) => n.kind)
       .sort(),
-  ).toEqual(['ACTION_APPROVED', 'ACTION_ASSIGNED', 'ACTION_RETURNED']);
+  ).toEqual([
+    'ACTION_APPROVED',
+    'ACTION_ASSIGNED',
+    'ACTION_RETURNED',
+    'ACTION_REVIEW',
+    'ACTION_REVIEW',
+  ]);
   const managerNotices = (await (await call('/notifications')).json()).data;
   expect(
     managerNotices.filter(
@@ -345,7 +359,7 @@ it('rejects concurrent stale mutations and candidates without current sector acc
     assignment: { responsibleId: users[2]!.id, dueDate, priority: 'CRITICAL' },
   });
 });
-it('grants only the source-question evidence to the current responsible and preserves scope revocation', async () => {
+it('rejects assignment to collaborators and prevents legacy assignments exposing source evidence', async () => {
   const em = database.orm.em.fork();
   const parent = new UnitMembership();
   Object.assign(parent, { user: users[3]!, unit });
@@ -401,22 +415,26 @@ it('grants only the source-question evidence to the current responsible and pres
       2,
     )
   ).json();
-  const created = await call('/action-plans', 'POST', {
+  const input = {
     sourceSubmissionId: completed.submissions[0].id,
     questionId: item.id,
     responsibleId: users[3]!.id,
     description: 'Instalar a proteção',
     priority: 'HIGH',
     dueDate,
-  });
+  };
+  expect((await call('/action-plans', 'POST', input)).status).toBe(400);
+  const created = await call('/action-plans', 'POST', { ...input, responsibleId: users[2]!.id });
   expect(created.status).toBe(201);
   const plan = await created.json();
   expect(plan.sourceEvidence).toHaveLength(1);
+  await em.execute('update action_plan set responsible_id=? where id=?', [users[3]!.id, plan.id]);
   expect((await call(`/inspections/${inspection.id}`, 'GET', undefined, 3)).status).toBe(403);
-  expect((await call(`/files/${ids[0]}/download`, 'GET', undefined, 3)).status).toBe(200);
+  expect((await call(`/files/${ids[0]}/download`, 'GET', undefined, 3)).status).toBe(403);
   expect((await call(`/files/${ids[1]}/download`, 'GET', undefined, 3)).status).toBe(403);
   membership.isActive = false;
   await em.flush();
   expect((await call(`/files/${ids[0]}/download`, 'GET', undefined, 3)).status).toBe(403);
   expect((await call(`/action-plans/${plan.id}`, 'GET', undefined, 3)).status).toBe(403);
+  expect((await command(plan.id, plan.revision, 'START', {}, 3)).status).toBe(403);
 });

@@ -39,6 +39,15 @@ export function ResourceForm({
         </Button>
       </>
     );
+  if (
+    existing.data &&
+    ((kind === 'addresses' && !existing.data.city) || (kind === 'locations' && existing.data.city))
+  )
+    return (
+      <p>
+        Registro indisponível neste cadastro. <Link href={`/${kind}`}>Voltar à lista</Link>
+      </p>
+    );
   return (
     <Editor
       key={`${id ?? 'new'}-${revision}`}
@@ -117,7 +126,12 @@ function Editor({
       if (password.length < 15) next.password = 'Use de 15 a 128 caracteres.';
       body.newPassword = password;
     } else {
-      if (!name) next.name = 'Informe o nome.';
+      if (!name) next.name = kind === 'addresses' ? 'Informe o endereço.' : 'Informe o nome.';
+      if (kind === 'addresses') {
+        const city = String(data.get('city') ?? '').trim();
+        if (!city) next.city = 'Informe a cidade.';
+        if (!initial || city !== initial.city) body.city = city;
+      }
       if (!initial || name !== initial.name) body.name = name;
       if (kind === 'users') {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Informe um e-mail válido.';
@@ -155,7 +169,8 @@ function Editor({
       router.push(back);
       return;
     }
-    if (initial && (kind === 'customers' || kind === 'locations')) body.revision = initial.revision;
+    if (initial && (kind === 'customers' || kind === 'locations' || kind === 'addresses'))
+      body.revision = initial.revision;
     if (
       reset ||
       (kind === 'users' &&
@@ -168,7 +183,12 @@ function Editor({
   return (
     <>
       <div className="page-heading">
-        <Link href={back}>← {config.title}</Link>
+        <Link className="back-link" href={back}>
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          {config.title}
+        </Link>
         <h1>{title}</h1>
         {initial && <p>{initial.name}</p>}
       </div>
@@ -182,12 +202,16 @@ function Editor({
       >
         <fieldset disabled={busy || !hydrated}>
           {!reset && (
-            <Field id="name" label="Nome" error={errors.name}>
+            <Field
+              id="name"
+              label={kind === 'addresses' ? 'Endereço completo' : 'Nome'}
+              error={errors.name}
+            >
               <Input
                 id="name"
                 name="name"
                 defaultValue={initial?.name}
-                maxLength={160}
+                maxLength={kind === 'addresses' ? 320 : 160}
                 autoComplete={kind === 'users' ? 'name' : 'off'}
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? 'name-error' : undefined}
@@ -241,8 +265,8 @@ function Editor({
           {kind === 'sectors' &&
             (initial ? (
               <p>
-                Unidade: <strong>{initial.unitName}</strong>. A unidade de um setor não pode ser
-                alterada.
+                Unidade: <strong>{initial.unitName}</strong>. A unidade de um tipo de inspeção não
+                pode ser alterada.
               </p>
             ) : (
               <RemotePicker
@@ -266,6 +290,18 @@ function Editor({
                 setDirty(true);
               }}
             />
+          )}
+          {kind === 'addresses' && (
+            <Field id="city" label="Cidade" error={errors.city}>
+              <Input
+                id="city"
+                name="city"
+                maxLength={160}
+                defaultValue={initial?.city ?? ''}
+                aria-invalid={!!errors.city}
+                aria-describedby={errors.city ? 'city-error' : undefined}
+              />
+            </Field>
           )}
           {kind === 'locations' &&
             (initial ? (

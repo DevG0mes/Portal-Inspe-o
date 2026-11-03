@@ -19,6 +19,13 @@ export class NotificationService {
     private readonly access: AccessPolicy,
     private readonly plans: ActionPlanAccess,
   ) {}
+  private async visible(actor: AuthenticatedPrincipal, em: EntityManager) {
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    return {
+      recipient: actor.userId,
+      ...(user.role === 'COLLABORATOR' ? { resourceType: 'ASSIGNMENT' as const } : {}),
+    };
+  }
   private async link(
     actor: AuthenticatedPrincipal,
     row: Notification,
@@ -56,10 +63,9 @@ export class NotificationService {
     if (!parsed.success) throw new BadRequestException('Paginação ou filtro inválido.');
     const q = parsed.data,
       em = this.em.fork();
-    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
     const [rows, total] = await em.findAndCount(
       Notification,
-      { recipient: actor.userId, ...(q.unread === 'true' ? { readAt: null } : {}) },
+      { ...(await this.visible(actor, em)), ...(q.unread === 'true' ? { readAt: null } : {}) },
       {
         orderBy: { createdAt: 'desc', id: 'desc' },
         limit: q.pageSize,
@@ -82,22 +88,22 @@ export class NotificationService {
     return { data, total, page: q.page, pageSize: q.pageSize };
   }
   async count(actor: AuthenticatedPrincipal) {
-    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR']);
+    const em = this.em.fork();
     return {
-      count: await this.em.fork().count(Notification, { recipient: actor.userId, readAt: null }),
+      count: await em.count(Notification, { ...(await this.visible(actor, em)), readAt: null }),
     };
   }
   async read(actor: AuthenticatedPrincipal, id?: string) {
     const em = this.em.fork();
-    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const scope = await this.visible(actor, em);
     if (id !== undefined && !z.uuid().safeParse(id).success)
       throw new BadRequestException('Identificador inválido.');
-    if (id && !(await em.count(Notification, { id, recipient: actor.userId })))
+    if (id && !(await em.count(Notification, { id, ...scope })))
       throw new NotFoundException('Notificação inexistente.');
     await em.nativeUpdate(
       Notification,
       {
-        recipient: actor.userId,
+        ...scope,
         readAt: null,
         ...(id ? { id } : {}),
         createdAt: { $lte: new Date() },

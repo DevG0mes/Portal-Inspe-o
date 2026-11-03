@@ -1,21 +1,15 @@
 'use client';
 import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { csvHeaders, importQuestions } from '@portal/form-engine';
-import {
-  INSPECTION_KINDS,
-  PRIORITIES,
-  type FormTemplateSummary,
-  type FormVersionSnapshot,
-} from '@portal/contracts';
+import { importTable, importQuestions } from '@portal/form-engine';
+import { PRIORITIES, type FormTemplateSummary, type FormVersionSnapshot } from '@portal/contracts';
 import { Button, Field, Input, Select, Notice } from '@portal/ui';
 import { api } from '../../lib/api-client';
 import { ConfirmDialog } from '../shared/confirm-dialog';
 import { DirtyGuard } from '../shared/dirty-guard';
 import { ErrorNotice } from '../shared/error-notice';
 import { useHydrated } from '../shared/use-hydrated';
-import { UnitBindings } from '../shared/unit-bindings';
-import { kindLabels } from '../shared/inspection-kinds';
+import { RemotePicker } from '../shared/remote-picker';
 
 const priorityLabels = { LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta', CRITICAL: 'Crítica' };
 interface Prepared {
@@ -24,16 +18,16 @@ interface Prepared {
 }
 export function ImportForm() {
   const [dirty, setDirty] = useState(false);
-  const [bindings, setBindings] = useState<{ id: string; name: string }[]>([]);
+  const [unit, setUnit] = useState(''),
+    [inspectionType, setInspectionType] = useState('');
   const router = useRouter(),
     hydrated = useHydrated(),
     generation = useRef(0);
   const [headers, setHeaders] = useState<string[]>(),
     [name, setName] = useState(''),
-    [text, setText] = useState('3'),
+    [text, setText] = useState(''),
     [category, setCategory] = useState('EPC'),
     [priority, setPriority] = useState(''),
-    [kind, setKind] = useState('EPC_GENERAL'),
     [required, setRequired] = useState(true);
   const [prepared, setPrepared] = useState<Prepared>(),
     [confirm, setConfirm] = useState(false),
@@ -55,9 +49,11 @@ export function ImportForm() {
     }
     setReading(true);
     try {
-      const columns = csvHeaders(await file.slice(0, 262144).text());
+      if (file.size > 262144) throw new Error('Selecione um CSV de até 256 KiB.');
+      const table = importTable(await file.text());
       if (token !== generation.current) return;
-      setHeaders(columns);
+      setHeaders(table.headers);
+      setText(table.textQuestions.join(', '));
       setName(
         file.name
           .replace(/\.csv$/i, '')
@@ -89,9 +85,9 @@ export function ImportForm() {
       document.getElementById('import-file')?.focus();
       return;
     }
-    if (!bindings.length) {
-      setError(new Error('Vincule pelo menos uma unidade para este modelo.'));
-      document.getElementById('binding-unit')?.focus();
+    if (!unit || !inspectionType) {
+      setError(new Error('Selecione unidade e tipo de inspeção.'));
+      document.getElementById('import-unit')?.focus();
       return;
     }
     try {
@@ -113,14 +109,14 @@ export function ImportForm() {
         snapshot,
         payload: {
           importId: crypto.randomUUID(),
-          unitIds: bindings.map((b) => b.id),
+          unitIds: [unit],
+          inspectionTypeId: inspectionType,
           name: options.title,
           headers,
           textQuestions,
           required,
           category: options.category,
           priority,
-          inspectionKind: kind,
         },
       });
     } catch (failure) {
@@ -150,11 +146,19 @@ export function ImportForm() {
   return (
     <>
       <div className="page-heading">
-        <a href="/admin/forms">← Formulários</a>
+        <a className="back-link" href="/admin/forms">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Formulários
+        </a>
         <h1>Importar formulário CSV</h1>
+        <a href="/models/trabalho-em-altura.csv" download>
+          Baixar exemplo de Trabalho em Altura
+        </a>
         <p>
-          Transforme os cabeçalhos em uma ficha editável. Respostas anteriores não são enviadas nem
-          importadas.
+          Use um CSV com as colunas Pergunta e Tipo, uma pergunta por linha. Tipos aceitos: Escolha
+          e Texto. Não inclua respostas ou dados de inspeções anteriores.
         </p>
       </div>
       <form className="card editor" noValidate onSubmit={preview} aria-busy={busy || reading}>
@@ -178,36 +182,38 @@ export function ImportForm() {
               }}
             />
           </Field>
-          <Field id="import-kind" label="Tipo de inspeção">
-            <Select
-              id="import-kind"
-              value={kind}
-              onChange={(e) => {
-                setKind(e.target.value);
-                invalidate();
-              }}
-            >
-              {INSPECTION_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {kindLabels[k]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <UnitBindings
-            items={bindings}
-            onChange={(items) => {
-              setBindings(items);
+          <RemotePicker
+            id="import-unit"
+            label="Unidade"
+            endpoint="organization/units"
+            value={unit}
+            onChange={(id) => {
+              setUnit(id);
+              setInspectionType('');
               invalidate();
             }}
           />
+          {unit && (
+            <RemotePicker
+              key={unit}
+              id="import-inspection-type"
+              label="Tipo de inspeção"
+              endpoint={`organization/sectors?unitId=${unit}`}
+              value={inspectionType}
+              onChange={(id) => {
+                setInspectionType(id);
+                invalidate();
+              }}
+            />
+          )}
           <Field
             id="import-text"
-            label="Perguntas de texto (números)"
-            hint="Para este modelo EPC, use 3. Ações Realizadas são sempre texto. Revise as exceções ao usar outro arquivo."
+            label="Perguntas de texto identificadas no arquivo"
+            hint="Preenchido automaticamente pela coluna Tipo. Ações Realizadas são sempre texto e não aparecem nesta lista."
           >
             <Input
               id="import-text"
+              readOnly
               value={text}
               onChange={(e) => {
                 setText(e.target.value);
@@ -261,7 +267,7 @@ export function ImportForm() {
           <Button type="submit">Preparar prévia</Button>
         </fieldset>
       </form>
-      {reading && <Notice>Lendo somente o cabeçalho do arquivo…</Notice>}
+      {reading && <Notice>Lendo perguntas e tipos do arquivo…</Notice>}
       {error !== undefined && <ErrorNotice error={error} />}
       {prepared && (
         <section className="card editor">

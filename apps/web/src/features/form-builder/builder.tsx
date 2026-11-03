@@ -78,7 +78,12 @@ export function Builder({ templateId }: { templateId: string }) {
   return (
     <>
       <div className="page-heading">
-        <a href="/admin/forms">← Formulários</a>
+        <a className="back-link" href="/admin/forms">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Formulários
+        </a>
         <h1>{form.name}</h1>
         <p>
           {stateLabels[form.state]} ·{' '}
@@ -214,7 +219,12 @@ function DraftEditor({
   return (
     <>
       <div className="page-heading">
-        <a href="/admin/forms">← Formulários</a>
+        <a className="back-link" href="/admin/forms">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Formulários
+        </a>
         <span className="eyebrow">CONSTRUTOR · {stateLabels[form.state].toUpperCase()}</span>
         <h1>{form.name}</h1>
         <p>

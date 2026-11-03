@@ -71,7 +71,12 @@ export function Occurrences() {
   return (
     <>
       <div className="page-heading">
-        <a href="/action-plans">← Planos de ação</a>
+        <a className="back-link" href="/action-plans">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Planos de ação
+        </a>
         <h1>Não conformidades sem plano</h1>
         <p>Defina a correção, o responsável e o prazo para uma ocorrência concluída.</p>
       </div>
@@ -170,7 +175,7 @@ export function Occurrences() {
             <RemotePicker
               id="action-responsible"
               label="Responsável"
-              endpoint={`schedules/candidates?unitId=${selected.unitId}&sectorId=${selected.sectorId}`}
+              endpoint={`schedules/candidates?purpose=correction&unitId=${selected.unitId}&sectorId=${selected.sectorId}`}
               activeOnly={false}
               value={responsible}
               error={errors['action-responsible']}

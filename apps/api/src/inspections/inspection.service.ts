@@ -232,6 +232,13 @@ export class InspectionService {
         if (assignment.status !== 'PLANNED' || assignment.occurrenceAt > new Date())
           throw new ConflictException('Atribuição cancelada ou ainda não disponível.');
         row.formVersion = assignment.formVersion;
+        await em.populate(row.formVersion, ['template']);
+        const assignedForm = await em.findOneOrFail(FormTemplate, row.formVersion.template.id, {
+          lockMode: LockMode.PESSIMISTIC_WRITE,
+          refresh: true,
+        });
+        if (assignedForm.deletedAt)
+          throw new ConflictException('O formulário desta atribuição foi removido.');
         if (assignment.context) {
           const c = assignment.context;
           await new CustomerService(em, this.access, this.audit).context(
@@ -240,6 +247,7 @@ export class InspectionService {
             c.customerId,
             c.locationId,
             c.participants,
+            c.locationKind ?? 'substation',
           );
           row.context = structuredClone(c);
         }
@@ -252,7 +260,7 @@ export class InspectionService {
           { lockMode: LockMode.PESSIMISTIC_WRITE },
         );
         if (!form) throw new BadRequestException('Selecione um formulário publicado.');
-        await assertFormAvailable(em, form, input.unitId);
+        await assertFormAvailable(em, form, input.unitId, input.sectorId);
         const version = await em.findOne(FormVersion, {
           template: form.id,
           number: form.latestVersion,

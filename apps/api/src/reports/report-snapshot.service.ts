@@ -200,7 +200,11 @@ export class ReportSnapshotService {
     requestId: string,
   ) {
     const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
-    if (user.role !== snapshot.scope.role) throw new ForbiddenException('Acesso alterado.');
+    if (
+      user.role !== snapshot.scope.role ||
+      (snapshot.kind === 'ANALYTICS' && user.role === 'COLLABORATOR')
+    )
+      throw new ForbiddenException('Acesso alterado.');
     const scope = await this.access.sectorFilter(actor, requestId, em),
       guard: ReportScope = snapshot.scope;
     if (

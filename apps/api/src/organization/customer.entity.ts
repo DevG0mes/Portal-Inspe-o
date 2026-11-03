@@ -14,7 +14,8 @@ export class CustomerUnit extends BaseEntity {
   isActive = true;
 }
 export class CustomerLocation extends BaseEntity {
-  customer!: Customer;
+  city?: string;
+  customer?: Customer;
   name!: string;
   nameKey!: string;
   isActive = true;
@@ -50,8 +51,9 @@ export const customerLocationSchema = new EntitySchema<CustomerLocation, BaseEnt
   tableName: 'customer_location',
   uniques: [{ properties: ['customer', 'nameKey'] }],
   properties: {
-    customer: { kind: 'm:1', entity: () => Customer, deleteRule: 'restrict' },
-    name: { type: 'string', length: 160 },
+    customer: { kind: 'm:1', entity: () => Customer, deleteRule: 'restrict', nullable: true },
+    name: { type: 'string', length: 320 },
+    city: { type: 'string', length: 160, nullable: true },
     nameKey: { type: 'text', hidden: true },
     isActive: { type: 'boolean', default: true },
     revision: { type: 'integer', default: 1 },

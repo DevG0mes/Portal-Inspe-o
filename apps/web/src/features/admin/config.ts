@@ -1,4 +1,4 @@
-export type ResourceKind = 'users' | 'units' | 'sectors' | 'customers' | 'locations';
+export type ResourceKind = 'users' | 'units' | 'sectors' | 'customers' | 'locations' | 'addresses';
 export const resources = {
   customers: {
     title: 'Clientes',
@@ -7,12 +7,19 @@ export const resources = {
     endpoint: 'organization/customers',
     description: 'Clientes podem atender várias unidades de negócio.',
   },
-  locations: {
-    title: 'Locais',
-    singular: 'local',
-    create: 'Novo local',
+  addresses: {
+    title: 'Endereços',
+    singular: 'endereço',
+    create: 'Novo endereço',
     endpoint: 'organization/locations',
-    description: 'Locais pertencem a um cliente. Desativar preserva as inspeções anteriores.',
+    description: 'Endereços de alojamentos por cidade.',
+  },
+  locations: {
+    title: 'Subestações',
+    singular: 'subestação',
+    create: 'Nova subestação',
+    endpoint: 'organization/locations',
+    description: 'Subestações pertencem a um cliente. Desativar preserva as inspeções anteriores.',
   },
   users: {
     title: 'Usuários',
@@ -29,11 +36,11 @@ export const resources = {
     description: 'Estrutura das unidades e disponibilidade para novos acessos.',
   },
   sectors: {
-    title: 'Setores',
-    singular: 'setor',
-    create: 'Novo setor',
+    title: 'Tipos de inspeção',
+    singular: 'tipo de inspeção',
+    create: 'Novo tipo de inspeção',
     endpoint: 'organization/sectors',
-    description: 'Setores pertencem a uma unidade e recebem vínculos específicos.',
+    description: 'Tipos de inspeção pertencem a uma unidade e recebem vínculos específicos.',
   },
 };
 export const roleLabels = {
@@ -45,6 +52,7 @@ export interface AdminRow {
   revision?: number;
   customerId?: string;
   customerName?: string;
+  city?: string | null;
   unitIds?: string[];
   units?: { id: string; name: string; isActive: boolean }[];
   id: string;

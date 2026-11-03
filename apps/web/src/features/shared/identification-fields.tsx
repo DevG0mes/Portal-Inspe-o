@@ -38,29 +38,35 @@ export function identificationErrors(value: IdentificationSelection, required: b
   return errors;
 }
 export function useIdentification(unit: string, form: string, revision = 0) {
-  const customers = useResource<Paginated<CustomerSummary> & { configured?: boolean }>(
-    unit ? `organization/customers?unitId=${unit}&isActive=true&pageSize=1` : null,
-    revision,
-  );
+  const customers = useResource<
+    Paginated<CustomerSummary> & { configured?: boolean; locationKind?: 'address' | 'substation' }
+  >(unit ? `organization/customers?unitId=${unit}&isActive=true&pageSize=1` : null, revision);
   const model = useResource<FormTemplateSummary>(form ? `forms/${form}` : null, revision);
   return {
-    typed: !!model.data?.inspectionKind,
-    required: !!model.data?.inspectionKind || !!customers.data?.configured,
+    typed: !!model.data?.inspectionKind || !!model.data?.inspectionTypeId,
+    required:
+      !!model.data?.inspectionKind ||
+      !!customers.data?.configured ||
+      customers.data?.locationKind === 'address',
+    address: customers.data?.locationKind === 'address',
     loading: (!!unit && customers.loading) || (!!form && model.loading),
     error: customers.error ?? model.error,
   };
 }
 export function IdentificationFields({
   unit,
+  address,
   value,
   onChange,
   errors,
 }: {
   unit: string;
+  address: boolean;
   value: IdentificationSelection;
   onChange: (value: IdentificationSelection) => void;
   errors: Record<string, string>;
 }) {
+  const label = address ? 'Endereço' : 'Subestação';
   return (
     <fieldset className="picker">
       <legend>Identificação da inspeção</legend>
@@ -70,20 +76,22 @@ export function IdentificationFields({
         endpoint={`organization/customers?unitId=${unit}`}
         value={value.customerId}
         error={errors['inspection-customer']}
-        onChange={(id) => onChange({ ...value, customerId: id, locationId: '' })}
+        onChange={(id) =>
+          onChange({ ...value, customerId: id, locationId: address ? value.locationId : '' })
+        }
       />
-      {value.customerId ? (
+      {address || value.customerId ? (
         <RemotePicker
           key={value.customerId}
           id="inspection-location"
-          label="Local"
-          endpoint={`organization/locations?customerId=${value.customerId}&unitId=${unit}`}
+          label={label}
+          endpoint={`organization/locations?unitId=${unit}${address ? '' : `&customerId=${value.customerId}`}`}
           value={value.locationId}
           error={errors['inspection-location']}
           onChange={(id) => onChange({ ...value, locationId: id })}
         />
       ) : (
-        <p>Selecione o cliente para escolher o local.</p>
+        <p>Selecione o cliente para escolher {address ? 'o endereço' : 'a subestação'}.</p>
       )}
       <Field
         id="inspection-participants"
@@ -106,7 +114,7 @@ export function IdentificationFields({
           }
         />
       </Field>
-      <p>Cliente ou local não encontrado? Solicite o cadastro ao administrador.</p>
+      <p>Não encontrou o cliente, endereço ou subestação? Solicite o cadastro ao administrador.</p>
     </fieldset>
   );
 }

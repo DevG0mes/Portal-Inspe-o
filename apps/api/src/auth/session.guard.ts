@@ -8,7 +8,12 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthService } from './auth.service.js';
 import type { AuthenticatedRequest, AuthOptions } from './auth.types.js';
-import { JSON_REQUEST, PASSWORD_CHANGE_ROUTE, PUBLIC_ROUTE } from './access.decorators.js';
+import {
+  JSON_REQUEST,
+  PASSWORD_CHANGE_ROUTE,
+  PUBLIC_ROUTE,
+  MANAGEMENT_ROUTE,
+} from './access.decorators.js';
 import { readSessionCookie } from './session-cookie.js';
 
 export class SessionGuard implements CanActivate {
@@ -40,6 +45,12 @@ export class SessionGuard implements CanActivate {
     const token = readSessionCookie(request.headers.cookie);
     if (!token) throw new UnauthorizedException('Credenciais inválidas.');
     request.principal = await this.auth.authenticate(token);
+    if (
+      request.principal.role === 'COLLABORATOR' &&
+      this.reflector.getAllAndOverride<boolean>(MANAGEMENT_ROUTE, targets)
+    ) {
+      throw new ForbiddenException('Disponível apenas para gestores e administradores.');
+    }
     if (
       request.principal.mustChangePassword &&
       !this.reflector.getAllAndOverride<boolean>(PASSWORD_CHANGE_ROUTE, targets)

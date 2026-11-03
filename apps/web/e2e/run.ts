@@ -112,21 +112,30 @@ try {
     user.passwordHash = hash;
     em.persist(user);
   }
+  const executor = new User();
+  Object.assign(executor, {
+    name: 'Gestor responsável teste',
+    email: 'manager-executor@example.test',
+    role: 'MANAGER',
+    passwordHash: hash,
+    mustChangePassword: false,
+  });
+  em.persist(executor);
   await em.flush();
   const unit = new Unit();
   unit.name = 'Unidade de testes';
   unit.nameKey = 'unidade de testes';
   const sector = new Sector();
-  sector.name = 'Setor de testes';
-  sector.nameKey = 'setor de testes';
+  sector.name = 'Tipo de inspeção de testes';
+  sector.nameKey = 'tipo de inspeção de testes';
   sector.unit = unit;
   const outside = new Sector();
-  outside.name = 'Setor restrito';
-  outside.nameKey = 'setor restrito';
+  outside.name = 'Tipo de inspeção restrito';
+  outside.nameKey = 'tipo de inspeção restrito';
   outside.unit = unit;
   em.persist([unit, sector, outside]);
-  for (const role of ['MANAGER', 'COLLABORATOR'] as const) {
-    const user = await em.findOneOrFail(User, { email: `${role.toLowerCase()}@example.test` });
+  for (const email of ['manager@example.test', 'collaborator@example.test', executor.email]) {
+    const user = await em.findOneOrFail(User, { email });
     const parent = new UnitMembership();
     parent.user = user;
     parent.unit = unit;

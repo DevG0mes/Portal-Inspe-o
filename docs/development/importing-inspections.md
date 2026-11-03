@@ -1,9 +1,11 @@
 # Importação de fichas e identificação da inspeção
 
+Atualização de 03/11/2026: o formato de upload agora é **Pergunta;Tipo**, uma pergunta por linha. Consulte `import-format.md`; a descrição abaixo dos cabeçalhos horizontais registra o formato anterior e o contrato interno legado.
+
 ## Operação administrativa
 
-1. Cadastre as unidades de negócio e seus setores. Os nomes são administráveis (por exemplo SPCS, EPC e Alojamento); não existem IDs ou nomes especiais obrigatórios.
-2. Em **Clientes**, vincule cada cliente a uma ou mais unidades. Em **Locais**, cadastre os locais de cada cliente. O cliente de um local não muda depois da criação; inative o local e cadastre outro para corrigir um vínculo.
+1. Cadastre as unidades de negócio e seus tipos de inspeção. A unidade chamada **Alojamento** usa endereços para novas inspeções e programações.
+2. Em **Clientes**, vincule cada cliente às unidades que atende. Em **Subestações**, cadastre as instalações por cliente. Para **Alojamento**, cadastre cada imóvel em **Endereços** com cidade e endereço completo. O cadastro é compartilhado entre as inspeções da unidade, que identificam o cliente separadamente.
 3. Em **Formulários → Importar CSV**, selecione o arquivo, nome, unidades atendidas, tipo, perguntas de texto, categoria e prioridade inicial das ocorrências. A prioridade exige escolha explícita e pode ser revisada por pergunta no editor.
 4. Prepare a prévia, confira os campos e confirme a criação do rascunho. Revise e publique pelo construtor existente. A importação nunca publica automaticamente.
 5. Em **Inspeções → Nova inspeção avulsa**, escolha unidade, setor, cliente, local, participantes opcionais e tipo/modelo publicado. Uma unidade com setor único é preenchida automaticamente na entrada guiada.

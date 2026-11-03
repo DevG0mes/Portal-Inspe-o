@@ -12,12 +12,14 @@ export interface CustomerLocationSummary extends UnitSummary {
   revision: number;
   customerId: string;
   customerName: string;
+  city?: string | null;
 }
 export interface InspectionContext {
   customerId: string;
   customerName: string;
   locationId: string;
   locationName: string;
+  locationKind?: 'substation' | 'address';
   participants: string[];
 }
 export interface SectorSummary extends UnitSummary {

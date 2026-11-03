@@ -22,7 +22,12 @@ export function InspectionStart() {
   return (
     <>
       <div className="page-heading">
-        <a href="/inspections">← Inspeções</a>
+        <a className="back-link" href="/inspections">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Inspeções
+        </a>
         <span className="eyebrow">NOVA INSPEÇÃO</span>
         <h1>Escolha a unidade de negócio</h1>
         <p>Depois, identifique cliente, local e participantes e escolha a ficha de inspeção.</p>
@@ -64,7 +69,10 @@ export function InspectionStart() {
           {!result.data?.total && (
             <div className="empty-state">
               <h2>Nenhuma unidade disponível</h2>
-              <p>Solicite ao administrador o cadastro ou vínculo com a unidade e seu setor.</p>
+              <p>
+                Solicite ao administrador o cadastro ou vínculo com a unidade e seu tipo de
+                inspeção.
+              </p>
             </div>
           )}
           <Pagination page={page} pageSize={10} total={result.data?.total ?? 0} onPage={setPage} />

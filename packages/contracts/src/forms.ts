@@ -75,6 +75,8 @@ export interface EvaluationResult {
   nonconformities: NonconformityOccurrence[];
 }
 export interface FormTemplateSummary {
+  inspectionTypeId?: string | null;
+  inspectionTypeName?: string | null;
   inspectionKind?: InspectionKind | null;
   id: string;
   name: string;

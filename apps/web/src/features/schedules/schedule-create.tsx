@@ -54,7 +54,7 @@ export function ScheduleCreate() {
     const next: Record<string, string> = {};
     if (!body.name) next.name = 'Informe o nome.';
     if (!unit) next.unit = 'Selecione uma unidade.';
-    if (!sector) next.sector = 'Selecione um setor.';
+    if (!sector) next.sector = 'Selecione um tipo de inspeção.';
     if (!form) next.form = 'Selecione um formulário publicado.';
     if (!responsibles.length) next.responsibles = 'Adicione ao menos um responsável.';
     if (!validDate(body.startDate)) next.startDate = 'Informe uma data válida.';
@@ -107,7 +107,12 @@ export function ScheduleCreate() {
   return (
     <>
       <div className="page-heading">
-        <a href="/schedules">← Programações</a>
+        <a className="back-link" href="/schedules">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Programações
+        </a>
         <h1>Nova programação</h1>
         <p>
           Defina calendário, escopo e responsáveis. Horários de São Paulo; a primeira ocorrência
@@ -131,18 +136,7 @@ export function ScheduleCreate() {
               aria-describedby={errors.name ? 'name-error' : undefined}
             />
           </Field>
-          <RemotePicker
-            id="form"
-            label="Formulário"
-            endpoint={`forms?state=PUBLISHED${unit ? `&unitId=${unit}` : ''}`}
-            activeOnly={false}
-            value={form}
-            error={errors.form}
-            onChange={(value) => {
-              setForm(value);
-              setDirty(true);
-            }}
-          />
+
           <RemotePicker
             id="unit"
             label="Unidade"
@@ -151,7 +145,7 @@ export function ScheduleCreate() {
             error={errors.unit}
             onChange={(value) => {
               setUnit(value);
-              if (context.typed) setForm('');
+              setForm('');
               setIdentification(emptyIdentification());
               setSector('');
               setResponsibles([]);
@@ -163,20 +157,36 @@ export function ScheduleCreate() {
             <RemotePicker
               key={unit}
               id="sector"
-              label="Setor"
+              label="Tipo de inspeção"
               endpoint={`organization/sectors?unitId=${unit}`}
               value={sector}
               error={errors.sector}
               onChange={(value) => {
                 setSector(value);
+                setForm('');
                 setResponsibles([]);
                 setCandidate({ id: '', name: '' });
                 setDirty(true);
               }}
             />
           )}
+          {unit && sector && (
+            <RemotePicker
+              id="form"
+              label="Formulário"
+              endpoint={`forms?state=PUBLISHED${unit ? `&unitId=${unit}` : ''}${sector ? `&inspectionTypeId=${sector}` : ''}`}
+              activeOnly={false}
+              value={form}
+              error={errors.form}
+              onChange={(value) => {
+                setForm(value);
+                setDirty(true);
+              }}
+            />
+          )}
           {unit && context.required && (
             <IdentificationFields
+              address={context.address}
               unit={unit}
               value={identification}
               onChange={(value) => {
@@ -201,8 +211,8 @@ export function ScheduleCreate() {
           <section id="responsibles" tabIndex={-1} aria-label="Responsáveis">
             <h2>Responsáveis</h2>
             <p className="small muted">
-              Escolha pessoas com acesso ao setor. Alterar unidade ou setor limpa esta seleção.
-              Todos compartilham a mesma ocorrência.
+              Escolha pessoas com acesso ao tipo de inspeção. Alterar unidade ou tipo de inspeção
+              limpa esta seleção. Todos compartilham a mesma ocorrência.
             </p>
             {sector && (
               <RemotePicker

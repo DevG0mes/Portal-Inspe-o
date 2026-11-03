@@ -7,33 +7,46 @@ import { api } from '../../lib/api-client';
 import { ErrorNotice } from '../shared/error-notice';
 import type { Principal } from '../../lib/session';
 import { roleLabels } from '../admin/config';
-import { UnreadIndicator } from '../notifications/unread-indicator';
+import { NotificationBell } from '../notifications/notification-bell';
 import { BrandLogo } from '../shared/brand-logo';
+import { usePresentation } from './presentation';
+import { homeFor } from '../../lib/presentation';
 export function PortalShell({ role, children }: { role: Principal['role']; children: ReactNode }) {
   const path = usePathname();
+  const mode = usePresentation();
+  const collaborator = role === 'COLLABORATOR';
+  const fieldMode = collaborator && mode === 'mobile';
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  const links = [
-    ['/dashboard', 'Visão geral'],
-    ['/assignments', 'Atribuições'],
-    ['/inspections', 'Inspeções'],
-    ['/action-plans', 'Planos de ação'],
-    ['/notifications', 'Notificações'],
-    ['/reports', 'Meus relatórios'],
-    ...(role !== 'COLLABORATOR' ? [['/schedules', 'Programações']] : []),
-    ...(role === 'ADMIN'
-      ? [
-          ['/users', 'Usuários'],
-          ['/units', 'Unidades'],
-          ['/sectors', 'Setores'],
-          ['/customers', 'Clientes'],
-          ['/locations', 'Locais'],
-          ['/admin/forms', 'Formulários'],
-        ]
-      : []),
+  const personalLinks = [
+    ['/my-work', 'Início'],
+    ['/inspections', 'Minhas inspeções'],
+    ['/assignments', 'Atribuídas a mim'],
     ['/account', 'Minha conta'],
   ];
+  const links = collaborator
+    ? personalLinks
+    : [
+        ['/dashboard', 'Visão geral'],
+        ['/assignments', 'Atribuições'],
+        ['/inspections', 'Inspeções'],
+        ['/action-plans', 'Planos de ação'],
+        ['/reports', 'Meus relatórios'],
+        ['/schedules', 'Programações'],
+        ...(role === 'ADMIN'
+          ? [
+              ['/users', 'Usuários'],
+              ['/units', 'Unidades'],
+              ['/sectors', 'Tipos de inspeção'],
+              ['/customers', 'Clientes'],
+              ['/locations', 'Subestações'],
+              ['/addresses', 'Endereços'],
+              ['/admin/forms', 'Formulários'],
+            ]
+          : []),
+        ['/account', 'Minha conta'],
+      ];
   async function logout() {
     setBusy(true);
     try {
@@ -45,53 +58,78 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
     }
   }
   return (
-    <div className="portal">
+    <div className={`portal mode-${mode}${fieldMode ? ' field-mode' : ''}`}>
       <a className="skip-link" href="#main">
         Ir para o conteúdo
       </a>
-      <aside className="sidebar">
-        <Link className="wordmark" href="/dashboard" aria-label="PSI Energy · Portal de Segurança">
-          <BrandLogo />
-          <strong>Portal de Segurança</strong>
-        </Link>
-        <button
-          className="menu-toggle button secondary"
-          aria-expanded={expanded}
-          aria-controls="portal-nav"
-          onClick={() => setExpanded(!expanded)}
-        >
-          Menu
-        </button>
-        <nav id="portal-nav" aria-label="Principal" className={expanded ? 'expanded' : ''}>
-          {links.map(([href, label]) => (
-            <Link
-              key={href}
-              href={href!}
-              aria-current={path.startsWith(href!) ? 'page' : undefined}
-              onClick={() => setExpanded(false)}
-            >
-              {label}
-              {href === '/notifications' && <UnreadIndicator />}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-foot">
-          <span>{roleLabels[role]}</span>
-          <Button variant="secondary" onClick={logout} disabled={busy}>
-            {busy ? 'Saindo…' : 'Sair'}
-          </Button>
-        </div>
-      </aside>
+      {!fieldMode && (
+        <aside className="sidebar">
+          <Link
+            className="wordmark"
+            href={homeFor(role)}
+            aria-label="PSI Energy · Portal de Segurança"
+          >
+            <BrandLogo />
+            <strong>Portal de Segurança</strong>
+          </Link>
+          <button
+            className="menu-toggle button secondary"
+            aria-expanded={expanded}
+            aria-controls="portal-nav"
+            onClick={() => setExpanded(!expanded)}
+          >
+            Menu
+          </button>
+          <nav id="portal-nav" aria-label="Principal" className={expanded ? 'expanded' : ''}>
+            {links.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href!}
+                aria-current={path.startsWith(href!) ? 'page' : undefined}
+                onClick={() => setExpanded(false)}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <div className="sidebar-foot">
+            <span>{roleLabels[role]}</span>
+            <Button variant="secondary" onClick={logout} disabled={busy}>
+              {busy ? 'Saindo…' : 'Sair'}
+            </Button>
+          </div>
+        </aside>
+      )}
       <div className="portal-content">
         <header className="portal-header">
-          <span>SEGURANÇA DO TRABALHO</span>
-          <span>PSI Energy · Ambiente interno</span>
+          {fieldMode ? (
+            <Link href="/my-work" aria-label="PSI Energy · Início">
+              <BrandLogo />
+            </Link>
+          ) : (
+            <span>SEGURANÇA DO TRABALHO</span>
+          )}
+          <span>{fieldMode ? 'Segurança em campo' : 'PSI Energy · Ambiente interno'}</span>
+          <NotificationBell key={path} />
         </header>
         <main id="main" tabIndex={-1}>
           {error !== undefined && <ErrorNotice error={error} />}
           {children}
         </main>
       </div>
+      {fieldMode && (
+        <nav className="field-nav" aria-label="Principal">
+          {personalLinks.map(([href, label]) => (
+            <Link
+              key={href}
+              href={href!}
+              aria-current={path.startsWith(href!) ? 'page' : undefined}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

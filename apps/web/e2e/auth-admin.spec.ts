@@ -7,6 +7,10 @@ async function login(page: Page, email = 'admin@example.test', secret = password
   await page.getByLabel('Senha', { exact: true }).fill(secret);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
 }
+async function chooseDesktop(page: Page) {
+  await expect(page).toHaveURL(/\/experience$/);
+  await page.getByRole('button', { name: /^Desktop/ }).click();
+}
 async function accessible(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
@@ -40,20 +44,22 @@ test('login failure, mandatory change and cookie-backed SSR protection', async (
   await page.getByLabel('Nova senha', { exact: true }).fill(fresh);
   await page.getByLabel('Confirmar nova senha', { exact: true }).fill(fresh);
   await page.getByRole('button', { name: 'Salvar nova senha' }).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await chooseDesktop(page);
+  await expect(page).toHaveURL(/my-work/);
   const cookies = await context.cookies();
   const session = cookies.find((cookie) => cookie.name === 'portal_session');
   expect(session?.httpOnly).toBe(true);
   expect(session?.path).toBe('/');
   expect(session?.sameSite).toBe('Strict');
   await page.goto('/users');
-  await expect(page).toHaveURL(/dashboard/);
+  await expect(page).toHaveURL(/my-work/);
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
 });
 test('administration CRUD, multi-unit and sector grants, confirmation and accessibility', async ({
   page,
 }, info) => {
   await login(page);
+  await chooseDesktop(page);
   await expect(page).toHaveURL(/dashboard/);
   await page.goto('/users');
   await expect(page.getByText(/Página 1 de \d+/)).toBeVisible();
@@ -76,7 +82,7 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
     await expect(page).toHaveURL(/units\?saved=1/);
     await expect(page.getByRole('row').filter({ hasText: name })).toBeVisible();
   }
-  for (const name of [`Setor ${suffix}`, `Setor adicional ${suffix}`]) {
+  for (const name of [`Tipo de inspeção ${suffix}`, `Tipo de inspeção adicional ${suffix}`]) {
     await page.goto('/sectors/new');
     await page.getByLabel('Nome', { exact: true }).fill(name);
     await page.getByLabel('Selecionar unidade').selectOption({ label: `Unidade A ${suffix}` });
@@ -92,7 +98,9 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
   await page.getByLabel('Buscar por nome ou e-mail').fill(`Operador ${suffix}`);
   const row = page.getByRole('row').filter({ hasText: `Operador ${suffix}` });
   await expect(row).toHaveCount(1);
-  await row.getByRole('link', { name: /Vínculos/ }).click();
+  await row
+    .getByRole('combobox', { name: `Ações de Operador ${suffix}` })
+    .selectOption('memberships');
   await expect(page.getByRole('heading', { name: 'Vínculos de acesso' })).toBeVisible();
   for (const unit of [`Unidade A ${suffix}`, `Unidade B ${suffix}`]) {
     await page.getByLabel('Selecionar unidade').selectOption({ label: unit });
@@ -102,15 +110,15 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
     await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
     await expect(
-      page.getByRole('button', { name: `Ver setores de ${unit}`, exact: true }),
+      page.getByRole('button', { name: `Ver tipos de inspeção de ${unit}`, exact: true }),
     ).toBeVisible();
   }
   await page
-    .getByRole('button', { name: `Ver setores de Unidade A ${suffix}`, exact: true })
+    .getByRole('button', { name: `Ver tipos de inspeção de Unidade A ${suffix}`, exact: true })
     .click();
-  for (const name of [`Setor ${suffix}`, `Setor adicional ${suffix}`]) {
-    await page.getByLabel('Selecionar setor').selectOption({ label: name });
-    await page.getByRole('button', { name: 'Vincular setor', exact: true }).click();
+  for (const name of [`Tipo de inspeção ${suffix}`, `Tipo de inspeção adicional ${suffix}`]) {
+    await page.getByLabel('Selecionar tipo de inspeção').selectOption({ label: name });
+    await page.getByRole('button', { name: 'Vincular tipo de inspeção', exact: true }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
     await expect(page.getByRole('button', { name: `Revogar ${name}`, exact: true })).toBeVisible();
   }
@@ -125,14 +133,14 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
   await page.goto('/users');
   await page.getByLabel('Buscar por nome ou e-mail').fill(`Operador ${suffix}`);
   const target = page.getByRole('row').filter({ hasText: `Operador ${suffix}` });
-  await target.getByRole('link', { name: /Editar/ }).click();
+  await target.getByRole('combobox', { name: `Ações de Operador ${suffix}` }).selectOption('edit');
   await page.getByLabel('Nome', { exact: true }).fill(`Operador atualizado ${suffix}`);
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page).toHaveURL(/users\?saved=1/);
   await page.getByLabel('Buscar por nome ou e-mail').fill(`Operador atualizado ${suffix}`);
   await page
-    .getByRole('button', { name: `Desativar Operador atualizado ${suffix}`, exact: true })
-    .click();
+    .getByRole('combobox', { name: `Ações de Operador atualizado ${suffix}`, exact: true })
+    .selectOption('toggle');
   await page.getByRole('dialog').getByRole('button', { name: 'Desativar', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(
@@ -143,6 +151,7 @@ test('administration CRUD, multi-unit and sector grants, confirmation and access
 });
 test('manager cannot open administrative pages', async ({ page }) => {
   await login(page, 'manager@example.test');
+  await chooseDesktop(page);
   await expect(page).toHaveURL(/dashboard/);
   await page.goto('/users');
   await expect(page).toHaveURL(/dashboard/);
@@ -157,6 +166,7 @@ test('failed reads recover, unsaved edits survive cancel/back, and password scre
   page,
 }) => {
   await login(page);
+  await chooseDesktop(page);
   await expect(page).toHaveURL(/dashboard/);
   let failed = false;
   await page.route('**/api/users?**', async (route) => {

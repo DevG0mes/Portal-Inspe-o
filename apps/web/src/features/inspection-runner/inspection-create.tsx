@@ -3,7 +3,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { InspectionView, Paginated, SectorSummary } from '@portal/contracts';
 import { useResource } from '../shared/use-resource';
-import { kindLabels, type AvailableTypes } from '../shared/inspection-kinds';
 import { Button } from '@portal/ui';
 import { api } from '../../lib/api-client';
 import { RemotePicker } from '../shared/remote-picker';
@@ -33,12 +32,6 @@ export function InspectionCreate() {
   const [identification, setIdentification] = useState(emptyIdentification),
     [lookupRevision, setLookupRevision] = useState(0);
   const context = useIdentification(unit, form, lookupRevision);
-  const [kind, setKind] = useState(''),
-    [legacy, setLegacy] = useState(false);
-  const types = useResource<AvailableTypes>(
-    unit ? `forms/available-types?unitId=${unit}` : null,
-    lookupRevision,
-  );
   const sectors = useResource<Paginated<SectorSummary>>(
     unit && params.get('unitId')
       ? `organization/sectors?unitId=${unit}&isActive=true&pageSize=2`
@@ -52,16 +45,12 @@ export function InspectionCreate() {
     if (busy) return;
     const next: Record<string, string> = {};
     if (!unit) next['inspection-unit'] = 'Selecione uma unidade.';
-    if (!sector) next['inspection-sector'] = 'Selecione um setor.';
+    if (!sector) next['inspection-sector'] = 'Selecione um tipo de inspeção.';
     if (!form) next['inspection-form'] = 'Selecione um formulário publicado.';
     Object.assign(next, identificationErrors(identification, context.required));
     if (context.loading) return;
     if (context.error) {
       setError(context.error);
-      return;
-    }
-    if (types.error) {
-      setError(types.error);
       return;
     }
     setErrors(next);
@@ -97,7 +86,12 @@ export function InspectionCreate() {
   return (
     <>
       <div className="page-heading">
-        <a href="/inspections">← Inspeções</a>
+        <a className="back-link" href="/inspections">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Inspeções
+        </a>
         <h1>Nova inspeção avulsa</h1>
         <p>Escolha o local e a ficha publicada. A versão utilizada fica preservada no registro.</p>
       </div>
@@ -114,29 +108,31 @@ export function InspectionCreate() {
               setSector('');
               setForm('');
               setIdentification(emptyIdentification());
-              setKind('');
-              setLegacy(false);
               setDirty(true);
             }}
           />
-          <p className="muted">Alterar a unidade limpa a seleção de setor.</p>
+          <p className="muted">
+            Alterar a unidade limpa o tipo de inspeção e o formulário selecionados.
+          </p>
           {unit && (
             <RemotePicker
               key={unit}
               id="inspection-sector"
-              label="Setor"
+              label="Tipo de inspeção"
               endpoint={`organization/sectors?unitId=${unit}`}
               value={sector}
               error={errors['inspection-sector']}
               onChange={(id) => {
                 setSector(id);
+                setForm('');
                 setDirty(true);
               }}
             />
           )}
-          {!unit && <p>Selecione uma unidade para escolher o setor.</p>}
+          {!unit && <p>Selecione uma unidade para escolher o tipo de inspeção.</p>}
           {unit && context.required && (
             <IdentificationFields
+              address={context.address}
               unit={unit}
               value={identification}
               onChange={(value) => {
@@ -158,74 +154,11 @@ export function InspectionCreate() {
               </Button>
             </>
           )}
-          {unit &&
-            types.data?.configured &&
-            (!context.required || (identification.customerId && identification.locationId)) && (
-              <fieldset className="picker">
-                <legend>Tipo de inspeção</legend>
-                <div className="summary-grid">
-                  {types.data.types.map((type) => (
-                    <Button
-                      key={type.kind}
-                      type="button"
-                      className="inspection-type"
-                      variant="secondary"
-                      aria-pressed={kind === type.kind && !legacy}
-                      disabled={!type.count}
-                      onClick={() => {
-                        setKind(type.kind);
-                        setLegacy(false);
-                        setForm(type.formId ?? '');
-                        setDirty(true);
-                      }}
-                    >
-                      <strong>{kindLabels[type.kind]}</strong>
-                      <span>
-                        {!type.count
-                          ? 'Sem formulário publicado'
-                          : kind === type.kind && !legacy
-                            ? 'Selecionado'
-                            : `${type.count} modelo(s) disponível(is)`}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setLegacy(true);
-                    setKind('');
-                    setForm('');
-                  }}
-                >
-                  Usar outra ficha publicada
-                </Button>
-              </fieldset>
-            )}
-          {unit &&
-            types.data?.configured &&
-            context.required &&
-            (!identification.customerId || !identification.locationId) && (
-              <p>Selecione cliente e local para escolher o tipo de inspeção.</p>
-            )}
-          {types.error !== undefined && (
-            <>
-              <ErrorNotice error={types.error} />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setLookupRevision(lookupRevision + 1)}
-              >
-                Tentar carregar tipos novamente
-              </Button>
-            </>
-          )}
-          {(!types.data?.configured || kind || legacy) && (
+          {unit && sector && (
             <RemotePicker
               id="inspection-form"
               label="Formulário"
-              endpoint={`forms?state=PUBLISHED${unit ? `&unitId=${unit}` : ''}${kind && !legacy ? `&inspectionKind=${kind}` : ''}`}
+              endpoint={`forms?state=PUBLISHED&unitId=${unit}&inspectionTypeId=${sector}`}
               activeOnly={false}
               value={form}
               error={errors['inspection-form']}
@@ -236,7 +169,7 @@ export function InspectionCreate() {
             />
           )}
           <div className="actions">
-            <Button type="submit" disabled={context.loading || (!!unit && types.loading)}>
+            <Button type="submit" disabled={context.loading}>
               Revisar inspeção
             </Button>
             <a className="button secondary" href="/inspections">

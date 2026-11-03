@@ -199,7 +199,7 @@ export class MembershipsService {
       });
       if (!user || !unit || !sector || !parent)
         throw new BadRequestException(
-          'Vínculo de unidade ativo e setor da mesma unidade são obrigatórios.',
+          'Vínculo de unidade ativo e tipo de inspeção da mesma unidade são obrigatórios.',
         );
       let grant = await em.findOne(SectorMembership, {
         unitMembership: parent.id,
@@ -303,7 +303,7 @@ export class MembershipsService {
         (!user.isActive || !unit.isActive || !sector.isActive || !grant.unitMembership.isActive)
       )
         throw new BadRequestException(
-          'Usuário, unidade, setor e vínculo de unidade precisam estar ativos.',
+          'Usuário, unidade, tipo de inspeção e vínculo de unidade precisam estar ativos.',
         );
       grant.isActive = input.isActive;
       await this.audit.record(

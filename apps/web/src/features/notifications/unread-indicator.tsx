@@ -35,7 +35,5 @@ export function UnreadIndicator() {
       document.removeEventListener('visibilitychange', onRefresh);
     };
   }, [path]);
-  return count ? (
-    <span aria-label={`${count} não lidas`}> ({count > 99 ? '99+' : count})</span>
-  ) : null;
+  return count ? <span aria-label={`${count} não lidas`}>{count > 99 ? '99+' : count}</span> : null;
 }

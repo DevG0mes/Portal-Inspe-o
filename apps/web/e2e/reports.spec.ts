@@ -61,7 +61,7 @@ async function inspection(page: Page, name: string) {
   const sectors = await (
       await page.request.get(`/api/organization/sectors?unitId=${unit.id}`)
     ).json(),
-    sector = sectors.data.find((r: { name: string }) => r.name === 'Setor de testes');
+    sector = sectors.data.find((r: { name: string }) => r.name === 'Tipo de inspeção de testes');
   const row = await (
     await page.request.post('/api/inspections', {
       headers: { Origin: origin },
@@ -124,6 +124,7 @@ test('queues inspection PDF and filtered Excel, polls real worker output and pri
   await button.click();
   const pdf = await requestConfirm(page);
   await download(page, pdf, 'PDF', info.project.name);
+  await role(page, 'admin');
   await page.goto('/dashboard?priority=HIGH');
   await page.getByRole('button', { name: 'Solicitar Excel deste recorte', exact: true }).click();
   const xlsx = await requestConfirm(page);

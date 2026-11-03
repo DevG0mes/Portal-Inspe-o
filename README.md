@@ -81,6 +81,9 @@ Os testes HTTP de autenticação também usam PostgreSQL real em banco temporár
 - [Formulários, regras e versões](docs/development/forms.md).
 - [Construtor visual e recuperação de conflitos](docs/development/form-builder.md).
 - [Importação CSV, clientes, locais e identificação](docs/development/importing-inspections.md).
+- [Tipos por unidade e exclusão de formulários](docs/development/inspection-types.md).
+- [Padrão CSV Pergunta e Tipo](docs/development/import-format.md).
+- [Indicadores e gráficos QSSMA](docs/development/dashboard-qssma.md).
 - [Interface, sessão e testes de navegador](docs/development/web.md).
 - [Programação, recorrência e worker](docs/development/scheduling.md).
 - [Progresso e decisões](docs/development/progress.md).

@@ -42,8 +42,8 @@ export class ActionPlanAccess {
     if (!row) throw new ForbiddenException('Plano de ação não permitido.');
     await this.scope(actor, row.unit.id, row.sector.id, em, requestId, write);
     if (write) await em.refresh(row, { lockMode: LockMode.PESSIMISTIC_WRITE });
-    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
-    if ((user.role === 'COLLABORATOR' || executeOnly) && row.responsible.id !== user.id)
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
+    if (executeOnly && row.responsible.id !== user.id)
       throw new ForbiddenException('Plano de ação não permitido.');
     return row;
   }

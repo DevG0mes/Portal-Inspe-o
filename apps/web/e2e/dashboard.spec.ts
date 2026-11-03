@@ -63,7 +63,7 @@ test('filters real indicators, opens authorized records and recovers failed read
   const sectors = await (
       await page.request.get(`/api/organization/sectors?unitId=${unit.id}`)
     ).json(),
-    sector = sectors.data.find((s: { name: string }) => s.name === 'Setor de testes');
+    sector = sectors.data.find((s: { name: string }) => s.name === 'Tipo de inspeção de testes');
   const inspection = await (
     await page.request.post('/api/inspections', {
       headers: { Origin: origin },
@@ -86,6 +86,31 @@ test('filters real indicators, opens authorized records and recovers failed read
   const conformity = page.getByRole('article', { name: 'Índice de conformidade', exact: true });
   await expect(conformity).toContainText('0%');
   await expect(
+    page.getByRole('article', { name: 'Conformidade por colaborador/dia', exact: true }),
+  ).toContainText('0%');
+  await expect(page.getByRole('article', { name: 'Desvios tratados', exact: true })).toContainText(
+    '0',
+  );
+  await expect(page.getByRole('article', { name: 'Desvios pendentes', exact: true })).toContainText(
+    '1',
+  );
+  await expect(
+    page.getByRole('img', { name: 'Evolução mensal de inspeções', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('img', { name: 'Distribuição por criticidade', exact: true }),
+  ).toBeVisible();
+  expect(
+    await page
+      .locator('.chart-plot')
+      .first()
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+  await page.getByText('Ver dados de evolução mensal de inspeções', { exact: true }).click();
+  await expect(
+    page.getByRole('table', { name: 'Evolução mensal de inspeções', exact: true }),
+  ).toBeVisible();
+  await expect(
     page.getByRole('table', { name: 'Não conformidades do período', exact: true }),
   ).toContainText(label);
   await expect(
@@ -101,20 +126,33 @@ test('filters real indicators, opens authorized records and recovers failed read
     fullPage: true,
   });
   await page
+    .locator('.qssma-chart-grid')
+    .screenshot({ path: `test-results/qssma-charts-${info.project.name}.png` });
+  await page
     .getByRole('table', { name: 'Não conformidades do período' })
     .getByRole('link', { name: label, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(inspection.id));
   await page.goto(`/dashboard?category=${encodeURIComponent(category)}`);
+  await page.route('**/api/analytics/qssma?*', (r) => r.fulfill({ status: 503, body: '{}' }));
   await page.route('**/api/analytics/summary?*', (r) => r.fulfill({ status: 503, body: '{}' }));
   await page.getByRole('button', { name: 'Atualizar indicadores', exact: true }).click();
-  await expect(page.getByRole('alert').filter({ hasText: /Não foi possível/ })).toBeVisible();
+  await expect(
+    page
+      .getByRole('alert')
+      .filter({ hasText: /Não foi possível/ })
+      .first(),
+  ).toBeVisible();
   await page.unroute('**/api/analytics/summary?*');
+  await page.unroute('**/api/analytics/qssma?*');
   await page.getByRole('button', { name: 'Atualizar indicadores', exact: true }).click();
   await expect(conformity).toContainText('0%');
   await page.getByLabel('Categoria', { exact: true }).fill(`Inexistente ${randomUUID()}`);
   await page.getByRole('button', { name: 'Aplicar filtros', exact: true }).click();
   await expect(conformity).toContainText('Sem base');
+  await expect(
+    page.getByRole('article', { name: 'Conformidade por colaborador/dia', exact: true }),
+  ).toContainText('Sem base');
   await expect(
     page.getByText('Nenhuma não conformidade neste recorte.', { exact: true }),
   ).toBeVisible();

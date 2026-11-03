@@ -10,7 +10,13 @@ export function IdentificationSummary({ context }: { context?: InspectionContext
           <dd>{context.customerName}</dd>
         </div>
         <div>
-          <dt>Local</dt>
+          <dt>
+            {context.locationKind === 'address'
+              ? 'Endereço'
+              : context.locationKind === 'substation'
+                ? 'Subestação'
+                : 'Local'}
+          </dt>
           <dd>{context.locationName}</dd>
         </div>
         <div>

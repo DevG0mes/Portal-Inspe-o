@@ -6,7 +6,8 @@ async function login(page: Page, email = 'admin@example.test') {
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill(process.env.BROWSER_PASSWORD!);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await page.getByRole('button', { name: /^Desktop/ }).click();
+  await expect(page).toHaveURL(email.startsWith('collaborator') ? /my-work/ : /dashboard/);
 }
 async function a11y(page: Page) {
   const result = await new AxeBuilder({ page })
@@ -174,7 +175,7 @@ test('form administration is unavailable to manager and collaborator', async ({ 
   for (const email of ['manager@example.test', 'collaborator@example.test']) {
     await login(page, email);
     await page.goto('/admin/forms');
-    await expect(page).toHaveURL(/dashboard/);
+    await expect(page).toHaveURL(email.startsWith('collaborator') ? /my-work/ : /dashboard/);
     await page.getByRole('button', { name: 'Sair', exact: true }).click();
     await expect(page).toHaveURL(/login/);
   }

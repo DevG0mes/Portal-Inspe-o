@@ -64,7 +64,9 @@ async function source(page: Page, label: string) {
   const sectors = await (
     await page.request.get(`/api/organization/sectors?unitId=${unit.id}`)
   ).json();
-  const sector = sectors.data.find((row: { name: string }) => row.name === 'Setor de testes');
+  const sector = sectors.data.find(
+    (row: { name: string }) => row.name === 'Tipo de inspeção de testes',
+  );
   const inspection = await (
     await page.request.post('/api/inspections', {
       headers: { Origin: origin },
@@ -118,7 +120,7 @@ test('assigns a corrective plan, submits evidence, returns it and approves with 
   await page.getByLabel('Descrição da correção', { exact: true }).fill(description);
   await page
     .getByLabel('Selecionar responsável', { exact: true })
-    .selectOption({ label: 'Colaborador teste' });
+    .selectOption({ label: 'Gestor responsável teste' });
   await page
     .getByLabel('Prazo da correção', { exact: true })
     .fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
@@ -128,9 +130,13 @@ test('assigns a corrective plan, submits evidence, returns it and approves with 
   await expect(page.getByRole('heading', { name: description, exact: true })).toBeVisible();
   const url = page.url();
   await expect(page.getByRole('button', { name: 'Iniciar execução', exact: true })).toHaveCount(0);
-  await role(page, 'collaborator');
-  await page.goto('/notifications');
-  const notice = page
+  await role(page, 'manager-executor');
+  const bell = page.getByRole('button', { name: /Notificações/ });
+  await bell.click();
+  const drawer = page.getByRole('dialog', { name: 'Notificações', exact: true });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Fechar', exact: true })).toBeFocused();
+  const notice = drawer
     .getByRole('listitem')
     .filter({ has: page.locator(`a[href="${new URL(url).pathname}"]`) });
   await expect(notice.getByText('Plano de ação atribuído', { exact: true })).toBeVisible();
@@ -141,6 +147,9 @@ test('assigns a corrective plan, submits evidence, returns it and approves with 
     path: `test-results/notifications-${info.project.name}.png`,
     fullPage: true,
   });
+  await page.keyboard.press('Escape');
+  await expect(drawer).not.toBeVisible();
+  await expect(bell).toBeFocused();
   await page.goto(url);
   await page.getByRole('button', { name: 'Iniciar execução', exact: true }).click();
   await confirm(page);
@@ -185,7 +194,7 @@ test('assigns a corrective plan, submits evidence, returns it and approves with 
     .fill('Conferir novamente a fixação');
   await page.getByRole('button', { name: 'Devolver com justificativa', exact: true }).click();
   await confirm(page);
-  await role(page, 'collaborator');
+  await role(page, 'manager-executor');
   await page.goto(url);
   await page
     .getByLabel('Comentário ou justificativa', { exact: true })
@@ -215,7 +224,7 @@ test('keeps a local comment when another tab changes the plan and recovers only 
     )
   ).json();
   const responsible = candidates.data.find(
-    (row: { name: string }) => row.name === 'Colaborador teste',
+    (row: { name: string }) => row.name === 'Gestor responsável teste',
   );
   const plan = await (
     await page.request.post('/api/action-plans', {
@@ -230,7 +239,7 @@ test('keeps a local comment when another tab changes the plan and recovers only 
       },
     })
   ).json();
-  await role(page, 'collaborator');
+  await role(page, 'manager-executor');
   const url = `/action-plans/${plan.id}`;
   await page.goto(url);
   const other = await context.newPage();
@@ -276,14 +285,15 @@ test('recovers notification reads and mutations without losing unread notices', 
     data: {
       sourceSubmissionId: fixture.submissionId,
       questionId: fixture.questionId,
-      responsibleId: candidates.data.find((u: { name: string }) => u.name === 'Colaborador teste')
-        .id,
+      responsibleId: candidates.data.find(
+        (u: { name: string }) => u.name === 'Gestor responsável teste',
+      ).id,
       description: 'Verificar proteção do equipamento',
       priority: 'HIGH',
       dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
     },
   });
-  await role(page, 'collaborator');
+  await role(page, 'manager-executor');
   await page.route('**/api/notifications?*', (route) => route.fulfill({ status: 503, body: '{}' }));
   await page.goto('/notifications?unread=true');
   await expect(page.getByRole('alert').filter({ hasText: /Não foi possível/ })).toBeVisible();

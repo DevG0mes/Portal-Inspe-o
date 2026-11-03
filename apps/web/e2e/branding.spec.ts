@@ -22,6 +22,7 @@ test('uses the original PSI identity on login and authenticated screens with acc
   await page.getByLabel('E-mail', { exact: true }).fill('admin@example.test');
   await page.getByLabel('Senha', { exact: true }).fill(process.env.BROWSER_PASSWORD!);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await page.getByRole('button', { name: /^Desktop/ }).click();
   await expect(page).toHaveURL(/dashboard/);
   await expect(page.getByRole('img', { name: 'PSI Energy', exact: true })).toBeVisible();
   await expect(page.locator('nav[aria-label="Principal"] a[href="/dashboard"]')).toHaveAttribute(

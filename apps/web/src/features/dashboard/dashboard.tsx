@@ -9,6 +9,7 @@ import type {
   AnalyticsPlan,
   Paginated,
   UserRole,
+  QssmaDashboard,
 } from '@portal/contracts';
 import { Button, Field, Input, Select, Notice, Skeleton } from '@portal/ui';
 import { useResource } from '../shared/use-resource';
@@ -19,11 +20,12 @@ import { actionStates } from '../action-plans/presentation';
 import { priorityLabels } from '../form-builder/model';
 import { localInstant } from '../schedules/presentation';
 import { ReportRequestButton } from '../reports/report-request-button';
+import { QssmaCharts } from './qssma-charts';
 const number = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const groupLabels: Record<keyof AnalyticsGroups, string> = {
   units: 'Por unidade',
-  sectors: 'Por setor',
+  sectors: 'Por tipo de inspeção',
   forms: 'Por formulário',
   categories: 'Por categoria',
   priorities: 'Por prioridade',
@@ -61,7 +63,18 @@ export function Dashboard({ role }: { role: UserRole }) {
     router = useRouter(),
     [revision, setRevision] = useState(0);
   const filter = new URLSearchParams();
-  for (const key of ['from', 'to', 'unitId', 'sectorId', 'formId', 'category', 'priority']) {
+  for (const key of [
+    'from',
+    'to',
+    'unitId',
+    'sectorId',
+    'formId',
+    'category',
+    'priority',
+    'customerId',
+    'locationId',
+    'inspectorId',
+  ]) {
     const value = params.get(key);
     if (value) filter.set(key, value);
   }
@@ -69,6 +82,7 @@ export function Dashboard({ role }: { role: UserRole }) {
     ncPage = Math.max(1, Number(params.get('ncPage')) || 1),
     planPage = Math.max(1, Number(params.get('planPage')) || 1);
   const summary = useResource<AnalyticsSummary>(`analytics/summary?${query}`, revision);
+  const qssma = useResource<QssmaDashboard>(`analytics/qssma?${query}`, revision);
   const trends = useResource<{ data: AnalyticsTrend[] }>(`analytics/trends?${query}`, revision);
   const ncs = useResource<Paginated<AnalyticsOccurrence> & { groups: AnalyticsGroups }>(
     `analytics/nonconformities?${query}&page=${ncPage}&pageSize=10`,
@@ -91,10 +105,10 @@ export function Dashboard({ role }: { role: UserRole }) {
         <h1>Visão geral</h1>
         <p>
           {role === 'COLLABORATOR'
-            ? 'Suas inspeções e correções, nos setores em que você tem acesso.'
+            ? 'Suas inspeções e correções, nos tipos de inspeção em que você tem acesso.'
             : role === 'ADMIN'
               ? 'Indicadores globais da operação e da estrutura do portal.'
-              : 'Inspeções e correções nas unidades e setores do seu escopo.'}
+              : 'Inspeções e correções nas unidades e tipos de inspeção do seu escopo.'}
         </p>
       </div>
       <div className="actions">
@@ -108,7 +122,7 @@ export function Dashboard({ role }: { role: UserRole }) {
         query={query}
         onApply={(next) => router.replace(`/dashboard?${next}`, { scroll: false })}
       />
-      <div className="actions">
+      <div className="actions dashboard-toolbar">
         <Button variant="secondary" onClick={() => setRevision((r) => r + 1)}>
           Atualizar indicadores
         </Button>
@@ -182,7 +196,7 @@ export function Dashboard({ role }: { role: UserRole }) {
                   {Object.entries({
                     'Usuários ativos': data.administration.activeUsers,
                     'Unidades ativas': data.administration.units,
-                    'Setores ativos': data.administration.sectors,
+                    'Tipos de inspeção ativos': data.administration.sectors,
                     'Formulários publicados': data.administration.publishedForms,
                     'Formulários em rascunho': data.administration.draftForms,
                     'Formulários arquivados': data.administration.archivedForms,
@@ -203,12 +217,94 @@ export function Dashboard({ role }: { role: UserRole }) {
           </>
         )}
       </Panel>
+      <Panel loading={qssma.loading} error={qssma.error}>
+        {qssma.data && (
+          <>
+            <h2>Indicadores QSSMA</h2>
+            <div className="summary-grid">
+              <Metric
+                label="Desvios no escopo completo"
+                value={qssma.data.metrics.scopeDeviationTotal}
+              >
+                Todos os períodos, dentro do seu acesso. Este cartão ignora os filtros do recorte.
+              </Metric>
+              <Metric
+                label="Inspeções 100% conformes"
+                value={qssma.data.metrics.conformingInspections}
+              />
+              <Metric
+                label="Inspeções com desvios"
+                value={qssma.data.metrics.nonconformingInspections}
+              />
+              <Metric label="Desvios tratados" value={qssma.data.metrics.treated}>
+                Plano concluído após aprovação.
+              </Metric>
+              <Metric label="Desvios pendentes" value={qssma.data.metrics.pending}>
+                Inclui ocorrências sem plano e aguardando validação.
+              </Metric>
+              <Metric
+                label="Desvios de criticidade alta"
+                value={qssma.data.priorities.find((p) => p.label === 'HIGH')?.count ?? 0}
+              />
+              <Metric
+                label="Desvios críticos"
+                value={qssma.data.priorities.find((p) => p.label === 'CRITICAL')?.count ?? 0}
+              />
+              <Metric
+                label="Conformidade por colaborador/dia"
+                value={
+                  qssma.data.metrics.dayConformityRate === null
+                    ? 'Sem base'
+                    : `${number(qssma.data.metrics.dayConformityRate)}%`
+                }
+              >
+                Meta {qssma.data.targets.conformityRate}% · {qssma.data.metrics.authorDays}{' '}
+                combinações de colaborador e data.
+              </Metric>
+              <Metric
+                label="Colaborador/dia sem desvio"
+                value={qssma.data.metrics.authorDaysWithoutDeviation}
+              />
+              <Metric
+                label="Colaborador/dia com desvio"
+                value={qssma.data.metrics.authorDaysWithDeviation}
+              />
+              <Metric
+                label="Média de desvios por inspeção"
+                value={qssma.data.metrics.averageDeviations ?? 'Sem base'}
+              />
+              <Metric
+                label="Percentual de desvios tratados"
+                value={
+                  qssma.data.metrics.treatmentRate === null
+                    ? 'Sem base'
+                    : `${number(qssma.data.metrics.treatmentRate)}%`
+                }
+              />
+            </div>
+            <QssmaCharts data={qssma.data} />
+          </>
+        )}
+      </Panel>
       <details className="card">
         <summary>Como ler os indicadores</summary>
         <p>
           Resultados usam a última conclusão de cada inspeção, inclusive se reaberta. Respostas sem
           regra de não conformidade, vazias e “Não se aplica” não entram no índice. Sem respostas
           avaliáveis, o índice fica sem base.
+        </p>
+        <p>
+          No modelo QSSMA, “dias com/sem desvio” são combinações de colaborador e data de conclusão,
+          não dias consecutivos. Uma mesma pessoa com várias inspeções na data conta uma vez;
+          qualquer desvio torna essa combinação não conforme. O índice por respostas acima usa outra
+          base. Desvios tratados exigem plano aprovado/concluído; a ação textual não encerra o
+          desvio.
+        </p>
+        <p>
+          A meta de volume é 12 inspeções por mês e a de conformidade por colaborador/dia é 95%,
+          conforme o PBIX. A linha mensal não é proporcional a períodos parciais nem multiplicada
+          pelos filtros. Tratamentos são agrupados pelo mês da inspeção de origem e refletem a
+          situação atual dos planos. Criticidade Crítica permanece separada de Alta.
         </p>
         <p>
           O período considera conclusão para resultados, criação para rascunhos e planos, e
@@ -310,9 +406,11 @@ export function Dashboard({ role }: { role: UserRole }) {
                     <thead>
                       <tr>
                         <th>Pergunta / formulário</th>
+                        <th>Protocolo / situação</th>
                         <th>Local</th>
                         <th>Categoria / prioridade</th>
                         <th>Conclusão</th>
+                        <th>Ação realizada</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -322,14 +420,27 @@ export function Dashboard({ role }: { role: UserRole }) {
                             <a href={`/inspections/${row.inspectionId}`}>{row.questionLabel}</a>
                             <span className="cell-detail">{row.formTitle}</span>
                           </td>
+                          <td data-label="Protocolo / situação">
+                            <span>{row.inspectionId}</span>
+                            <span className="cell-detail">{row.treatmentStatus ?? 'Pendente'}</span>
+                          </td>
                           <td data-label="Local">
-                            {row.unitName} · {row.sectorName}
+                            {row.locationName ?? 'Sem local identificado'}
+                            <span className="cell-detail">
+                              {row.customerName ?? 'Sem cliente identificado'}
+                            </span>
+                            <span className="cell-detail">
+                              {row.unitName} · {row.sectorName}
+                            </span>
                           </td>
                           <td data-label="Categoria / prioridade">
                             {row.category} ·{' '}
                             {priorityLabels[row.priority as keyof typeof priorityLabels]}
                           </td>
                           <td data-label="Conclusão">{localInstant(row.completedAt)}</td>
+                          <td data-label="Ação realizada">
+                            {row.actionText || 'Sem ação textual vinculada'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -407,6 +518,9 @@ function Filters({ query, onApply }: { query: string; onApply: (q: string) => vo
     [unit, setUnit] = useState(params.get('unitId') ?? ''),
     [sector, setSector] = useState(params.get('sectorId') ?? ''),
     [form, setForm] = useState(params.get('formId') ?? ''),
+    [customer, setCustomer] = useState(params.get('customerId') ?? ''),
+    [location, setLocation] = useState(params.get('locationId') ?? ''),
+    [inspector, setInspector] = useState(params.get('inspectorId') ?? ''),
     [category, setCategory] = useState(params.get('category') ?? ''),
     [priority, setPriority] = useState(params.get('priority') ?? ''),
     [error, setError] = useState('');
@@ -424,6 +538,9 @@ function Filters({ query, onApply }: { query: string; onApply: (q: string) => vo
       unitId: unit,
       sectorId: sector,
       formId: form,
+      customerId: customer,
+      locationId: location,
+      inspectorId: inspector,
       category: category.trim(),
       priority,
     }))
@@ -431,13 +548,13 @@ function Filters({ query, onApply }: { query: string; onApply: (q: string) => vo
     onApply(next.toString());
   }
   return (
-    <form className="card editor" onSubmit={submit} noValidate>
+    <form className="card dashboard-filters" onSubmit={submit} noValidate>
       <h2>Recorte dos indicadores</h2>
       <p className="muted">
         Sem datas, serão usados os últimos 30 dias. Janela máxima de 366 dias. A estrutura deve
         estar ativa; formulários usados podem estar arquivados.
       </p>
-      <div className="form-grid">
+      <div className="dashboard-filter-grid">
         <Field id="analytics-from" label="Data inicial">
           <Input
             id="analytics-from"
@@ -449,37 +566,6 @@ function Filters({ query, onApply }: { query: string; onApply: (q: string) => vo
         <Field id="analytics-to" label="Data final">
           <Input id="analytics-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </Field>
-      </div>
-      <details>
-        <summary>Filtrar unidade, setor e formulário</summary>
-        <RemotePicker
-          id="analytics-unit"
-          label="Unidade"
-          endpoint="organization/units"
-          value={unit}
-          onChange={(value) => {
-            setUnit(value);
-            setSector('');
-          }}
-        />
-        <RemotePicker
-          key={unit}
-          id="analytics-sector"
-          label="Setor"
-          endpoint={`organization/sectors${unit ? `?unitId=${unit}` : ''}`}
-          value={sector}
-          onChange={setSector}
-        />
-        <RemotePicker
-          id="analytics-form"
-          label="Formulário"
-          endpoint="analytics/forms"
-          activeOnly={false}
-          value={form}
-          onChange={setForm}
-        />
-      </details>
-      <div className="form-grid">
         <Field id="analytics-category" label="Categoria">
           <Input
             id="analytics-category"
@@ -503,10 +589,79 @@ function Filters({ query, onApply }: { query: string; onApply: (q: string) => vo
           </Select>
         </Field>
       </div>
+      <details className="dashboard-filter-details">
+        <summary>Filtrar unidade, tipo de inspeção e formulário</summary>
+        <div className="dashboard-filter-grid">
+          <RemotePicker
+            id="analytics-unit"
+            label="Unidade"
+            endpoint="organization/units"
+            value={unit}
+            onChange={(value) => {
+              setUnit(value);
+              setSector('');
+              setCustomer('');
+              setLocation('');
+              setInspector('');
+            }}
+          />
+          <RemotePicker
+            key={unit}
+            id="analytics-sector"
+            label="Tipo de inspeção"
+            endpoint={`organization/sectors${unit ? `?unitId=${unit}` : ''}`}
+            value={sector}
+            onChange={setSector}
+          />
+          <RemotePicker
+            id="analytics-form"
+            label="Formulário"
+            endpoint="analytics/forms"
+            activeOnly={false}
+            value={form}
+            onChange={setForm}
+          />
+        </div>
+      </details>
+      <details className="dashboard-filter-details">
+        <summary>Filtrar cliente, local e colaborador</summary>
+        <div className="dashboard-filter-grid">
+          <RemotePicker
+            id="analytics-customer"
+            label="Cliente"
+            endpoint={`analytics/filter-options?dimension=customers${unit ? `&unitId=${unit}` : ''}`}
+            activeOnly={false}
+            value={customer}
+            onChange={(value) => {
+              setCustomer(value);
+              setLocation('');
+            }}
+          />
+          <RemotePicker
+            key={`${unit}-${customer}`}
+            id="analytics-location"
+            label="Local"
+            endpoint={`analytics/filter-options?dimension=locations${unit ? `&unitId=${unit}` : ''}${customer ? `&customerId=${customer}` : ''}`}
+            activeOnly={false}
+            value={location}
+            onChange={setLocation}
+          />
+          <RemotePicker
+            id="analytics-inspector"
+            label="Colaborador"
+            endpoint={`analytics/filter-options?dimension=inspectors${unit ? `&unitId=${unit}` : ''}`}
+            activeOnly={false}
+            value={inspector}
+            onChange={setInspector}
+          />
+        </div>
+      </details>
       {error && <Notice error>{error}</Notice>}
       <div className="actions">
         <Button type="submit">Aplicar filtros</Button>
-        <a href="/dashboard">Limpar filtros</a>
+        <a className="button secondary" href="/dashboard">
+          Limpar filtros
+        </a>
       </div>
     </form>
   );

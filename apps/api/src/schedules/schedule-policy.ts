@@ -34,7 +34,7 @@ export async function validateOperational(
     { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true },
   );
   if (!unit || !sector)
-    throw new BadRequestException('Selecione unidade e setor ativos e compatíveis.');
+    throw new BadRequestException('Selecione unidade e tipo de inspeção ativos e compatíveis.');
   for (const user of users) {
     if (user.role === 'ADMIN') continue;
     const granted = await em.count(SectorMembership, {
@@ -44,7 +44,7 @@ export async function validateOperational(
     });
     if (!granted)
       throw new BadRequestException(
-        'Responsáveis e gestor precisam de acesso ao setor selecionado.',
+        'Responsáveis e gestor precisam de acesso ao tipo de inspeção selecionado.',
       );
   }
   const form = await em.findOne(
@@ -54,7 +54,7 @@ export async function validateOperational(
   );
   if (!form || !form.latestVersion)
     throw new BadRequestException('Selecione um formulário publicado.');
-  await assertFormAvailable(em, form, unit.id);
+  await assertFormAvailable(em, form, unit.id, sector.id);
   return {
     unit,
     sector,

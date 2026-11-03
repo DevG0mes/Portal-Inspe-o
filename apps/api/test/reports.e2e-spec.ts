@@ -179,7 +179,9 @@ it('pins an authorized snapshot, deduplicates requests and privately serves a co
     throw new Error('must not render twice');
   });
   expect(objects.size).toBe(1);
-  const xlsx = await call('', 'POST', { requestId: randomUUID(), format: 'XLSX', filters: {} });
+  const excelInput = { requestId: randomUUID(), format: 'XLSX', filters: {} };
+  expect((await call('', 'POST', excelInput)).status).toBe(403);
+  const xlsx = await call('', 'POST', excelInput, 0);
   expect(xlsx.status).toBe(201);
   const x = await xlsx.json();
   await service.generate(x.id, async (snapshot) => {
@@ -187,7 +189,7 @@ it('pins an authorized snapshot, deduplicates requests and privately serves a co
     if (snapshot.kind === 'ANALYTICS') expect(snapshot.summary.inspections.nonconformities).toBe(1);
     return Buffer.from('workbook');
   });
-  expect((await (await call(`/${x.id}`)).json()).state).toBe('READY');
+  expect((await (await call(`/${x.id}`, 'GET', undefined, 0)).json()).state).toBe('READY');
 });
 it('cleans partial uploads and allows an explicit retry without duplicating the request', async () => {
   const row = await (await call('', 'POST', input())).json(),

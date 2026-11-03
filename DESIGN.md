@@ -1,5 +1,9 @@
 # Direção visual do portal
 
+O modo Celular organiza a operação do colaborador em atalhos de campo, cartões de inspeções e barra inferior de quatro destinos. Reaproveita laranja PSI, grafite e os componentes existentes. A escolha Desktop/Celular é explícita e funciona em qualquer tamanho de tela; largura de tela só ajusta a acomodação do conteúdo.
+
+Notificações globais usam sino circular no canto direito do cabeçalho fixado durante a rolagem, com contador laranja de não lidas. `NotificationBell` abre painel lateral de até 520 px, ocupando a largura disponível no celular; `NotificationCenter` mantém o conteúdo e as ações. Modal nativo fornece isolamento e navegação por teclado, seguindo `UX-CONTRACT.md`.
+
 ## Contexto
 
 Produto operacional interno, em português brasileiro, para colaboradores em inspeções pelo celular e gestores no computador. Priorizar legibilidade, clareza de estado e facilidade de preenchimento. Login e administração usam a mesma identidade operacional.
@@ -69,6 +73,8 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 
 ## Visão operacional
 
+O dashboard QSSMA estende os cartões com as métricas verificadas no PBIX. `features/dashboard/qssma-charts.tsx` é o proprietário de colunas, barras e roscas. Colunas mensais ocupam a largura disponível e têm tabela equivalente; períodos curtos cabem no celular, longos têm região rolável com foco e instrução. Roscas usam legendas com números, inclusive zeros; barras usam os dez maiores grupos. O total do escopo completo é identificado separadamente do recorte filtrado. Cores derivam dos tokens PSI; nenhuma dependência gráfica ou execução de HTML do PBIX.
+
 `features/dashboard` substitui a ficha de preparação pelos indicadores reais. Mantém os cartões de leitura, tipografia e tokens existentes. Filtros por envio explícito, organização em disclosure e explicação das fórmulas no documento. Evolução usa meter nativo acompanhado dos mesmos números em tabela; distribuições têm tabelas por dimensão. Sem porcentagens decorativas, animações ou gráfico sem equivalente legível. Conteúdo vira coluna única no celular.
 
 ## Relatórios
@@ -76,6 +82,8 @@ Cada pergunta visível agrupa resposta, observação opcional e evidências. Cam
 `features/reports` acompanha pedidos em tabela que vira ficha móvel. Situações são textuais, sem percentuais fictícios. Criação usa confirmação existente; integridade fica em disclosure nativo. Download reutiliza a preparação privada comum a evidências. Não há segunda linguagem visual, modal de progresso bloqueante ou dependência de fontes externas. PDF mantém a identidade azul e leitura em A4 com fontes incorporadas; Excel separa resumo, evolução, ocorrências, planos e contexto dos filtros.
 
 ## Importação e identificação operacional
+
+Tipos de inspeção são cadastrados por unidade no cadastro anteriormente chamado Setores, preservando IDs e permissões. A seleção do formulário usa esse tipo, sem segunda escolha de categoria fixa. A importação permite escolher unidade/tipo e exceções de texto; inicia sem exceções para evitar aplicar a pergunta 3 textual a todos os modelos. O catálogo oferece vínculo de modelos existentes e exclusão confirmada. Rascunhos sem uso são removidos; publicados saem do catálogo preservando versões e histórico.
 
 A importação em `features/form-builder/import-form.tsx` usa arquivo nativo, prévia textual e confirmação comum antes de criar rascunho. Escolha de prioridade explícita; publicação no construtor. `features/shared/unit-bindings.tsx` estende RemotePicker para vínculos múltiplos sem outra linguagem visual. Clientes e locais usam ResourceList/ResourceForm existentes, com revisão e inativação.
 

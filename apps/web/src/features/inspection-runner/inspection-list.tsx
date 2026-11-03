@@ -7,7 +7,9 @@ import { useResource } from '../shared/use-resource';
 import { ErrorNotice } from '../shared/error-notice';
 import { Pagination } from '../shared/pagination';
 import { localInstant } from '../schedules/presentation';
-export function InspectionList() {
+import { usePresentation } from '../auth/presentation';
+export function InspectionList({ personal = false }: { personal?: boolean }) {
+  const mobile = usePresentation() === 'mobile';
   const params = useSearchParams(),
     router = useRouter();
   const page = Math.max(1, Number(params.get('page')) || 1);
@@ -28,11 +30,20 @@ export function InspectionList() {
     <>
       <div className="page-heading">
         <span className="eyebrow">OPERAÇÃO · REGISTROS</span>
-        <h1>Inspeções</h1>
-        <p>Continue um rascunho ou consulte o histórico das inspeções no seu escopo.</p>
+        <h1>{personal ? 'Minhas inspeções' : 'Inspeções'}</h1>
+        <p>
+          {personal
+            ? 'Acompanhe inspeções criadas por você e aquelas atribuídas a você.'
+            : 'Continue um rascunho ou consulte o histórico das inspeções no seu escopo.'}
+        </p>
         <a className="button primary" href="/inspections/start">
           Nova inspeção avulsa
         </a>
+        {personal && (
+          <a className="button secondary" href="/assignments">
+            Atribuídas a mim
+          </a>
+        )}
       </div>
       <section className="card list-card">
         <div className="filters">
@@ -73,6 +84,28 @@ export function InspectionList() {
                   <p>Inicie uma inspeção avulsa ou consulte suas atribuições.</p>
                   <a href="/assignments">Ver atribuições</a>
                 </div>
+              ) : mobile ? (
+                <ul className="field-inspections" aria-label="Registros de inspeção">
+                  {resource.data.data.map((row) => (
+                    <li key={row.id}>
+                      <span className={`badge ${row.state === 'COMPLETED' ? 'active' : ''}`}>
+                        {row.state === 'COMPLETED' ? 'Concluída' : 'Em preenchimento'}
+                      </span>
+                      <h2>{row.title}</h2>
+                      <p>
+                        {row.unitName} · {row.sectorName}
+                      </p>
+                      <p className="muted">
+                        Atualizada em{' '}
+                        <time dateTime={row.updatedAt}>{localInstant(row.updatedAt)}</time>
+                      </p>
+                      <a className="button secondary" href={`/inspections/${row.id}`}>
+                        {row.state === 'COMPLETED' ? 'Consultar' : 'Continuar'}
+                        <span className="sr-only"> {row.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <div className="table-wrap">
                   <table>

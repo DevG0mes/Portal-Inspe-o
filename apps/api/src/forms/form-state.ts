@@ -6,6 +6,8 @@ import { FormTemplate } from './entities/form-template.entity.js';
 import type { FormVersion } from './entities/form-version.entity.js';
 
 export const templateSummary = (template: FormTemplate): FormTemplateSummary => ({
+  inspectionTypeId: template.inspectionType?.id ?? null,
+  inspectionTypeName: template.inspectionType?.name ?? null,
   inspectionKind: template.inspectionKind,
   id: template.id,
   name: template.name,
@@ -42,6 +44,7 @@ export async function lockEditableTemplate(em: EntityManager, id: string, revisi
   const template = await em.findOne(FormTemplate, id, { lockMode: LockMode.PESSIMISTIC_WRITE });
   if (!template) throw new NotFoundException('Formulário não encontrado.');
   checkRevision(template, revision);
-  if (template.state === 'ARCHIVED') throw new ConflictException('O formulário está arquivado.');
+  if (template.deletedAt || template.state === 'ARCHIVED')
+    throw new ConflictException('O formulário foi removido ou arquivado.');
   return template;
 }

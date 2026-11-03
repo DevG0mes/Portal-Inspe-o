@@ -14,7 +14,52 @@ import { AccessPolicy } from '../access/access-policy.service.js';
 import { Sector } from '../organization/sector.entity.js';
 import { parseAnalytics } from './analytics.dto.js';
 import { analyticsQuery } from './analytics.queries.js';
+import { qssmaDashboard, treatment } from './qssma.queries.js';
 export class AnalyticsService {
+  async qssma(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
+    const { q, em, sql } = await this.context(actor, raw, requestId);
+    const unfiltered = await this.context(actor, {}, requestId);
+    return em.transactional(async (tx) => {
+      await tx.execute('set transaction isolation level repeatable read');
+      return qssmaDashboard(tx, sql, q, unfiltered.sql);
+    });
+  }
+
+  async filterOptions(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
+    const input = parseInput(
+      z
+        .object({
+          ...paginationShape,
+          dimension: z.enum(['customers', 'locations', 'inspectors']),
+          q: z.string().trim().max(120).optional(),
+          unitId: z.uuid().optional(),
+          customerId: z.uuid().optional(),
+        })
+        .strict(),
+      raw,
+    );
+    const { em, sql } = await this.context(
+      actor,
+      { unitId: input.unitId, customerId: input.customerId },
+      requestId,
+    );
+    const dimension = {
+      customers: { id: "i.context->>'customerId'", name: "i.context->>'customerName'" },
+      locations: { id: "i.context->>'locationId'", name: "i.context->>'locationName'" },
+      inspectors: { id: 'u.id::text', name: 'u.name' },
+    }[input.dimension];
+    const cte = `${sql.cte}, options as (select ${dimension.id} id,max(${dimension.name}) name from base i join portal_user u on u.id=i.created_by_id where ${dimension.id} is not null group by ${dimension.id})`;
+    const args = [...sql.args, `%${escapeLike(input.q ?? '')}%`];
+    const [count] = await em.execute(
+      `${cte} select count(*)::int total from options where name ilike ? escape '\\'`,
+      args,
+    );
+    const data = await em.execute(
+      `${cte} select id,name from options where name ilike ? escape '\\' order by name,id limit ? offset ?`,
+      [...args, input.pageSize, (input.page - 1) * input.pageSize],
+    );
+    return { data, total: count!.total, page: input.page, pageSize: input.pageSize };
+  }
   constructor(
     private readonly em: EntityManager,
     private readonly access: AccessPolicy,
@@ -23,7 +68,7 @@ export class AnalyticsService {
   private async context(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const q = parseAnalytics(raw),
       em = this.snapshotEm ?? this.em.fork(),
-      user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+      user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
     const scope = await this.access.sectorFilter(actor, requestId, em);
     const sectors = await em.find(
       Sector,
@@ -85,7 +130,7 @@ export class AnalyticsService {
     let administration: AnalyticsSummary['administration'] = null;
     if (user.role === 'ADMIN') {
       const [a] = await em.execute<NonNullable<AnalyticsSummary['administration']>[]>(
-        `select (select count(*)::int from portal_user where is_active) as "activeUsers",(select count(*)::int from organization_unit where is_active) units,(select count(*)::int from organization_sector s join organization_unit u on u.id=s.unit_id where s.is_active and u.is_active) sectors,(select count(*)::int from form_template where state='PUBLISHED') as "publishedForms",(select count(*)::int from form_template where state='DRAFT') as "draftForms",(select count(*)::int from form_template where state='ARCHIVED') as "archivedForms"`,
+        `select (select count(*)::int from portal_user where is_active) as "activeUsers",(select count(*)::int from organization_unit where is_active) units,(select count(*)::int from organization_sector s join organization_unit u on u.id=s.unit_id where s.is_active and u.is_active) sectors,(select count(*)::int from form_template where state='PUBLISHED') as "publishedForms",(select count(*)::int from form_template where state='DRAFT') as "draftForms",(select count(*)::int from form_template where state='ARCHIVED' and deleted_at is null) as "archivedForms"`,
       );
       administration = a ?? null;
     }
@@ -132,7 +177,9 @@ export class AnalyticsService {
       sql.args,
     );
     const data: AnalyticsOccurrence[] = await em.execute(
-      `${sql.cte} select o.submission_id as "submissionId",o.inspection_id as "inspectionId",o.nc->>'questionId' as "questionId",coalesce((select question->>'label' from jsonb_array_elements(o.snapshot->'sections') section cross join lateral jsonb_array_elements(section->'questions') question where question->>'id'=o.nc->>'questionId'),'Pergunta de origem') as "questionLabel",u.name as "unitName",s.name as "sectorName",o.snapshot->>'title' as "formTitle",o.nc->>'category' category,o.nc->>'priority' priority,o.completed_at as "completedAt" from occurrences o join organization_unit u on u.id=o.unit_id join organization_sector s on s.id=o.sector_id order by o.completed_at desc,o.submission_id,o.nc->>'questionId' limit ? offset ?`,
+      `${sql.cte} select o.submission_id as "submissionId",o.inspection_id as "inspectionId",o.nc->>'questionId' as "questionId",coalesce((select question->>'label' from jsonb_array_elements(o.snapshot->'sections') section cross join lateral jsonb_array_elements(section->'questions') question where question->>'id'=o.nc->>'questionId'),'Pergunta de origem') as "questionLabel",u.name as "unitName",s.name as "sectorName",o.snapshot->>'title' as "formTitle",o.nc->>'category' category,o.nc->>'priority' priority,o.completed_at as "completedAt",i.context->>'customerName' as "customerName",i.context->>'locationName' as "locationName",case when ${treatment('o')} then 'Tratado' else 'Pendente' end as "treatmentStatus",
+(select a->>'value' from jsonb_array_elements(o.snapshot->'sections') section cross join lateral jsonb_array_elements(section->'questions') question cross join lateral jsonb_array_elements(coalesce(question->'visibleWhen','[]'::jsonb)) rule join inspection_submission src on src.id=o.submission_id cross join lateral jsonb_array_elements(src.answers) a where question->>'type'='TEXT' and question->>'label' ~* 'a(ç|c)(ã|a)o realizada' and rule->>'questionId'=o.nc->>'questionId' and a->>'questionId'=question->>'id' limit 1) as "actionText"
+from occurrences o join inspection i on i.id=o.inspection_id join organization_unit u on u.id=o.unit_id join organization_sector s on s.id=o.sector_id order by o.completed_at desc,o.submission_id,o.nc->>'questionId' limit ? offset ?`,
       [...sql.args, q.pageSize, (q.page - 1) * q.pageSize],
     );
     const dimensions = {

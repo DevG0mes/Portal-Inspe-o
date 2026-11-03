@@ -74,10 +74,10 @@ export function Memberships({ userId }: { userId: string }) {
       body: { isActive: !grant.isActive },
       name: `${grant.isActive ? 'Revogar' : 'Reativar'} vínculo: ${sector ? grant.sectorName : grant.unitName}`,
       description: sector
-        ? 'O acesso ao setor depende também da situação do usuário, da unidade e do vínculo de unidade.'
+        ? 'O acesso ao tipo de inspeção depende também da situação do usuário, da unidade e do vínculo de unidade.'
         : grant.isActive
-          ? 'Revogar o vínculo de unidade também revoga todos os vínculos de setores desta unidade. O histórico será preservado.'
-          : 'Reativar a unidade não reativa os vínculos de setores. Cada setor deverá ser autorizado novamente.',
+          ? 'Revogar o vínculo de unidade também revoga todos os vínculos de tipos de inspeção desta unidade. O histórico será preservado.'
+          : 'Reativar a unidade não reativa os vínculos de tipos de inspeção. Cada tipo de inspeção deverá ser autorizado novamente.',
     });
   }
   function rows(data: Grant[], sector = false) {
@@ -100,7 +100,7 @@ export function Memberships({ userId }: { userId: string }) {
                     setGrantSector('');
                   }}
                 >
-                  Ver setores<span className="sr-only"> de {grant.unitName}</span>
+                  Ver tipos de inspeção<span className="sr-only"> de {grant.unitName}</span>
                 </Button>
               )}
               <Button
@@ -130,7 +130,12 @@ export function Memberships({ userId }: { userId: string }) {
   return (
     <>
       <div className="page-heading">
-        <Link href="/users">← Usuários</Link>
+        <Link className="back-link" href="/users">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Usuários
+        </Link>
         <h1>Vínculos de acesso</h1>
         <p>
           {user.data?.name} · {user.data?.email}
@@ -150,7 +155,8 @@ export function Memberships({ userId }: { userId: string }) {
         <section className="card">
           <h2>Unidades vinculadas</h2>
           <p>
-            Uma pessoa pode pertencer a várias unidades. Setores precisam de autorização própria.
+            Uma pessoa pode pertencer a várias unidades. Tipos de inspeção precisam de autorização
+            própria.
           </p>
           {units.loading ? (
             <Skeleton />
@@ -194,7 +200,7 @@ export function Memberships({ userId }: { userId: string }) {
                   body: { userId, unitId: grantUnit },
                   name: `Vincular ${grantUnitName}?`,
                   description:
-                    'Esta autorização habilita a unidade. Os setores devem ser vinculados separadamente.',
+                    'Esta autorização habilita a unidade. Os tipos de inspeção devem ser vinculados separadamente.',
                 })
               }
             >
@@ -203,10 +209,10 @@ export function Memberships({ userId }: { userId: string }) {
           </div>
         </section>
         <section className="card">
-          <h2>{unitId ? `Setores · ${unitName}` : 'Setores vinculados'}</h2>
+          <h2>{unitId ? `Tipos de inspeção · ${unitName}` : 'Tipos de inspeção vinculados'}</h2>
           {!unitId ? (
             <div className="empty-state">
-              <p>Escolha “Ver setores” em uma unidade vinculada.</p>
+              <p>Escolha “Ver tipos de inspeção” em uma unidade vinculada.</p>
             </div>
           ) : (
             <>
@@ -224,7 +230,7 @@ export function Memberships({ userId }: { userId: string }) {
                   {sectors.data?.data.length ? (
                     rows(sectors.data.data, true)
                   ) : (
-                    <p>Nenhum setor vinculado nesta unidade.</p>
+                    <p>Nenhum tipo de inspeção vinculado nesta unidade.</p>
                   )}
                   <Pagination
                     page={sectorPage}
@@ -235,11 +241,11 @@ export function Memberships({ userId }: { userId: string }) {
                 </>
               )}
               <div className="grant-add">
-                <h3>Adicionar setor</h3>
+                <h3>Adicionar tipo de inspeção</h3>
                 <RemotePicker
                   key={unitId}
                   id="grant-sector"
-                  label="Setor"
+                  label="Tipo de inspeção"
                   endpoint={`organization/sectors?unitId=${unitId}`}
                   value={grantSector}
                   disabled={!user.data?.isActive}
@@ -256,11 +262,11 @@ export function Memberships({ userId }: { userId: string }) {
                       method: 'POST',
                       body: { userId, unitId, sectorId: grantSector },
                       name: `Vincular ${grantSectorName}?`,
-                      description: `A pessoa terá acesso a este setor de ${unitName}, desde que a unidade e o vínculo de unidade estejam ativos.`,
+                      description: `A pessoa terá acesso a este tipo de inspeção de ${unitName}, desde que a unidade e o vínculo de unidade estejam ativos.`,
                     })
                   }
                 >
-                  Vincular setor
+                  Vincular tipo de inspeção
                 </Button>
               </div>
             </>

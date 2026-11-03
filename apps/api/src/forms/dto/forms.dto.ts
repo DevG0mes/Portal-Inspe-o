@@ -61,6 +61,7 @@ export const parseImportForm = (raw: unknown) =>
     z
       .object({
         importId: z.uuid().transform((v) => v.toLowerCase()),
+        inspectionTypeId: z.uuid().optional(),
         unitIds: z
           .array(z.uuid())
           .min(1)
@@ -90,6 +91,7 @@ export const parseCreateForm = (input: unknown) =>
   parseInput(
     z
       .object({
+        inspectionTypeId: z.uuid().optional(),
         name: z
           .string()
           .trim()
@@ -108,12 +110,15 @@ export const parseFormQuery = (input: unknown) =>
         q: searchQuery,
         state: z.enum(FORM_STATES).optional(),
         unitId: z.uuid().optional(),
+        inspectionTypeId: z.uuid().optional(),
         inspectionKind: z.enum(INSPECTION_KINDS).optional(),
       })
       .strict(),
     input,
   );
 export const parseRevision = (input: unknown) => parseInput(z.object({ revision }).strict(), input);
+export const parseTypeBinding = (input: unknown) =>
+  parseInput(z.object({ revision, inspectionTypeId: z.uuid() }).strict(), input);
 export const parseSaveDraft = (input: unknown) =>
   parseInput(z.object({ revision, snapshot }).strict(), input);
 export const parsePreview = (input: unknown) =>

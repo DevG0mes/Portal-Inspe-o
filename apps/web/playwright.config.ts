@@ -14,6 +14,22 @@ export default defineConfig({
     launchOptions: existsSync(edge) ? { executablePath: edge } : {},
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
+    // API sign-in fixtures bypass the chooser; UI login still requires an explicit choice.
+    storageState: {
+      cookies: [
+        {
+          name: 'portal_presentation',
+          value: 'desktop',
+          domain: '127.0.0.1',
+          path: '/',
+          expires: -1,
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+        },
+      ],
+      origins: [],
+    },
   },
   projects: [
     { name: 'desktop', use: { viewport: { width: 1366, height: 900 } } },

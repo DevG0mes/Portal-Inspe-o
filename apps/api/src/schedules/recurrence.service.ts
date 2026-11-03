@@ -76,6 +76,7 @@ export class RecurrenceService {
             context.customerId,
             context.locationId,
             context.participants,
+            context.locationKind ?? 'substation',
           );
       } catch (error) {
         if (!(error instanceof BadRequestException) && !(error instanceof ForbiddenException))

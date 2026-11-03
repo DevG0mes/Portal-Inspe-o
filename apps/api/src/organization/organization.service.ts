@@ -134,7 +134,7 @@ export class OrganizationService {
       em = this.entityManager.fork();
     const scope = await this.access.sectorFilter(actor, requestId, em);
     const sector = await em.findOne(Sector, { $and: [{ id }, scope] }, { populate: ['unit'] });
-    if (!sector) throw new ForbiddenException('Setor não permitido.');
+    if (!sector) throw new ForbiddenException('Tipo de inspeção não permitido.');
     return sectorSummary(sector);
   }
 
@@ -182,7 +182,7 @@ export class OrganizationService {
       this.entityManager.fork().transactional(async (em) => {
         await this.access.assertAdministrator(actor, em);
         const sector = await em.findOne(Sector, id, { lockMode: LockMode.PESSIMISTIC_WRITE });
-        if (!sector) throw new NotFoundException('Setor não encontrado.');
+        if (!sector) throw new NotFoundException('Tipo de inspeção não encontrado.');
         await em.populate(sector, ['unit']);
         const before = sectorSummary(sector);
         if (input.name !== undefined) {

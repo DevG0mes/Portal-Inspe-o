@@ -9,10 +9,10 @@ export function Account() {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  async function endAll() {
+  async function logout(all: boolean) {
     setBusy(true);
     try {
-      await api('auth/logout-all', { method: 'POST', body: '{}' });
+      await api(all ? 'auth/logout-all' : 'auth/logout', { method: 'POST', body: '{}' });
       window.location.assign('/login');
     } catch (failure) {
       setError(failure);
@@ -21,6 +21,13 @@ export function Account() {
   }
   return (
     <>
+      <section className="card">
+        <h2>Visualização do portal</h2>
+        <p>Alterne entre Desktop e Celular quando quiser.</p>
+        <Link className="button secondary" href="/experience">
+          Trocar visualização
+        </Link>
+      </section>
       <section className="card">
         <h2>Segurança da conta</h2>
         <p>
@@ -34,13 +41,17 @@ export function Account() {
           <Button variant="secondary" onClick={() => setConfirm(true)}>
             Encerrar todas as sessões
           </Button>
+          <Button variant="secondary" disabled={busy} onClick={() => logout(false)}>
+            Sair deste dispositivo
+          </Button>
         </div>
+        {!confirm && error !== undefined && <ErrorNotice error={error} />}
       </section>
       <ConfirmDialog
         open={confirm}
         title="Encerrar todas as sessões?"
         onCancel={() => setConfirm(false)}
-        onConfirm={endAll}
+        onConfirm={() => logout(true)}
         busy={busy}
         confirmLabel="Encerrar sessões"
       >

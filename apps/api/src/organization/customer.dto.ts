@@ -38,6 +38,7 @@ const query = z
     isActive: activeQuery,
     unitId: z.uuid().optional(),
     customerId: z.uuid().optional(),
+    kind: z.enum(['substation', 'address']).optional(),
   })
   .strict();
 export const parseCustomerQuery = (raw: unknown) => parseInput(query, raw);
@@ -57,16 +58,27 @@ export const parseCustomerPatch = (raw: unknown) =>
     raw,
   );
 export const parseLocationCreate = (raw: unknown) =>
-  parseInput(z.object({ name, customerId: z.uuid() }).strict(), raw);
+  parseInput(
+    z
+      .object({
+        name: z.string().trim().min(1).max(320),
+        city: name.optional(),
+        customerId: z.uuid().optional(),
+      })
+      .strict()
+      .refine((v) => !!v.city !== !!v.customerId),
+    raw,
+  );
 export const parseLocationPatch = (raw: unknown) =>
   parseInput(
     z
       .object({
         revision: z.number().int().positive(),
-        name: name.optional(),
+        name: z.string().trim().min(1).max(320).optional(),
+        city: name.optional(),
         isActive: z.boolean().optional(),
       })
       .strict()
-      .refine((v) => v.name !== undefined || v.isActive !== undefined),
+      .refine((v) => v.name !== undefined || v.city !== undefined || v.isActive !== undefined),
     raw,
   );

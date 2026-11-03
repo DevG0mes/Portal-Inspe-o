@@ -1,4 +1,31 @@
 import type { ActionState } from './action-plans.js';
+export interface QssmaDashboard {
+  targets: { monthlyInspections: number; conformityRate: number };
+  metrics: {
+    scopeDeviationTotal: number;
+    inspections: number;
+    conformingInspections: number;
+    nonconformingInspections: number;
+    deviations: number;
+    treated: number;
+    pending: number;
+    authorDays: number;
+    authorDaysWithDeviation: number;
+    authorDaysWithoutDeviation: number;
+    dayConformityRate: number | null;
+    averageDeviations: number | null;
+    treatmentRate: number | null;
+  };
+  months: { month: string; inspections: number; deviations: number; treated: number }[];
+  statuses: { label: string; count: number }[];
+  priorities: { label: string; count: number }[];
+  rankings: {
+    types: { label: string; count: number }[];
+    locations: { label: string; count: number }[];
+    inspectors: { label: string; count: number }[];
+    categories: { label: string; count: number }[];
+  };
+}
 export interface AnalyticsSummary {
   from: string;
   to: string;
@@ -37,6 +64,10 @@ export interface AnalyticsTrend {
   nonconformities: number;
 }
 export interface AnalyticsOccurrence {
+  customerName?: string | null;
+  locationName?: string | null;
+  actionText?: string | null;
+  treatmentStatus?: string;
   submissionId: string;
   inspectionId: string;
   questionId: string;

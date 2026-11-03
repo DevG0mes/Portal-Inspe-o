@@ -1,8 +1,9 @@
 import { Body, Controller, Get, Inject, Param, Post, Query, Req } from '@nestjs/common';
-import { JsonRequest } from '../auth/access.decorators.js';
+import { JsonRequest, ManagementOnly } from '../auth/access.decorators.js';
 import type { AuthenticatedRequest } from '../auth/auth.types.js';
 import { ActionPlanService } from './action-plan.service.js';
 @Controller('action-plans')
+@ManagementOnly()
 @JsonRequest()
 export class ActionPlansController {
   constructor(@Inject(ActionPlanService) private readonly service: ActionPlanService) {}

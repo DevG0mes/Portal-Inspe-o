@@ -51,7 +51,7 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
     }, 300);
     return () => clearTimeout(timer);
   }, [composing, query, search, page]);
-  const path = `${config.endpoint}?pageSize=10&page=${page}&q=${encodeURIComponent(query)}${active ? `&isActive=${active}` : ''}${kind === 'users' && role ? `&role=${role}` : ''}`;
+  const path = `${config.endpoint}?${kind === 'addresses' ? 'kind=address&' : ''}pageSize=10&page=${page}&q=${encodeURIComponent(query)}${active ? `&isActive=${active}` : ''}${kind === 'users' && role ? `&role=${role}` : ''}`;
   const result = useResource<Paginated<AdminRow>>(path, revision);
   async function toggle() {
     if (!target || busy) return;
@@ -62,7 +62,9 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
         method: 'PATCH',
         body: JSON.stringify({
           isActive: !target.isActive,
-          ...(kind === 'customers' || kind === 'locations' ? { revision: target.revision } : {}),
+          ...(kind === 'customers' || kind === 'locations' || kind === 'addresses'
+            ? { revision: target.revision }
+            : {}),
         }),
       });
       if (kind === 'users' && target.id === ownId) {
@@ -179,6 +181,7 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
                         {kind === 'sectors' && <th scope="col">Unidade</th>}
                         {kind === 'customers' && <th scope="col">Unidades atendidas</th>}
                         {kind === 'locations' && <th scope="col">Cliente</th>}
+                        {kind === 'addresses' && <th scope="col">Cidade</th>}
                         <th scope="col">Situação</th>
                         <th scope="col">Ações</th>
                       </tr>
@@ -200,6 +203,7 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
                             </td>
                           )}
                           {kind === 'locations' && <td data-label="Cliente">{row.customerName}</td>}
+                          {kind === 'addresses' && <td data-label="Cidade">{row.city}</td>}
                           <td data-label="Situação">
                             <Badge active={row.isActive} />
                             {row.mustChangePassword && (
@@ -207,31 +211,47 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
                             )}
                           </td>
                           <td data-label="Ações">
-                            <div className="row-actions">
-                              <a href={`/${kind}/${row.id}/edit?return=${returnQuery}`}>
-                                Editar<span className="sr-only"> {row.name}</span>
-                              </a>
-                              {kind === 'users' && (
-                                <>
-                                  <a href={`/users/${row.id}/memberships`}>
-                                    Vínculos<span className="sr-only"> de {row.name}</span>
-                                  </a>
-                                  <a href={`/users/${row.id}/reset-password?return=${returnQuery}`}>
-                                    Redefinir senha<span className="sr-only"> de {row.name}</span>
-                                  </a>
-                                </>
-                              )}
-                              <button
-                                className="text-button"
-                                onClick={() => {
-                                  setMutationError(undefined);
-                                  setTarget(row);
+                            {kind === 'users' ? (
+                              <Select
+                                aria-label={`Ações de ${row.name}`}
+                                value=""
+                                onChange={(event) => {
+                                  const action = event.target.value;
+                                  if (action === 'toggle') {
+                                    setMutationError(undefined);
+                                    setTarget(row);
+                                  } else if (action === 'memberships') {
+                                    router.push(`/users/${row.id}/memberships`);
+                                  } else if (action === 'edit' || action === 'reset-password') {
+                                    router.push(`/users/${row.id}/${action}?return=${returnQuery}`);
+                                  }
                                 }}
                               >
-                                {row.isActive ? 'Desativar' : 'Reativar'}
-                                <span className="sr-only"> {row.name}</span>
-                              </button>
-                            </div>
+                                <option value="">Selecionar ação…</option>
+                                <option value="edit">Editar</option>
+                                <option value="memberships">Vínculos</option>
+                                <option value="reset-password">Redefinir senha</option>
+                                <option value="toggle">
+                                  {row.isActive ? 'Desativar' : 'Reativar'}
+                                </option>
+                              </Select>
+                            ) : (
+                              <div className="row-actions">
+                                <a href={`/${kind}/${row.id}/edit?return=${returnQuery}`}>
+                                  Editar<span className="sr-only"> {row.name}</span>
+                                </a>
+                                <button
+                                  className="text-button"
+                                  onClick={() => {
+                                    setMutationError(undefined);
+                                    setTarget(row);
+                                  }}
+                                >
+                                  {row.isActive ? 'Desativar' : 'Reativar'}
+                                  <span className="sr-only"> {row.name}</span>
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -261,7 +281,7 @@ export function ResourceList({ kind, ownId }: { kind: ResourceKind; ownId: strin
             ? kind === 'users'
               ? 'A pessoa perderá o acesso e suas sessões serão encerradas. O histórico será preservado.'
               : 'Os acessos associados ficarão indisponíveis. O histórico e os vínculos serão preservados.'
-            : 'O registro voltará a ficar ativo. Os vínculos continuam sujeitos à situação da unidade, do setor e do usuário.'}
+            : 'O registro voltará a ficar ativo. Os vínculos continuam sujeitos à situação da unidade, do tipo de inspeção e do usuário.'}
         </p>
         {mutationError !== undefined && <ErrorNotice error={mutationError} />}
       </ConfirmDialog>

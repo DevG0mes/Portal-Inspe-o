@@ -110,7 +110,7 @@ export class AccessPolicy {
       isActive: true,
       unit: { id: unitId, isActive: true },
     });
-    if (!sector) throw new ForbiddenException('Unidade ou setor não permitido.');
+    if (!sector) throw new ForbiddenException('Unidade ou tipo de inspeção não permitido.');
     if (user.role === 'ADMIN') {
       await this.audit.record(
         {
@@ -130,6 +130,6 @@ export class AccessPolicy {
       isActive: true,
       unitMembership: { user: user.id, unit: unitId, isActive: true },
     });
-    if (granted === 0) throw new ForbiddenException('Unidade ou setor não permitido.');
+    if (granted === 0) throw new ForbiddenException('Unidade ou tipo de inspeção não permitido.');
   }
 }

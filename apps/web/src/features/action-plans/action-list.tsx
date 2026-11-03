@@ -42,22 +42,22 @@ export function ActionList({ canManage }: { canManage: boolean }) {
           </a>
         )}
       </div>
-      <nav className="actions" aria-label="Situações dos planos">
-        <a href="/action-plans" aria-current={!validState ? 'page' : undefined}>
-          Todos
-        </a>
-        {Object.entries(actionStates).map(([value, label]) => (
-          <a
-            key={value}
-            href={`/action-plans?state=${value}`}
-            aria-current={validState === value ? 'page' : undefined}
-          >
-            {label}
-          </a>
-        ))}
-      </nav>
       <section className="card list-card">
         <div className="filters">
+          <Field id="action-state" label="Situação">
+            <Select
+              id="action-state"
+              value={validState}
+              onChange={(event) => navigate(1, event.target.value)}
+            >
+              <option value="">Todos</option>
+              {Object.entries(actionStates).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field id="action-late" label="Prazo">
             <Select
               id="action-late"

@@ -43,7 +43,7 @@ export function ScheduleList({ assignments = false }: { assignments?: boolean })
         <p>
           {assignments
             ? 'Acompanhe ocorrências, responsáveis e prazos no seu escopo.'
-            : 'Organize inspeções únicas ou recorrentes em unidades e setores autorizados.'}{' '}
+            : 'Organize inspeções únicas ou recorrentes em unidades e tipos de inspeção autorizados.'}{' '}
           Horários de São Paulo.
         </p>
         {!assignments && (

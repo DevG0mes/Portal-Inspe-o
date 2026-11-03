@@ -5,7 +5,8 @@ async function login(page: Page, email = 'manager@example.test') {
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill(process.env.BROWSER_PASSWORD!);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await page.getByRole('button', { name: /^Desktop/ }).click();
+  await expect(page).toHaveURL(email.startsWith('collaborator') ? /my-work/ : /dashboard/);
 }
 test('manager schedules shared inspections and worker restores a paused occurrence', async ({
   page,
@@ -16,15 +17,19 @@ test('manager schedules shared inspections and worker restores a paused occurren
   await page.goto('/schedules');
   await page.getByRole('link', { name: 'Nova programação', exact: true }).click();
   await page.getByLabel('Nome', { exact: true }).fill(`Ronda ${info.project.name}`);
+  await page.getByLabel('Selecionar unidade').selectOption({ label: 'Unidade de testes' });
+  await page
+    .getByLabel('Selecionar tipo de inspeção')
+    .selectOption({ label: 'Tipo de inspeção de testes' });
+  await expect(
+    page
+      .getByLabel('Selecionar tipo de inspeção')
+      .getByRole('option', { name: 'Tipo de inspeção restrito' }),
+  ).toHaveCount(0);
   const formPicker = page.getByRole('group', { name: 'Formulário', exact: true });
   await formPicker.getByLabel('Buscar formulário').fill('Ficha de testes');
   await formPicker.getByRole('button', { name: 'Buscar', exact: true }).click();
   await page.getByLabel('Selecionar formulário').selectOption({ label: 'Ficha de testes' });
-  await page.getByLabel('Selecionar unidade').selectOption({ label: 'Unidade de testes' });
-  await page.getByLabel('Selecionar setor').selectOption({ label: 'Setor de testes' });
-  await expect(
-    page.getByLabel('Selecionar setor').getByRole('option', { name: 'Setor restrito' }),
-  ).toHaveCount(0);
   await page.getByLabel('Selecionar responsável').selectOption({ label: 'Colaborador teste' });
   await page.getByRole('button', { name: 'Adicionar responsável', exact: true }).click();
   await page.getByLabel('Frequência', { exact: true }).selectOption('DAILY');

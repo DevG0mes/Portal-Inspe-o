@@ -19,8 +19,11 @@ import { AuditService } from '../audit/audit.service.js';
 import { escapeLike, parseId, withUniqueConflict } from '../common/input.js';
 import { FormTemplate } from './entities/form-template.entity.js';
 import { FormVersion } from './entities/form-version.entity.js';
+import { Sector } from '../organization/sector.entity.js';
+import { InspectionSchedule } from '../schedules/schedule.entity.js';
 import {
   parseCreateForm,
+  parseTypeBinding,
   parseImportForm,
   parseFormQuery,
   parsePreview,
@@ -32,6 +35,82 @@ import { RuleEngine } from './rule-engine.service.js';
 import { snapshotHash } from './snapshot.js';
 
 export class FormTemplateService {
+  private async activeType(em: EntityManager, id: string) {
+    const type = await em.findOne(
+      Sector,
+      { id, isActive: true, unit: { isActive: true } },
+      { lockMode: LockMode.PESSIMISTIC_READ },
+    );
+    if (!type) throw new BadRequestException('Selecione um tipo de inspeção ativo.');
+    return type;
+  }
+
+  async bindType(actor: AuthenticatedPrincipal, rawId: string, raw: unknown, requestId: string) {
+    const input = parseTypeBinding(raw),
+      id = parseId(rawId);
+    return this.entityManager.fork().transactional(async (em) => {
+      await em.findOne(User, actor.userId, { lockMode: LockMode.PESSIMISTIC_READ, refresh: true });
+      await this.access.assertAdministrator(actor, em);
+      const type = await this.activeType(em, input.inspectionTypeId);
+      const row = await lockEditableTemplate(em, id, input.revision);
+      // Changing a live schedule's type would silently change its operational meaning.
+      if (await em.count(InspectionSchedule, { form: id }))
+        throw new ConflictException(
+          'Este formulário possui programação. Crie um modelo separado para outro tipo.',
+        );
+      row.inspectionType = type;
+      row.revision++;
+      await this.audit.record(
+        {
+          actorId: actor.userId,
+          action: 'forms.type_bound',
+          resource: 'form',
+          resourceId: id,
+          requestId,
+          changes: { inspectionTypeId: type.id },
+        },
+        em,
+      );
+      return templateSummary(row);
+    });
+  }
+
+  async remove(actor: AuthenticatedPrincipal, rawId: string, raw: unknown, requestId: string) {
+    const id = parseId(rawId),
+      input = parseRevision(raw);
+    return this.entityManager.fork().transactional(async (em) => {
+      await em.findOne(User, actor.userId, { lockMode: LockMode.PESSIMISTIC_READ, refresh: true });
+      await this.access.assertAdministrator(actor, em);
+      const row = await em.findOne(FormTemplate, id, { lockMode: LockMode.PESSIMISTIC_WRITE });
+      if (!row || row.deletedAt) throw new NotFoundException('Formulário não encontrado.');
+      checkRevision(row, input.revision);
+      const physical =
+        !row.latestVersion &&
+        !(await em.count(FormVersion, { template: id })) &&
+        !(await em.count(InspectionSchedule, { form: id }));
+      await this.audit.record(
+        {
+          actorId: actor.userId,
+          action: 'forms.removed',
+          resource: 'form',
+          resourceId: id,
+          requestId,
+          changes: { name: row.name, physical },
+        },
+        em,
+      );
+      if (physical) {
+        await em.nativeDelete(FormUnitBinding, { form: id });
+        em.remove(row);
+      } else {
+        row.deletedAt = new Date();
+        row.state = 'ARCHIVED';
+        row.nameKey = `${row.nameKey}:removed:${row.id}`;
+        row.revision++;
+      }
+      return { removed: true, historyPreserved: !physical };
+    });
+  }
   constructor(
     private readonly entityManager: EntityManager,
     private readonly access: AccessPolicy,
@@ -54,6 +133,10 @@ export class FormTemplateService {
         await this.access.assertAdministrator(actor, em);
         const previous = await em.findOne(FormTemplate, importId);
         if (previous) {
+          if (previous.deletedAt)
+            throw new ConflictException(
+              'Este pedido pertence a um formulário removido. Prepare uma nova importação.',
+            );
           if (previous.importHash !== hash)
             throw new ConflictException(
               'Este pedido de importação já foi usado com outro conteúdo.',
@@ -67,6 +150,11 @@ export class FormTemplateService {
         );
         if (units.length !== input.unitIds.length)
           throw new BadRequestException('Selecione unidades ativas para este modelo.');
+        const type = input.inspectionTypeId
+          ? await this.activeType(em, input.inspectionTypeId)
+          : null;
+        if (type && (units.length !== 1 || units[0]!.id !== type.unit.id))
+          throw new BadRequestException('O tipo precisa pertencer à unidade selecionada.');
         let snapshot;
         try {
           snapshot = importQuestions(input.headers, { ...input, title: input.name }, randomUUID);
@@ -85,6 +173,7 @@ export class FormTemplateService {
           draftSnapshot: snapshot,
           importHash: hash,
           inspectionKind: input.inspectionKind,
+          inspectionType: type,
         });
         em.persist(template);
         for (const unit of units) {
@@ -157,9 +246,21 @@ export class FormTemplateService {
       eligibility =
         query.unitId && !units.length
           ? { id: { $in: [] } }
-          : { $or: [{ inspectionKind: null }, { id: { $in: links.map((l) => l.form.id) } }] };
+          : {
+              $or: [
+                { inspectionKind: null, inspectionType: null },
+                { inspectionType: { unit: { $in: units.map((u) => u.id) } } },
+                { id: { $in: links.map((l) => l.form.id) } },
+              ],
+            };
     }
     const filter: FilterQuery<FormTemplate> = {
+      deletedAt: null,
+      ...(query.inspectionTypeId
+        ? {
+            $or: [{ inspectionType: query.inspectionTypeId }, { inspectionType: null }],
+          }
+        : {}),
       ...(query.state ? { state: query.state } : {}),
       ...(query.inspectionKind ? { inspectionKind: query.inspectionKind } : {}),
       ...(query.q ? { nameKey: { $ilike: `%${escapeLike(query.q.toLowerCase())}%` } } : {}),
@@ -169,6 +270,7 @@ export class FormTemplateService {
       { $and: [user.role === 'ADMIN' ? {} : { state: 'PUBLISHED' }, filter, eligibility] },
       {
         limit: query.pageSize,
+        populate: ['inspectionType'],
         offset: (query.page - 1) * query.pageSize,
         orderBy: { name: 'asc', id: 'asc' },
       },
@@ -180,10 +282,15 @@ export class FormTemplateService {
     const id = parseId(rawId),
       em = this.entityManager.fork();
     const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
-    const template = await em.findOne(FormTemplate, {
-      id,
-      ...(user.role !== 'ADMIN' ? { state: 'PUBLISHED' as const } : {}),
-    });
+    const template = await em.findOne(
+      FormTemplate,
+      {
+        id,
+        deletedAt: null,
+        ...(user.role !== 'ADMIN' ? { state: 'PUBLISHED' as const } : {}),
+      },
+      { populate: ['inspectionType'] },
+    );
     if (!template) throw new ForbiddenException('Formulário não disponível.');
     return templateSummary(template);
   }
@@ -194,6 +301,9 @@ export class FormTemplateService {
       this.entityManager.fork().transactional(async (em) => {
         await this.access.assertAdministrator(actor, em);
         const template = new FormTemplate();
+        template.inspectionType = input.inspectionTypeId
+          ? await this.activeType(em, input.inspectionTypeId)
+          : null;
         template.name = input.name;
         template.nameKey = input.name.toLowerCase();
         template.draftSnapshot = { schemaVersion: 1, title: input.name, sections: [] };
@@ -218,7 +328,8 @@ export class FormTemplateService {
       em = this.entityManager.fork();
     await this.access.assertAdministrator(actor, em);
     const template = await em.findOne(FormTemplate, id);
-    if (!template?.draftSnapshot) throw new NotFoundException('Rascunho não encontrado.');
+    if (!template?.draftSnapshot || template.deletedAt)
+      throw new NotFoundException('Rascunho não encontrado.');
     return { revision: template.revision, snapshot: template.draftSnapshot };
   }
 
@@ -282,7 +393,8 @@ export class FormTemplateService {
       em = this.entityManager.fork();
     await this.access.assertAdministrator(actor, em);
     const template = await em.findOne(FormTemplate, id);
-    if (!template?.draftSnapshot) throw new NotFoundException('Rascunho não encontrado.');
+    if (!template?.draftSnapshot || template.deletedAt)
+      throw new NotFoundException('Rascunho não encontrado.');
     checkRevision(template, input.revision);
     return {
       revision: template.revision,

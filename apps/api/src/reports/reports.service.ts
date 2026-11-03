@@ -62,10 +62,14 @@ export class ReportsService {
     };
   }
   private async owned(actor: AuthenticatedPrincipal, id: string, em: EntityManager, lock = false) {
-    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
     const row = await em.findOne(
       ReportRequest,
-      { id: parseId(id), requestedBy: actor.userId },
+      {
+        id: parseId(id),
+        requestedBy: actor.userId,
+        ...(user.role === 'COLLABORATOR' ? { format: 'PDF' } : {}),
+      },
       lock ? { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true } : {},
     );
     if (!row) throw new NotFoundException('Relatório inexistente.');
@@ -77,7 +81,11 @@ export class ReportsService {
     // Reserve in READ COMMITTED with one connection and user → report lock order.
     const reservation = await this.em.fork().transactional(async (em) => {
       await em.findOne(User, actor.userId, { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true });
-      await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+      await this.access.requireRoles(
+        actor,
+        input.format === 'XLSX' ? ['ADMIN', 'MANAGER'] : ['ADMIN', 'MANAGER', 'COLLABORATOR'],
+        em,
+      );
       const prior = await em.findOne(ReportRequest, {
         requestedBy: actor.userId,
         requestId: input.requestId,
@@ -171,10 +179,10 @@ export class ReportsService {
   async list(actor: AuthenticatedPrincipal, raw: unknown) {
     const q = parseReportQuery(raw),
       em = this.em.fork();
-    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
     const [rows, total] = await em.findAndCount(
       ReportRequest,
-      { requestedBy: actor.userId },
+      { requestedBy: actor.userId, ...(user.role === 'COLLABORATOR' ? { format: 'PDF' } : {}) },
       {
         fields: [
           'id',

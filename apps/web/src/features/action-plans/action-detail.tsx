@@ -188,7 +188,12 @@ function Workspace({ initial, onReload }: { initial: ActionPlanView; onReload: (
   return (
     <>
       <div className="page-heading">
-        <a href="/action-plans">← Planos de ação</a>
+        <a className="back-link" href="/action-plans">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Planos de ação
+        </a>
         <span className="eyebrow">CORREÇÃO · {row.category}</span>
         <h1>{row.description}</h1>
         <p>
@@ -349,7 +354,7 @@ function Workspace({ initial, onReload }: { initial: ActionPlanView; onReload: (
             <RemotePicker
               id="action-responsible"
               label="Responsável"
-              endpoint={`schedules/candidates?unitId=${row.unitId}&sectorId=${row.sectorId}`}
+              endpoint={`schedules/candidates?purpose=correction&unitId=${row.unitId}&sectorId=${row.sectorId}`}
               activeOnly={false}
               value={responsible}
               onChange={setResponsible}

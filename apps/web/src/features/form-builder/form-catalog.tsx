@@ -9,6 +9,8 @@ import { Pagination } from '../shared/pagination';
 import { useResource } from '../shared/use-resource';
 import { useHydrated } from '../shared/use-hydrated';
 import { stateLabels } from './model';
+import { ConfirmDialog } from '../shared/confirm-dialog';
+import { RemotePicker } from '../shared/remote-picker';
 export function FormCatalog() {
   const params = useSearchParams();
   const router = useRouter();
@@ -21,9 +23,41 @@ export function FormCatalog() {
   const [search, setSearch] = useState(q);
   const [revision, setRevision] = useState(0);
   const [name, setName] = useState('');
+  const [createUnit, setCreateUnit] = useState(''),
+    [createType, setCreateType] = useState('');
   const [error, setError] = useState<unknown>();
   const [nameError, setNameError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<FormTemplateSummary>();
+  const [bindingTarget, setBindingTarget] = useState<FormTemplateSummary>();
+  const [unit, setUnit] = useState(''),
+    [inspectionType, setInspectionType] = useState('');
+  async function mutate(remove: boolean) {
+    const target = remove ? removeTarget : bindingTarget;
+    if (!target || busy) return;
+    if (!remove && !inspectionType) {
+      setError(new Error('Selecione uma unidade e um tipo de inspeção.'));
+      return;
+    }
+    setBusy(true);
+    setError(undefined);
+    try {
+      await api(`forms/${target.id}/${remove ? 'remove' : 'inspection-type'}`, {
+        method: remove ? 'POST' : 'PUT',
+        body: JSON.stringify({
+          revision: target.revision,
+          ...(!remove ? { inspectionTypeId: inspectionType } : {}),
+        }),
+      });
+      setRemoveTarget(undefined);
+      setBindingTarget(undefined);
+      setRevision((r) => r + 1);
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setBusy(false);
+    }
+  }
   const result = useResource<Paginated<FormTemplateSummary>>(
     `forms?pageSize=10&page=${page}&q=${encodeURIComponent(q)}${state ? `&state=${state}` : ''}`,
     revision,
@@ -49,7 +83,10 @@ export function FormCatalog() {
     try {
       const created = await api<FormTemplateSummary>('forms', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          ...(createType ? { inspectionTypeId: createType } : {}),
+        }),
       });
       window.location.assign(`/admin/forms/${created.id}`);
     } catch (failure) {
@@ -81,6 +118,29 @@ export function FormCatalog() {
                 aria-describedby={nameError ? 'form-name-error' : undefined}
               />
             </Field>
+            <RemotePicker
+              id="create-form-unit"
+              label="Unidade do modelo (opcional)"
+              endpoint="organization/units"
+              value={createUnit}
+              onChange={(id) => {
+                setCreateUnit(id);
+                setCreateType('');
+              }}
+            />
+            {createUnit && (
+              <RemotePicker
+                key={createUnit}
+                id="create-form-type"
+                label="Tipo de inspeção"
+                endpoint={`organization/sectors?unitId=${createUnit}`}
+                value={createType}
+                onChange={(id) => setCreateType(id)}
+              />
+            )}
+            <p>
+              Você também pode criar o rascunho e usar “Vincular tipo” na lista antes de utilizá-lo.
+            </p>
             <Button type="submit" disabled={busy || !hydrated}>
               {busy ? 'Criando…' : 'Criar formulário'}
             </Button>
@@ -159,6 +219,9 @@ export function FormCatalog() {
                         <tr key={form.id}>
                           <td data-label="Modelo">
                             <strong>{form.name}</strong>
+                            <span className="cell-detail">
+                              {form.inspectionTypeName ?? 'Tipo ainda não vinculado'}
+                            </span>
                           </td>
                           <td data-label="Estado">
                             {stateLabels[form.state]}
@@ -168,10 +231,34 @@ export function FormCatalog() {
                           </td>
                           <td data-label="Versão">{form.latestVersion || 'Ainda não publicado'}</td>
                           <td data-label="Ações">
-                            <a href={`/admin/forms/${form.id}`}>
-                              {form.state === 'ARCHIVED' ? 'Consultar' : 'Abrir editor'}
-                              <span className="sr-only"> {form.name}</span>
-                            </a>
+                            <div className="actions">
+                              <a href={`/admin/forms/${form.id}`}>
+                                {form.state === 'ARCHIVED' ? 'Consultar' : 'Abrir editor'}
+                                <span className="sr-only"> {form.name}</span>
+                              </a>
+                              {form.state !== 'ARCHIVED' && (
+                                <Button
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setUnit('');
+                                    setInspectionType('');
+                                    setError(undefined);
+                                    setBindingTarget(form);
+                                  }}
+                                >
+                                  Vincular tipo<span className="sr-only"> de {form.name}</span>
+                                </Button>
+                              )}
+                              <Button
+                                variant="danger"
+                                onClick={() => {
+                                  setError(undefined);
+                                  setRemoveTarget(form);
+                                }}
+                              >
+                                Excluir<span className="sr-only"> {form.name}</span>
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -184,6 +271,52 @@ export function FormCatalog() {
           )
         )}
       </section>
+      <ConfirmDialog
+        open={!!removeTarget}
+        title="Excluir formulário?"
+        confirmLabel="Excluir formulário"
+        danger
+        busy={busy}
+        onCancel={() => setRemoveTarget(undefined)}
+        onConfirm={() => void mutate(true)}
+      >
+        <p>
+          Excluir “{removeTarget?.name}” do catálogo? Rascunhos nunca utilizados serão apagados.
+          Versões publicadas e históricos serão preservados.
+        </p>
+        {error !== undefined && <ErrorNotice error={error} />}
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={!!bindingTarget}
+        title="Vincular tipo de inspeção"
+        confirmLabel="Salvar vínculo"
+        busy={busy}
+        onCancel={() => setBindingTarget(undefined)}
+        onConfirm={() => void mutate(false)}
+      >
+        <p>Selecione o tipo para “{bindingTarget?.name}”. O histórico permanece preservado.</p>
+        <RemotePicker
+          id="form-binding-unit"
+          label="Unidade"
+          endpoint="organization/units"
+          value={unit}
+          onChange={(id) => {
+            setUnit(id);
+            setInspectionType('');
+          }}
+        />
+        {unit && (
+          <RemotePicker
+            key={unit}
+            id="form-binding-type"
+            label="Tipo de inspeção"
+            endpoint={`organization/sectors?unitId=${unit}`}
+            value={inspectionType}
+            onChange={(id) => setInspectionType(id)}
+          />
+        )}
+        {error !== undefined && <ErrorNotice error={error} />}
+      </ConfirmDialog>
     </>
   );
 }

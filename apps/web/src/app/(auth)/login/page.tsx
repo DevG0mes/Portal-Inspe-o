@@ -4,7 +4,7 @@ import { getSession } from '../../../lib/session';
 export const metadata = { title: 'Entrar | Portal de Segurança' };
 export default async function Login() {
   const session = await getSession();
-  if (session) redirect(session.mustChangePassword ? '/change-password' : '/dashboard');
+  if (session) redirect(session.mustChangePassword ? '/change-password' : '/experience');
   return (
     <>
       <span className="eyebrow">ACESSO AO PORTAL</span>

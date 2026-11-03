@@ -83,7 +83,7 @@ export class ScheduleService {
       em = this.entityManager.fork();
     await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
     await this.access.assertUnitSector(actor, q.unitId, q.sectorId, requestId, em);
-    const filter = `u.is_active=true and u.must_change_password=false and u.name ilike ? and (u.role='ADMIN' or exists (select 1 from sector_membership sm join unit_membership um on um.id=sm.unit_membership_id where sm.sector_id=? and sm.is_active=true and um.unit_id=? and um.is_active=true and um.user_id=u.id))`;
+    const filter = `u.is_active=true and u.must_change_password=false and u.name ilike ? and (u.role='ADMIN' or exists (select 1 from sector_membership sm join unit_membership um on um.id=sm.unit_membership_id where sm.sector_id=? and sm.is_active=true and um.unit_id=? and um.is_active=true and um.user_id=u.id))${q.purpose === 'correction' ? " and u.role in ('ADMIN','MANAGER')" : ''}`;
     const args = [`%${escapeLike(q.q ?? '')}%`, q.sectorId, q.unitId];
     const data = await em.execute<{ id: string; name: string }[]>(
       `select u.id,u.name from portal_user u where ${filter} order by u.name,u.id limit ? offset ?`,
@@ -203,6 +203,7 @@ export class ScheduleService {
               c.customerId,
               c.locationId,
               c.participants,
+              c.locationKind ?? 'substation',
             );
           }
           const next = nextOccurrence(row, new Date(this.now().getTime() - 1).toISOString());

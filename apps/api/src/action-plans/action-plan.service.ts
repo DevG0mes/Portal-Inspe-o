@@ -31,6 +31,8 @@ export class ActionPlanService {
   ) {}
   private async assignee(em: EntityManager, id: string, unitId: string, sectorId: string) {
     const user = await em.findOne(User, { id, isActive: true, mustChangePassword: false });
+    if (user?.role === 'COLLABORATOR')
+      throw new BadRequestException('Selecione um gestor ou administrador para a correção.');
     if (
       !user ||
       (user.role !== 'ADMIN' &&
@@ -40,7 +42,9 @@ export class ActionPlanService {
           unitMembership: { user: id, unit: unitId, isActive: true },
         })))
     )
-      throw new BadRequestException('Responsável precisa estar ativo e ter acesso ao setor.');
+      throw new BadRequestException(
+        'Responsável precisa estar ativo e ter acesso ao tipo de inspeção.',
+      );
     return user;
   }
   private summary(row: ActionPlan): ActionPlanSummary {
@@ -103,7 +107,7 @@ export class ActionPlanService {
       .flatMap((section) => section.questions)
       .find((item) => item.id === row.questionId);
     if (!question) throw new ConflictException('Pergunta de origem indisponível.');
-    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+    const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
     return {
       ...this.summary(row),
       sourceSubmissionId: source.id,
@@ -114,7 +118,7 @@ export class ActionPlanService {
       sourceNote: source.notes.find((note) => note.questionId === row.questionId)?.text ?? null,
       sourceEvidence: source.evidence.filter((file) => file.questionId === row.questionId),
       inspectionTitle: inspection.formVersion.snapshot.title,
-      canManage: user.role !== 'COLLABORATOR',
+      canManage: true,
       canExecute: user.id === row.responsible.id,
       evidence: (
         await em.find(
@@ -132,13 +136,12 @@ export class ActionPlanService {
   }
   async list(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const q = parseActionQuery(raw),
-      em = this.em.fork(),
-      user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+      em = this.em.fork();
+    await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
     const scope = await this.access.sectorFilter(actor, requestId, em);
     const filter: FilterQuery<ActionPlan> = {
       $and: [
         { sector: scope },
-        ...(user.role === 'COLLABORATOR' ? [{ responsible: user.id }] : []),
         ...(q.state ? [{ state: q.state }] : []),
         ...(q.overdue === 'true'
           ? [{ state: { $ne: 'COMPLETED' as const }, dueAt: { $lt: new Date() } }]
@@ -300,7 +303,7 @@ export class ActionPlanService {
         true,
         input.responsibleId ? [input.responsibleId] : [],
       );
-      const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER', 'COLLABORATOR'], em);
+      const user = await this.access.requireRoles(actor, ['ADMIN', 'MANAGER'], em);
       const prior = await em.findOne(ActionPlanEvent, {
         actionPlan: row.id,
         commandId: input.commandId,

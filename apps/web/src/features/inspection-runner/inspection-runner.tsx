@@ -1,5 +1,6 @@
 'use client';
 import { IdentificationSummary } from '../shared/identification-summary';
+import { usePresentation } from '../auth/presentation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type {
   EvidenceFile,
@@ -55,7 +56,12 @@ function InspectionWorkspace({
   return (
     <>
       <div className="page-heading">
-        <a href="/inspections">← Inspeções</a>
+        <a className="back-link" href="/inspections">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Inspeções
+        </a>
         <span className="eyebrow">
           {row.assignmentId ? 'INSPEÇÃO ATRIBUÍDA' : 'INSPEÇÃO AVULSA'}
         </span>
@@ -63,6 +69,7 @@ function InspectionWorkspace({
         <p>
           Formulário · versão {row.formVersionNumber} · Ciclo {row.cycle}
         </p>
+        <p className="inspection-protocol muted">Protocolo: {row.id}</p>
       </div>
       <IdentificationSummary context={row.context} />
       {row.state === 'DRAFT' && row.canEdit ? (
@@ -95,6 +102,8 @@ function DraftRunner({
   onCompleted: (row: InspectionView) => void;
   onReload: () => void;
 }) {
+  const mobile = usePresentation() === 'mobile';
+  const [sectionId, setSectionId] = useState<string>();
   const hydrated = useHydrated();
   const [session] = useState(
     () =>
@@ -144,6 +153,26 @@ function DraftRunner({
     }
   }, [state.status]);
   const result = new RuleEngine().evaluate(initial.snapshot, state.snapshot.answers);
+  const sections = initial.snapshot.sections.filter((section) =>
+    section.questions.some((question) => result.visibleQuestionIds.includes(question.id)),
+  );
+  const step = Math.max(
+    0,
+    sections.findIndex((section) => section.id === sectionId),
+  );
+  function goToSection(id: string) {
+    setSectionId(id);
+    setFocusTarget(`section-${id}`);
+  }
+  function showQuestion(id: string) {
+    if (mobile)
+      setSectionId(
+        initial.snapshot.sections.find((section) =>
+          section.questions.some((question) => question.id === id),
+        )?.id,
+      );
+    setFocusTarget(`answer-${id}`);
+  }
   const answered = result.acceptedAnswers.filter(
     (answer) => answer.value !== null && answer.value !== '',
   ).length;
@@ -187,15 +216,18 @@ function DraftRunner({
   }
   async function review() {
     if (busy || conflict) return;
-    if (
-      result.visibleQuestionIds.some((id) => selectedQuestions.has(id)) ||
-      files.some(
-        (file) =>
-          result.visibleQuestionIds.includes(file.questionId) &&
-          file.status !== 'READY' &&
-          Date.parse(file.expiresAt!) > Date.now(),
-      )
-    ) {
+    const pendingQuestion = result.visibleQuestionIds.find(
+      (id) =>
+        selectedQuestions.has(id) ||
+        files.some(
+          (file) =>
+            file.questionId === id &&
+            file.status !== 'READY' &&
+            Date.parse(file.expiresAt!) > Date.now(),
+        ),
+    );
+    if (pendingQuestion) {
+      showQuestion(pendingQuestion);
       setError(
         new Error('Envie, limpe a seleção ou cancele os arquivos pendentes antes de concluir.'),
       );
@@ -212,7 +244,7 @@ function DraftRunner({
       );
       if (checked.errors.length || checked.definitionErrors.length) {
         const first = checked.errors[0];
-        if (first) setFocusTarget(`answer-${first.questionId}`);
+        if (first) showQuestion(first.questionId);
         return;
       }
       setConfirm('complete');
@@ -333,14 +365,23 @@ function DraftRunner({
         onCompositionEnd={() => session.setComposing(false)}
       >
         <fieldset disabled={!hydrated || busy || !!confirm || conflict}>
+          {mobile && sections.length > 0 && (
+            <p className="inspection-step" aria-live="polite">
+              Etapa {step + 1} de {sections.length}
+            </p>
+          )}
           {initial.snapshot.sections.map((section, index) => {
             const questions = section.questions.filter((question) =>
               result.visibleQuestionIds.includes(question.id),
             );
             return (
               questions.length > 0 && (
-                <section className="card preview-section" key={section.id}>
-                  <h2>
+                <section
+                  className="card preview-section"
+                  key={section.id}
+                  hidden={mobile && sections[step]?.id !== section.id}
+                >
+                  <h2 id={`section-${section.id}`} tabIndex={mobile ? -1 : undefined}>
                     {index + 1}. {section.title}
                   </h2>
                   {questions.map((question) => {
@@ -442,9 +483,20 @@ function DraftRunner({
             );
           })}
           <div className="card actions">
-            <Button type="submit" disabled={state.status === 'error'}>
-              Revisar e concluir
-            </Button>
+            {mobile && step > 0 && (
+              <Button variant="secondary" onClick={() => goToSection(sections[step - 1]!.id)}>
+                Etapa anterior
+              </Button>
+            )}
+            {mobile && step < sections.length - 1 ? (
+              <Button key="next-section" onClick={() => goToSection(sections[step + 1]!.id)}>
+                Próxima etapa
+              </Button>
+            ) : (
+              <Button key="review-inspection" type="submit" disabled={state.status === 'error'}>
+                Revisar e concluir
+              </Button>
+            )}
             <Button
               variant="secondary"
               disabled={state.status === 'saved' || state.status === 'error'}

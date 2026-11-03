@@ -17,7 +17,7 @@ it('does not discard an unsaved name when changing schedule state', async () => 
           revision: 1,
           isActive: true,
           unitName: 'Unidade',
-          sectorName: 'Setor',
+          sectorName: 'Tipo de inspeção',
           formName: 'Ficha',
           responsibles: [],
           frequency: 'DAILY',

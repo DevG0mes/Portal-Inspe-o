@@ -28,6 +28,9 @@ export interface ReportView {
   canRetry: boolean;
 }
 export interface ReportFilters {
+  customerId?: string;
+  locationId?: string;
+  inspectorId?: string;
   from?: string;
   to?: string;
   unitId?: string;

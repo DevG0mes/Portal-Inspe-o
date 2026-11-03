@@ -26,6 +26,8 @@ const q = question('YES_NO_NA', {
   nonconformity: { operator: 'EQ', value: 'NO', category: 'Proteção', priority: 'HIGH' },
 });
 const period = 'from=2026-10-29&to=2026-10-29';
+const customerIds = [randomUUID(), randomUUID()],
+  locationIds = [randomUUID(), randomUUID()];
 let template: FormTemplate;
 beforeAll(async () => {
   db = await createTestDatabase();
@@ -87,6 +89,17 @@ beforeAll(async () => {
       state: 'COMPLETED',
       cycle: index === 0 ? 2 : 1,
       createdAt: new Date('2026-10-29T10:00:00Z'),
+      ...([0, 1, 3].includes(index)
+        ? {
+            context: {
+              customerId: customerIds[index === 3 ? 1 : 0],
+              customerName: `Cliente ${index === 3 ? 1 : 0}`,
+              locationId: locationIds[index === 3 ? 1 : 0],
+              locationName: index === 0 ? 'Obra anterior' : `Obra ${index === 3 ? 1 : 0}`,
+              participants: [],
+            },
+          }
+        : {}),
     });
     em.persist(inspection);
     if (index === 0) {
@@ -174,6 +187,107 @@ afterAll(async () => {
 function call(path: string, user = 1) {
   return fetch(`${origin}/api/analytics/${path}`, { headers: { cookie: cookies[user]! } });
 }
+it('restricts collaborators to inspection work regardless of their presentation mode', async () => {
+  for (const path of [
+    'summary',
+    'qssma',
+    'trends',
+    'forms',
+    'nonconformities',
+    'action-plans',
+    'filter-options',
+  ]) {
+    expect((await call(`${path}?${period}`, 2)).status).toBe(403);
+  }
+  for (const path of ['action-plans', 'action-plans/occurrences']) {
+    expect(
+      (await fetch(`${origin}/api/${path}`, { headers: { cookie: cookies[2]! } })).status,
+    ).toBe(403);
+  }
+  expect(
+    (await fetch(`${origin}/api/inspections`, { headers: { cookie: cookies[2]! } })).status,
+  ).toBe(200);
+});
+it('matches QSSMA day-based measures and counts treated deviations only by completed plans', async () => {
+  const response = await call(`qssma?${period}`);
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.metrics).toMatchObject({
+    scopeDeviationTotal: 1,
+    inspections: 3,
+    conformingInspections: 2,
+    nonconformingInspections: 1,
+    deviations: 1,
+    treated: 1,
+    pending: 0,
+    authorDays: 1,
+    authorDaysWithDeviation: 1,
+    authorDaysWithoutDeviation: 0,
+    dayConformityRate: 0,
+  });
+  expect(data.targets).toEqual({ monthlyInspections: 12, conformityRate: 95 });
+  expect(data.months).toEqual([{ month: '2026-10', inspections: 3, deviations: 1, treated: 1 }]);
+  expect(data.priorities).toContainEqual({ label: 'HIGH', count: 1 });
+  expect(data.rankings.locations).toContainEqual({ label: 'Obra 0', count: 2 });
+  expect(data.rankings.locations.some((r: { label: string }) => r.label === 'Obra anterior')).toBe(
+    false,
+  );
+  const global = await (await call(`qssma?${period}`, 0)).json();
+  expect(global.metrics).toMatchObject({
+    scopeDeviationTotal: 2,
+    inspections: 4,
+    deviations: 2,
+    treated: 1,
+    pending: 1,
+    authorDays: 2,
+  });
+  expect((await call(`qssma?${period}&unitId=${units[1]!.id}`)).status).toBe(403);
+  const empty = await (await call('qssma?from=2020-01-01&to=2020-01-01')).json();
+  expect(empty.metrics.dayConformityRate).toBeNull();
+  expect(empty.metrics.scopeDeviationTotal).toBe(1);
+  expect(empty.months).toEqual([{ month: '2020-01', inspections: 0, deviations: 0, treated: 0 }]);
+  const em = db.orm.em.fork();
+  const plan = await em.findOneOrFail(ActionPlan, { questionId: q.id, state: 'COMPLETED' });
+  try {
+    await em.nativeUpdate(ActionPlan, plan.id, { state: 'AWAITING_VALIDATION', completedAt: null });
+    const waiting = await (await call(`qssma?${period}`)).json();
+    expect(waiting.metrics).toMatchObject({ treated: 0, pending: 1 });
+    expect(waiting.statuses).toContainEqual({ label: 'Aguardando validação', count: 1 });
+  } finally {
+    await em.nativeUpdate(ActionPlan, plan.id, {
+      state: 'COMPLETED',
+      completedAt: new Date('2026-10-29T12:00:00Z'),
+    });
+  }
+});
+it('filters historical customers, locations and inspectors before grouping and selector pagination', async () => {
+  const own = await (
+    await call(
+      `qssma?${period}&customerId=${customerIds[0]}&locationId=${locationIds[0]}&inspectorId=${users[2]!.id}`,
+    )
+  ).json();
+  expect(own.metrics).toMatchObject({ inspections: 2, deviations: 1, treated: 1 });
+  const denied = await (await call(`qssma?${period}&customerId=${customerIds[1]}`)).json();
+  expect(denied.metrics.inspections).toBe(0);
+  const options = await (await call('filter-options?dimension=customers&pageSize=1')).json();
+  expect(options.total).toBe(1);
+  expect(options.data).toEqual([{ id: customerIds[0], name: 'Cliente 0' }]);
+  const places = await (
+    await call(`filter-options?dimension=locations&customerId=${customerIds[1]}`)
+  ).json();
+  expect(places.total).toBe(0);
+  const inspectors = await (await call('filter-options?dimension=inspectors')).json();
+  expect(inspectors.data.map((u: { id: string }) => u.id)).toEqual([users[2]!.id]);
+  const summary = await (await call(`summary?${period}&customerId=${customerIds[0]}`)).json();
+  expect(summary.inspections.completed).toBe(2);
+  expect(
+    (await (await call(`nonconformities?${period}&locationId=${locationIds[0]}`)).json()).data[0],
+  ).toMatchObject({
+    customerName: 'Cliente 0',
+    locationName: 'Obra 0',
+    treatmentStatus: 'Tratado',
+  });
+});
 it('counts the latest completion, excludes NA and preserves archived forms and São Paulo boundaries', async () => {
   const r = await call(`summary?${period}`);
   expect(r.status).toBe(200);
@@ -203,8 +317,8 @@ it('scopes aggregates and drill-down before counting and denies foreign selector
   const global = await (await call(`summary?${period}`, 0)).json();
   expect(global.inspections.completed).toBe(4);
   expect(global.administration.activeUsers).toBe(4);
-  expect((await (await call(`summary?${period}`, 2)).json()).inspections.completed).toBe(3);
-  expect((await (await call(`summary?${period}`, 3)).json()).inspections.completed).toBe(0);
+  expect((await call(`summary?${period}`, 2)).status).toBe(403);
+  expect((await call(`summary?${period}`, 3)).status).toBe(403);
   expect((await call(`summary?${period}&sectorId=${sectors[1]!.id}`)).status).toBe(403);
   expect((await call(`summary?${period}&unitId=${units[1]!.id}`)).status).toBe(403);
   const ncs = await (await call(`nonconformities?${period}&pageSize=1`)).json();
@@ -273,6 +387,14 @@ it('aggregates representative volume with an explainable bounded query and no cr
   const summary = await (await call(`summary?${period}`)).json();
   expect(summary.inspections.completed).toBe(503);
   expect(summary.inspections.nonconformities).toBe(501);
+  const qssma = await (await call(`qssma?${period}`)).json();
+  expect(qssma.metrics).toMatchObject({
+    inspections: 503,
+    deviations: 501,
+    treated: 1,
+    pending: 500,
+    scopeDeviationTotal: 501,
+  });
 }, 20000);
 it('treats literal NA text as evaluable and keeps form choices inside the inspection scope', async () => {
   const em = db.orm.em.fork(),
@@ -322,9 +444,9 @@ it('treats literal NA text as evaluable and keeps form choices inside the inspec
   expect(result.inspections.conformityRate).toBe(0);
   const forms = await (await call('forms?pageSize=10&q=Texto')).json();
   expect(forms.data).toEqual([{ id: form.id, name: form.name }]);
-  expect((await (await call('forms?pageSize=10&q=Texto', 3)).json()).data).toEqual([]);
+  expect((await call('forms?pageSize=10&q=Texto', 3)).status).toBe(403);
 });
-it('offers the source form of an assigned correction without granting access to its inspection', async () => {
+it('keeps analytics unavailable even for a collaborator with a legacy correction', async () => {
   const em = db.orm.em.fork(),
     um = new UnitMembership();
   Object.assign(um, { user: users[3], unit: units[0] });
@@ -333,11 +455,8 @@ it('offers the source form of an assigned correction without granting access to 
   em.persist([um, sm]);
   await em.flush();
   await em.execute("update action_plan set responsible_id=? where state='OPEN'", [users[3]!.id]);
-  const result = await (await call('forms?pageSize=10&q=Ficha', 3)).json();
-  expect(result.data).toEqual([{ id: template.id, name: template.name }]);
-  const summary = await (await call(`summary?${period}&formId=${template.id}`, 3)).json();
-  expect(summary.inspections.completed).toBe(0);
-  expect(summary.plans.total).toBe(1);
+  expect((await call('forms?pageSize=10&q=Ficha', 3)).status).toBe(403);
+  expect((await call(`summary?${period}&formId=${template.id}`, 3)).status).toBe(403);
 });
 it('keeps NA occurrences in the detail but excludes them from the conformity numerator', async () => {
   const em = db.orm.em.fork(),

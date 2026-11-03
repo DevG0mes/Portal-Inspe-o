@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { NotificationKind, NotificationView, Paginated } from '@portal/contracts';
-import { Button, Notice, Skeleton } from '@portal/ui';
+import { Button, Field, Select, Notice, Skeleton } from '@portal/ui';
 import { api } from '../../lib/api-client';
 import { useResource } from '../shared/use-resource';
 import { ErrorNotice } from '../shared/error-notice';
@@ -19,11 +19,14 @@ const labels: Record<NotificationKind, string> = {
   ACTION_APPROVED: 'Correção aprovada',
   ACTION_RETURNED: 'Correção devolvida para ajuste',
 };
-export function NotificationCenter() {
+export function NotificationCenter({ embedded = false }: { embedded?: boolean }) {
+  const filterId = useId();
+  const [drawerPage, setDrawerPage] = useState(1);
+  const [drawerUnread, setDrawerUnread] = useState(false);
   const params = useSearchParams(),
     router = useRouter(),
-    page = Math.max(1, Number(params.get('page')) || 1),
-    unread = params.get('unread') === 'true';
+    page = embedded ? drawerPage : Math.max(1, Number(params.get('page')) || 1),
+    unread = embedded ? drawerUnread : params.get('unread') === 'true';
   const [revision, setRevision] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
@@ -36,6 +39,11 @@ export function NotificationCenter() {
     window.dispatchEvent(new Event('notifications-read'));
   }
   function navigate(next: number, onlyUnread = unread) {
+    if (embedded) {
+      setDrawerPage(next);
+      setDrawerUnread(onlyUnread);
+      return;
+    }
     router.replace(`/notifications?page=${next}${onlyUnread ? '&unread=true' : ''}`, {
       scroll: false,
     });
@@ -58,11 +66,15 @@ export function NotificationCenter() {
   }
   return (
     <>
-      <div className="page-heading">
-        <span className="eyebrow">ACOMPANHAMENTO · AVISOS</span>
-        <h1>Notificações</h1>
-        <p>Atribuições, prazos e decisões do seu trabalho. Os links consideram seu acesso atual.</p>
-      </div>
+      {!embedded && (
+        <div className="page-heading">
+          <span className="eyebrow">ACOMPANHAMENTO · AVISOS</span>
+          <h1>Notificações</h1>
+          <p>
+            Atribuições, prazos e decisões do seu trabalho. Os links consideram seu acesso atual.
+          </p>
+        </div>
+      )}
       <section className="card">
         <div className="actions">
           <Button variant="secondary" disabled={busy} onClick={refresh}>
@@ -72,28 +84,18 @@ export function NotificationCenter() {
             Marcar todas como lidas
           </Button>
         </div>
-        <nav className="actions" aria-label="Filtro de leitura">
-          <a
-            href="/notifications"
-            aria-current={!unread ? 'page' : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(1, false);
-            }}
-          >
-            Todas
-          </a>
-          <a
-            href="/notifications?unread=true"
-            aria-current={unread ? 'page' : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(1, true);
-            }}
-          >
-            Não lidas
-          </a>
-        </nav>
+        <div className="filters">
+          <Field id={filterId} label="Leitura">
+            <Select
+              id={filterId}
+              value={unread ? 'true' : ''}
+              onChange={(event) => navigate(1, event.target.value === 'true')}
+            >
+              <option value="">Todas</option>
+              <option value="true">Não lidas</option>
+            </Select>
+          </Field>
+        </div>
         {error !== undefined && <ErrorNotice error={error} />}
         {result.loading ? (
           <Skeleton />

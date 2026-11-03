@@ -65,7 +65,12 @@ function Editor({ data, reload }: { data: ScheduleSummary; reload: () => void })
   return (
     <>
       <div className="page-heading">
-        <a href="/schedules">← Programações</a>
+        <a className="back-link" href="/schedules">
+          <span className="back-link-arrow" aria-hidden="true">
+            ←
+          </span>
+          Programações
+        </a>
         <h1>{data.name}</h1>
         <p>
           {data.isActive ? 'Ativa' : 'Pausada'} · Revisão {data.revision}
@@ -78,7 +83,7 @@ function Editor({ data, reload }: { data: ScheduleSummary; reload: () => void })
       <section className="card">
         <h2>Configuração</h2>
         <dl className="schedule-summary">
-          <dt>Unidade e setor</dt>
+          <dt>Unidade e tipo de inspeção</dt>
           <dd>
             {data.unitName} · {data.sectorName}
           </dd>

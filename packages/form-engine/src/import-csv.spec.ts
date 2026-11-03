@@ -18,6 +18,25 @@ const headers = [
   '2. Ação Realizada',
   '3. Tema de segurança?',
 ];
+it('imports height-work questionnaires with question 3 as a choice and ten conditional actions', () => {
+  const columns = [
+    'Protocolo',
+    'Criado por',
+    'Criado',
+    ...Array.from({ length: 10 }, (_, index) => [
+      `${index + 1}. Verificação em altura?`,
+      `${index + 1}. Ação Realizada`,
+    ]).flat(),
+  ];
+  const snapshot = importQuestions(columns, { ...options, textQuestions: [] }, randomUUID);
+  const questions = snapshot.sections[0]!.questions;
+  expect(questions).toHaveLength(20);
+  expect(questions.filter((q) => q.type === 'YES_NO_NA')).toHaveLength(10);
+  expect(questions[4]!.type).toBe('YES_NO_NA');
+  expect(questions[5]!.visibleWhen).toEqual([
+    { questionId: questions[4]!.id, operator: 'EQ', value: 'NO' },
+  ]);
+});
 it('reads only a quoted first CSV record, respecting BOM, delimiters and escaped quotes', () => {
   expect(
     csvHeaders(

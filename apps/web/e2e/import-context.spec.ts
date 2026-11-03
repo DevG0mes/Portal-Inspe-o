@@ -17,6 +17,83 @@ async function accessible(page: Page) {
   ).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
+test('registers two lodging addresses in the same city and keeps them out of substations', async ({
+  page,
+}, info) => {
+  await post(page, 'auth/login', {
+    email: 'admin@example.test',
+    password: process.env.BROWSER_PASSWORD!,
+  });
+  for (const street of [
+    `Rua Alfa, 10 (${info.project.name})`,
+    `Rua Alfa, 20 (${info.project.name})`,
+  ]) {
+    await page.goto('/addresses/new');
+    await page.getByLabel('Endereço completo', { exact: true }).fill(street);
+    await page.getByLabel('Cidade', { exact: true }).fill('Limeira');
+    await expect(page.getByLabel('Selecionar cliente', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+    await expect(page).toHaveURL(/\/addresses\?saved=1$/);
+    await expect(page.getByRole('row').filter({ hasText: street })).toContainText('Limeira');
+  }
+  await accessible(page);
+  await page.goto('/locations');
+  await expect(page.getByRole('heading', { name: 'Subestações', exact: true })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Rua Alfa' })).toHaveCount(0);
+});
+
+import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import type { FormQuestion } from '@portal/contracts';
+import { epcHeaders } from './fixtures/epc-headers';
+import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+const origin = 'http://127.0.0.1:3100';
+async function post(page: Page, path: string, data: object) {
+  const response = await page.request.post(`/api/${path}`, { headers: { Origin: origin }, data });
+  expect(response.ok(), await response.text()).toBe(true);
+  return response.json();
+}
+async function accessible(page: Page) {
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+}
+test('registers two lodging addresses in the same city and keeps them out of substations', async ({
+  page,
+}, info) => {
+  await post(page, 'auth/login', {
+    email: 'admin@example.test',
+    password: process.env.BROWSER_PASSWORD!,
+  });
+  const units = await (await page.request.get('/api/organization/units?q=Alojamento')).json();
+  const unit =
+    units.data.find((row: { name: string }) => row.name === 'Alojamento') ??
+    (await post(page, 'organization/units', { name: 'Alojamento' }));
+  const client = await post(page, 'organization/customers', {
+    name: `Cliente alojamentos ${info.project.name}`,
+    unitIds: [unit.id],
+  });
+  for (const street of [
+    `Rua Alfa, 10 (${info.project.name})`,
+    `Rua Alfa, 20 (${info.project.name})`,
+  ]) {
+    await page.goto('/addresses/new');
+    await page.getByLabel('Endereço completo', { exact: true }).fill(street);
+    await page.getByLabel('Cidade', { exact: true }).fill('Limeira');
+    await page.getByLabel('Selecionar cliente', { exact: true }).selectOption(client.id);
+    await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+    await expect(page).toHaveURL(/\/addresses\?saved=1$/);
+    await expect(page.getByRole('row').filter({ hasText: street })).toContainText('Limeira');
+  }
+  await accessible(page);
+  await page.goto('/locations');
+  await expect(page.getByRole('heading', { name: 'Subestações', exact: true })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Rua Alfa' })).toHaveCount(0);
+});
+
 test('imports the real EPC headers, registers identification and completes a conditional inspection', async ({
   page,
 }, info) => {
@@ -30,24 +107,39 @@ test('imports the real EPC headers, registers identification and completes a con
   const other = await post(page, 'organization/units', {
     name: `SPCS integração ${info.project.name}`,
   });
-  await post(page, 'organization/sectors', { name: 'Campo integrado', unitId: unit.id });
+  const inspectionType = await post(page, 'organization/sectors', {
+    name: 'Campo integrado',
+    unitId: unit.id,
+  });
   await page.goto('/admin/forms/import');
-  const marker = 'HISTORICAL_ROW_MUST_NOT_BE_SENT';
   await page.getByLabel('Arquivo CSV', { exact: true }).setInputFiles({
     name: 'Inspeção_EPC.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from(
-      '\ufeff' +
-        epcHeaders.map((h) => '"' + h.replaceAll('"', '""') + '"').join(',') +
-        '\n' +
-        marker,
+      '\ufeffPergunta;Tipo\n' +
+        epcHeaders
+          .filter((h) => /^\d+[.)]/u.test(h))
+          .map(
+            (h) =>
+              '"' +
+              h.replaceAll('"', '""') +
+              '";' +
+              (/Ação Realizada/iu.test(h) || /^3\./u.test(h) ? 'Texto' : 'Escolha'),
+          )
+          .join('\n'),
     ),
   });
   await page.getByLabel('Nome do modelo', { exact: true }).fill(name);
   await page
     .getByLabel('Prioridade inicial das não conformidades', { exact: true })
     .selectOption('HIGH');
-  await page.getByLabel('Selecionar unidade para vincular', { exact: true }).selectOption(unit.id);
+  await page.getByLabel('Selecionar unidade', { exact: true }).selectOption(unit.id);
+  await page
+    .getByLabel('Selecionar tipo de inspeção', { exact: true })
+    .selectOption(inspectionType.id);
+  await expect(
+    page.getByLabel('Perguntas de texto identificadas no arquivo', { exact: true }),
+  ).toHaveValue('3');
   await page.getByRole('button', { name: 'Preparar prévia', exact: true }).click();
   await expect(page.getByText('59 campos.', { exact: false })).toBeVisible();
   await accessible(page);
@@ -62,7 +154,7 @@ test('imports the real EPC headers, registers identification and completes a con
     .click();
   const response = await imported;
   expect(response.status()).toBe(201);
-  expect(response.request().postData()).not.toContain(marker);
+  expect(response.request().postDataJSON().textQuestions).toEqual([3]);
   const form = await response.json();
   await expect(page).toHaveURL(new RegExp(`/admin/forms/${form.id}$`));
   await page.getByRole('button', { name: 'Publicar versão', exact: true }).click();
@@ -98,12 +190,14 @@ test('imports the real EPC headers, registers identification and completes a con
     .filter({ has: page.getByRole('heading', { name, exact: true }) })
     .click();
   await page.getByLabel('Selecionar cliente', { exact: true }).selectOption(customer.id);
-  await page.getByLabel('Selecionar local', { exact: true }).selectOption(location.id);
+  await page.getByLabel('Selecionar subestação', { exact: true }).selectOption(location.id);
   await page
     .getByLabel('Participantes (opcional)', { exact: true })
     .fill('Maria de Campo\nJosé de Campo');
-  await expect(page.getByRole('button', { name: /Trabalho em Altura/ })).toBeDisabled();
-  await page.getByRole('button', { name: /Inspeção EPC/ }).click();
+  await expect(page.getByLabel('Selecionar tipo de inspeção', { exact: true })).toHaveValue(
+    inspectionType.id,
+  );
+  await page.getByLabel('Selecionar formulário', { exact: true }).selectOption(form.id);
   await accessible(page);
   await page.screenshot({
     path: `test-results/identification-${info.project.name}.png`,
@@ -178,4 +272,48 @@ test('imports the real EPC headers, registers identification and completes a con
   const bytes = await pdf.body();
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
   await writeFile(`test-results/context-${info.project.name}.pdf`, bytes);
+});
+
+test('binds a custom inspection type and confirms deletion without removing published history', async ({
+  page,
+}, info) => {
+  test.setTimeout(120000);
+  await post(page, 'auth/login', {
+    email: 'admin@example.test',
+    password: process.env.BROWSER_PASSWORD!,
+  });
+  const units = await (
+    await page.request.get('/api/organization/units?q=Unidade%20de%20testes')
+  ).json();
+  const unit = units.data.find((u: { name: string }) => u.name === 'Unidade de testes');
+  const type = await post(page, 'organization/sectors', {
+    name: `Trabalho em Altura ${info.project.name}`,
+    unitId: unit.id,
+  });
+  const name = `Limpeza de modelo ${info.project.name}`;
+  const form = await post(page, 'forms', { name });
+  await page.goto('/admin/forms');
+  await page.getByLabel('Buscar modelos', { exact: true }).fill(name);
+  await page.getByRole('button', { name: 'Buscar', exact: true }).first().click();
+  const row = page.getByRole('row').filter({ hasText: name });
+  await row.getByRole('button', { name: `Vincular tipo de ${name}`, exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Vincular tipo de inspeção' });
+  await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await row.getByRole('button', { name: `Vincular tipo de ${name}`, exact: true }).click();
+  await dialog.getByLabel('Selecionar unidade', { exact: true }).selectOption(unit.id);
+  await dialog.getByLabel('Selecionar tipo de inspeção', { exact: true }).selectOption(type.id);
+  await dialog.getByRole('button', { name: 'Salvar vínculo', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  expect((await (await page.request.get(`/api/forms/${form.id}`)).json()).inspectionTypeId).toBe(
+    type.id,
+  );
+  await row.getByRole('button', { name: `Excluir ${name}`, exact: true }).click();
+  const remove = page.getByRole('dialog', { name: 'Excluir formulário?' });
+  await remove.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: `Excluir ${name}`, exact: true }).click();
+  await remove.getByRole('button', { name: 'Excluir formulário', exact: true }).click();
+  await expect(row).toHaveCount(0);
+  expect((await page.request.get(`/api/forms/${form.id}`)).status()).toBe(403);
+  await accessible(page);
 });

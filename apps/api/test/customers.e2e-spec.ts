@@ -78,6 +78,71 @@ function domain(path: string, method = 'GET', body?: unknown, actor = 0) {
     ...(method !== 'GET' ? { body: JSON.stringify(body ?? {}) } : {}),
   });
 }
+it('keeps lodging addresses separate from substations and permits multiple addresses in a city', async () => {
+  const unit = await (await domain('organization/units', 'POST', { name: 'Alojamento' })).json();
+  expect(unit.id).toBeTruthy();
+  const client = await (
+    await call('customers', 'POST', {
+      name: 'Cliente alojamento',
+      unitIds: [unit.id, units[0]!.id],
+    })
+  ).json();
+  const addressIds = [];
+  for (const name of ['Rua das Flores, 10', 'Rua das Flores, 20']) {
+    const response = await call('locations', 'POST', {
+      name,
+      city: 'Limeira',
+    });
+    expect(response.status).toBe(201);
+    addressIds.push((await response.json()).id);
+  }
+  const site = await (
+    await call('locations', 'POST', { name: 'SE Central', customerId: client.id })
+  ).json();
+  const lodging = await (await call(`locations?unitId=${unit.id}&customerId=${client.id}`)).json();
+  expect(lodging.data.map((row: { id: string }) => row.id)).toEqual(addressIds);
+  expect(lodging.data[0].name).toContain('Limeira');
+  expect(
+    (
+      await (await call(`locations?unitId=${units[0]!.id}&customerId=${client.id}`)).json()
+    ).data.map((row: { id: string }) => row.id),
+  ).toEqual([site.id]);
+  expect((await call(`locations/${addressIds[0]}`, 'GET', undefined, 1)).status).toBe(403);
+  const sector = await (
+    await domain('organization/sectors', 'POST', {
+      name: 'Inspeção de alojamento',
+      unitId: unit.id,
+    })
+  ).json();
+  const form = await (await domain('forms', 'POST', { name: 'Ficha de alojamento' })).json();
+  const draft = await (
+    await domain(`forms/${form.id}/draft`, 'PUT', {
+      revision: 1,
+      snapshot: definition([question('YES_NO_NA')]),
+    })
+  ).json();
+  expect(
+    (await domain(`forms/${form.id}/publish`, 'POST', { revision: draft.revision })).status,
+  ).toBe(200);
+  const inspection = { unitId: unit.id, sectorId: sector.id, formId: form.id };
+  expect(
+    (
+      await domain('inspections', 'POST', {
+        ...inspection,
+        context: { customerId: client.id, locationId: site.id },
+      })
+    ).status,
+  ).toBe(403);
+  const created = await domain('inspections', 'POST', {
+    ...inspection,
+    context: { customerId: client.id, locationId: addressIds[0] },
+  });
+  expect(created.status).toBe(201);
+  expect((await created.json()).context).toMatchObject({
+    locationKind: 'address',
+    locationName: 'Rua das Flores, 10 · Limeira',
+  });
+});
 it('freezes client/local identification and participants, rejects cross links and grants no participant rights', async () => {
   const em = db.orm.em.fork(),
     sector = new Sector();

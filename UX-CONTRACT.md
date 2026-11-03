@@ -2,6 +2,12 @@
 
 Portal interno pt-BR. A API é a autoridade de permissões e estado. Nenhuma credencial fica em localStorage. A sessão usa cookie HttpOnly e verificação no servidor em cada navegação protegida.
 
+Visualização Desktop/Celular: `/experience` oferece a escolha após login e troca de senha obrigatória. A preferência da sessão só altera apresentação. `PortalShell` apresenta navegação pessoal a colaboradores; no Celular, usa barra inferior. `InspectionRunner` conserva o mesmo autosave, validação e evidências em ambos os modos; seções não ativas ficam ocultas sem perder rascunhos ou arquivos selecionados.
+
+Notificações: `NotificationBell` no cabeçalho abre painel lateral modal nativo com sino e contador de não lidas. Reutiliza `NotificationCenter` com filtro/paginação locais sem mudar a rota de origem. Escape/Fechar devolvem foco ao sino; navegação desmonta o painel. Conteúdo, confirmação de leitura, erros e atualização permanecem no centro canônico. A rota `/notifications` continua disponível para links existentes.
+
+Na lista de usuários, as ações por registro usam o `Select` compartilhado com nome acessível que identifica a pessoa. A seleção retorna ao placeholder após a escolha; editar, vínculos e redefinição abrem suas telas, enquanto desativar/reativar mantém o diálogo de confirmação existente.
+
 | Capacidade     | Proprietário canônico                          | Comportamento e verificação                                                                                                                                                |
 | -------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Form           | `packages/ui/src/index.tsx`, `features/shared` | Rótulos visíveis, noValidate, erro associado ao campo, foco no primeiro erro; submit bloqueado enquanto pendente. Testes de componentes e navegador.                       |
@@ -17,6 +23,12 @@ Busca de usuários contém dados pessoais e fica em memória; paginação e filt
 Tokens: `packages/ui/src/tokens.css`. Layout: `globals.css`. Marca: `features/shared/brand-logo.tsx`, compartilhada entre login e navegação. Componentes e comportamento recorrentes devem ser estendidos nesses proprietários, sem cópias locais. Dashboard apresenta somente dados reais disponíveis. Não exibir ações para etapas futuras ainda inexistentes. A navegação desktop pode rolar quando a altura for insuficiente; no celular permanece em fluxo. Dimensões do logo são reservadas para evitar deslocamento no carregamento.
 
 ## Canonical UI Map
+
+Gráficos QSSMA pertencem a `features/dashboard/qssma-charts.tsx`. São leituras sem ação de clique simulada; detalhes nativos expõem tabelas equivalentes. Regiões com rolagem recebem foco de teclado e nome acessível. Filtros de cliente/local/colaborador reutilizam RemotePicker com opções históricas no escopo, sem consultas globais de usuários. Falha no painel QSSMA preserva os outros painéis e usa Atualizar indicadores para retry.
+
+O cadastro “Tipos de inspeção” usa as rotas/IDs legados de setores. Unidade limita os tipos, e tipo limita os formulários. Trocar o tipo invalida a ficha selecionada na criação avulsa. Catálogo de formulários reutiliza ConfirmDialog para vínculo e exclusão; Cancelar permanece disponível antes do envio. Remoção de publicado preserva o histórico e bloqueia novos usos.
+
+Filtros de situação/leitura nas listas usam Field e Select nativos compartilhados, dentro de `.filters`, sem links horizontais equivalentes. Alterar a seleção atualiza a URL, volta à primeira página e preserva os outros filtros ativos.
 
 Importação e identificação: `features/form-builder/import-form.tsx` cria somente rascunho após prévia e confirmação. Falha preserva o payload idempotente para retry; mudança de arquivo/opções invalida a prévia. `features/shared/unit-bindings.tsx` reutiliza RemotePicker para vínculos múltiplos. `identification-fields.tsx` é compartilhado pela criação avulsa e programação; trocar unidade limpa cliente/local, trocar cliente limpa local. Participantes são nomes descritivos. Lookup falhado oferece retry e não permite submissão ambígua. `identification-summary.tsx` exibe o snapshot histórico. Clientes/locais estendem ResourceList/ResourceForm. Tipos indisponíveis têm rótulo textual e controle desabilitado; modelos publicados são validados novamente no servidor.
 

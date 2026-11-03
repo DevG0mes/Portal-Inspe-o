@@ -34,6 +34,9 @@ import { Migration202610300001 } from './migrations/Migration202610300001.js';
 import { Migration202610300002 } from './migrations/Migration202610300002.js';
 import { Migration202610300003 } from './migrations/Migration202610300003.js';
 import { Migration202610300004 } from './migrations/Migration202610300004.js';
+import { Migration202611030003 } from './migrations/Migration202611030003.js';
+import { Migration202611030002 } from './migrations/Migration202611030002.js';
+import { Migration202611030001 } from './migrations/Migration202611030001.js';
 import { formUnitSchema } from '../forms/entities/form-unit.entity.js';
 import {
   customerSchema,
@@ -90,6 +93,9 @@ export function createDatabaseOptions(clientUrl: string) {
         Migration202610300002,
         Migration202610300003,
         Migration202610300004,
+        Migration202611030001,
+        Migration202611030002,
+        Migration202611030003,
       ],
       transactional: true,
       allOrNothing: true,

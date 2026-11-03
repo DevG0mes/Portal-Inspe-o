@@ -31,7 +31,7 @@ function setup() {
     unitId: 'a',
     sectorId: 'b',
     unitName: 'Unidade',
-    sectorName: 'Setor',
+    sectorName: 'Tipo de inspeção',
     sourceSubmissionId: 's',
     questionId: 'q',
     question: { id: 'q', label: 'Proteção instalada?', type: 'YES_NO_NA', required: true },

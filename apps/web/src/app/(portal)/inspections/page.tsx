@@ -2,6 +2,6 @@ import { InspectionList } from '../../../features/inspection-runner/inspection-l
 import { requireSession } from '../../../lib/session';
 export const metadata = { title: 'Inspeções | Portal de Segurança' };
 export default async function Page() {
-  await requireSession();
-  return <InspectionList />;
+  const session = await requireSession();
+  return <InspectionList personal={session.role === 'COLLABORATOR'} />;
 }

@@ -70,6 +70,115 @@ async function save(id: string, revision: number, snapshot = definition([questio
 }
 
 describe('form lifecycle and immutable history', () => {
+  it('serializes deletion against publication of the same revision', async () => {
+    const model = await create(),
+      draft = await save(model.id, model.revision);
+    const [published, removed] = await Promise.all([
+      call(`/${model.id}/publish`, 'POST', { revision: draft.revision }),
+      call(`/${model.id}/remove`, 'POST', { revision: draft.revision }),
+    ]);
+    expect([published.status, removed.status].filter((status) => status === 200)).toHaveLength(1);
+    expect([404, 409]).toContain(published.status === 200 ? removed.status : published.status);
+    expect(await database.orm.em.fork().count(FormVersion, { template: model.id })).toBe(
+      published.status === 200 ? 1 : 0,
+    );
+  });
+  it('binds custom inspection types to their unit and prevents cross-type execution', async () => {
+    async function organization(path: string, data: object) {
+      const r = await fetch(`${origin}/api/organization/${path}`, {
+        method: 'POST',
+        headers: { cookie: adminCookie, 'content-type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      expect(r.status).toBe(201);
+      return r.json();
+    }
+    const unit = await organization('units', { name: `Tipos ${randomUUID()}` });
+    const type = await organization('sectors', { unitId: unit.id, name: 'Trabalho em Altura' });
+    const other = await organization('sectors', { unitId: unit.id, name: 'Espaço Confinado' });
+    const model = await create();
+    expect(
+      (
+        await call(
+          `/${model.id}/inspection-type`,
+          'PUT',
+          { revision: 1, inspectionTypeId: type.id },
+          collaboratorCookie,
+        )
+      ).status,
+    ).toBe(403);
+    const bound = await call(`/${model.id}/inspection-type`, 'PUT', {
+      revision: 1,
+      inspectionTypeId: type.id,
+    });
+    expect(bound.status).toBe(200);
+    expect((await bound.json()).inspectionTypeId).toBe(type.id);
+    expect(
+      (
+        await call(`/${model.id}/inspection-type`, 'PUT', {
+          revision: 1,
+          inspectionTypeId: other.id,
+        })
+      ).status,
+    ).toBe(409);
+    const draft = await save(model.id, 2);
+    await call(`/${model.id}/publish`, 'POST', { revision: draft.revision });
+    const matching = await (
+      await call(`?state=PUBLISHED&unitId=${unit.id}&inspectionTypeId=${type.id}`)
+    ).json();
+    const mismatched = await (
+      await call(`?state=PUBLISHED&unitId=${unit.id}&inspectionTypeId=${other.id}`)
+    ).json();
+    expect(matching.data.some((f: { id: string }) => f.id === model.id)).toBe(true);
+    expect(mismatched.data.some((f: { id: string }) => f.id === model.id)).toBe(false);
+    for (const [sectorId, status] of [
+      [other.id, 400],
+      [type.id, 201],
+    ] as const) {
+      const response = await fetch(`${origin}/api/inspections`, {
+        method: 'POST',
+        headers: { cookie: adminCookie, 'content-type': 'application/json' },
+        body: JSON.stringify({ unitId: unit.id, sectorId, formId: model.id }),
+      });
+      expect(response.status).toBe(status);
+    }
+    const current = await (await call(`/${model.id}`)).json();
+    await call(`/${model.id}/remove`, 'POST', { revision: current.revision });
+    expect((await call('', 'POST', { name: model.name })).status).toBe(201);
+  });
+  it('deletes unused drafts, hides published models and preserves immutable versions', async () => {
+    const unused = await create();
+    expect(
+      (
+        await call(
+          `/${unused.id}/remove`,
+          'POST',
+          { revision: unused.revision },
+          collaboratorCookie,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (await call(`/${unused.id}/remove`, 'POST', { revision: unused.revision + 1 })).status,
+    ).toBe(409);
+    expect((await call(`/${unused.id}/remove`, 'POST', { revision: unused.revision })).status).toBe(
+      200,
+    );
+    expect((await call(`/${unused.id}`)).status).toBe(403);
+    const model = await create(),
+      draft = await save(model.id, model.revision);
+    await call(`/${model.id}/publish`, 'POST', { revision: draft.revision });
+    const current = await (await call(`/${model.id}`)).json();
+    const version = await (await call(`/${model.id}/versions/1`)).text();
+    expect((await call(`/${model.id}/remove`, 'POST', { revision: current.revision })).status).toBe(
+      200,
+    );
+    expect((await call(`/${model.id}`)).status).toBe(403);
+    expect(await (await call(`/${model.id}/versions/1`)).text()).toBe(version);
+    expect(
+      (await call(`/${model.id}/draft`, 'POST', { revision: current.revision + 1 })).status,
+    ).toBe(409);
+  });
   it('imports a typed draft idempotently, rejects changed retries and enforces NO actions', async () => {
     const unitResponse = await fetch(`${origin}/api/organization/units`, {
       method: 'POST',
@@ -120,6 +229,10 @@ describe('form lifecycle and immutable history', () => {
     expect(before.types.every((t: { count: number }) => t.count === 0)).toBe(true);
     expect((await call(`/${a.id}/publish`, 'POST', { revision: draft.revision })).status).toBe(200);
     const after = await (await call(`/available-types?unitId=${unit.id}`)).json();
+    const legacyPicker = await (
+      await call(`?unitId=${unit.id}&inspectionTypeId=${randomUUID()}&state=PUBLISHED`)
+    ).json();
+    expect(legacyPicker.data.some((f: { id: string }) => f.id === a.id)).toBe(true);
     expect(after.types).toHaveLength(5);
     expect(after.types.filter((t: { count: number }) => t.count > 0)).toEqual([
       { kind: 'EPC_GENERAL', count: 1, formId: a.id },

@@ -91,7 +91,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'change' }) {
         ),
       });
       form.reset();
-      window.location.assign(principal.mustChangePassword ? '/change-password' : '/dashboard');
+      window.location.assign(principal.mustChangePassword ? '/change-password' : '/experience');
     } catch (failure) {
       setError(
         failure instanceof ApiError && failure.status === 401

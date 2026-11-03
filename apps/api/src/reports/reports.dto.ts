@@ -7,6 +7,9 @@ const filters = z
     unitId: z.uuid().optional(),
     sectorId: z.uuid().optional(),
     formId: z.uuid().optional(),
+    customerId: z.uuid().optional(),
+    locationId: z.uuid().optional(),
+    inspectorId: z.uuid().optional(),
     category: z.string().max(160).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
   })
