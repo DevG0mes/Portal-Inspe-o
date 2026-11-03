@@ -16,6 +16,7 @@ import { useResource } from '../shared/use-resource';
 import { RemotePicker } from '../shared/remote-picker';
 import { Pagination } from '../shared/pagination';
 import { ErrorNotice } from '../shared/error-notice';
+import { usePilot } from '../auth/pilot';
 import { actionStates } from '../action-plans/presentation';
 import { priorityLabels } from '../form-builder/model';
 import { localInstant } from '../schedules/presentation';
@@ -59,6 +60,7 @@ function Panel({
   return loading ? <Skeleton /> : error !== undefined ? <ErrorNotice error={error} /> : children;
 }
 export function Dashboard({ role }: { role: UserRole }) {
+  const pilot = usePilot();
   const params = useSearchParams(),
     router = useRouter(),
     [revision, setRevision] = useState(0);
@@ -89,7 +91,7 @@ export function Dashboard({ role }: { role: UserRole }) {
     revision,
   );
   const plans = useResource<Paginated<AnalyticsPlan>>(
-    `analytics/action-plans?${query}&page=${planPage}&pageSize=10`,
+    pilot ? null : `analytics/action-plans?${query}&page=${planPage}&pageSize=10`,
     revision,
   );
   function page(key: string, value: number) {
@@ -112,10 +114,10 @@ export function Dashboard({ role }: { role: UserRole }) {
         </p>
       </div>
       <div className="actions">
-        <a href="/assignments">Inspeções atribuídas e prazos</a>
+        {!pilot && <a href="/assignments">Inspeções atribuídas e prazos</a>}
         <a href="/inspections?state=DRAFT">Rascunhos</a>
-        <a href="/action-plans">Planos de ação</a>
-        <a href="/notifications">Notificações</a>
+        {!pilot && <a href="/action-plans">Planos de ação</a>}
+        {!pilot && <a href="/notifications">Notificações</a>}
       </div>
       <Filters
         key={query}
@@ -459,55 +461,57 @@ export function Dashboard({ role }: { role: UserRole }) {
           </>
         )}
       </Panel>
-      <section className="card list-card">
-        <h2>Planos de ação do período</h2>
-        <Panel loading={plans.loading} error={plans.error}>
-          {plans.data && (
-            <>
-              {plans.data.data.length ? (
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <caption>Planos criados no período</caption>
-                    <thead>
-                      <tr>
-                        <th>Correção</th>
-                        <th>Local</th>
-                        <th>Situação</th>
-                        <th>Prazo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plans.data.data.map((row) => (
-                        <tr key={row.id}>
-                          <td data-label="Correção">
-                            <a href={`/action-plans/${row.id}`}>{row.description}</a>
-                          </td>
-                          <td data-label="Local">
-                            {row.unitName} · {row.sectorName}
-                          </td>
-                          <td data-label="Situação">
-                            {actionStates[row.state]}
-                            {row.overdue && <span className="cell-detail">Vencido</span>}
-                          </td>
-                          <td data-label="Prazo">{localInstant(row.dueAt)}</td>
+      {!pilot && (
+        <section className="card list-card">
+          <h2>Planos de ação do período</h2>
+          <Panel loading={plans.loading} error={plans.error}>
+            {plans.data && (
+              <>
+                {plans.data.data.length ? (
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <caption>Planos criados no período</caption>
+                      <thead>
+                        <tr>
+                          <th>Correção</th>
+                          <th>Local</th>
+                          <th>Situação</th>
+                          <th>Prazo</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <Notice>Nenhum plano criado neste recorte.</Notice>
-              )}
-              <Pagination
-                page={planPage}
-                pageSize={10}
-                total={plans.data.total}
-                onPage={(p) => page('planPage', p)}
-              />
-            </>
-          )}
-        </Panel>
-      </section>
+                      </thead>
+                      <tbody>
+                        {plans.data.data.map((row) => (
+                          <tr key={row.id}>
+                            <td data-label="Correção">
+                              <a href={`/action-plans/${row.id}`}>{row.description}</a>
+                            </td>
+                            <td data-label="Local">
+                              {row.unitName} · {row.sectorName}
+                            </td>
+                            <td data-label="Situação">
+                              {actionStates[row.state]}
+                              {row.overdue && <span className="cell-detail">Vencido</span>}
+                            </td>
+                            <td data-label="Prazo">{localInstant(row.dueAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <Notice>Nenhum plano criado neste recorte.</Notice>
+                )}
+                <Pagination
+                  page={planPage}
+                  pageSize={10}
+                  total={plans.data.total}
+                  onPage={(p) => page('planPage', p)}
+                />
+              </>
+            )}
+          </Panel>
+        </section>
+      )}
     </>
   );
 }

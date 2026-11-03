@@ -266,6 +266,36 @@ it('freezes client/local identification and participants, rejects cross links an
   ).toBe('Canteiro original');
   expect((await domain('inspections', 'POST', input, 1)).status).toBe(403);
 });
+it('serves authenticated inspection reads in the pilot with background modules absent', async () => {
+  const pilot = await createApplication(
+    {
+      postgres: async () => {
+        await db.orm.em.getConnection().execute('select 1');
+      },
+    },
+    undefined,
+    db.orm,
+    undefined,
+    undefined,
+    { pilot: true },
+  );
+  try {
+    await pilot.listen(0, '127.0.0.1');
+    const base = `${await pilot.getUrl()}/api`;
+    const readiness = await fetch(`${base}/health/ready`);
+    expect(await readiness.json()).toMatchObject({
+      status: 'ok',
+      dependencies: { postgres: 'up' },
+    });
+    const headers = { cookie: cookies[0]! };
+    expect((await fetch(`${base}/inspections`, { headers })).status).toBe(200);
+    for (const route of ['reports', 'files/policy', 'schedules', 'action-plans', 'notifications'])
+      expect((await fetch(`${base}/${route}`, { headers })).status).toBe(404);
+  } finally {
+    await pilot.close();
+  }
+});
+
 it('supports clients across units, scoped paginated reads and locations per client without leaking other unit names', async () => {
   const result = await call('customers', 'POST', {
     name: 'Cliente compartilhado',

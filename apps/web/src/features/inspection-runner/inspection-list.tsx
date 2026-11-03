@@ -7,8 +7,10 @@ import { useResource } from '../shared/use-resource';
 import { ErrorNotice } from '../shared/error-notice';
 import { Pagination } from '../shared/pagination';
 import { localInstant } from '../schedules/presentation';
+import { usePilot } from '../auth/pilot';
 import { usePresentation } from '../auth/presentation';
 export function InspectionList({ personal = false }: { personal?: boolean }) {
+  const pilot = usePilot();
   const mobile = usePresentation() === 'mobile';
   const params = useSearchParams(),
     router = useRouter();
@@ -39,7 +41,7 @@ export function InspectionList({ personal = false }: { personal?: boolean }) {
         <a className="button primary" href="/inspections/start">
           Nova inspeção avulsa
         </a>
-        {personal && (
+        {personal && !pilot && (
           <a className="button secondary" href="/assignments">
             Atribuídas a mim
           </a>
@@ -81,8 +83,12 @@ export function InspectionList({ personal = false }: { personal?: boolean }) {
               {!resource.data.data.length ? (
                 <div className="empty-state">
                   <h2>Nenhuma inspeção encontrada</h2>
-                  <p>Inicie uma inspeção avulsa ou consulte suas atribuições.</p>
-                  <a href="/assignments">Ver atribuições</a>
+                  <p>
+                    {pilot
+                      ? 'Inicie uma nova inspeção.'
+                      : 'Inicie uma inspeção avulsa ou consulte suas atribuições.'}
+                  </p>
+                  {!pilot && <a href="/assignments">Ver atribuições</a>}
                 </div>
               ) : mobile ? (
                 <ul className="field-inspections" aria-label="Registros de inspeção">

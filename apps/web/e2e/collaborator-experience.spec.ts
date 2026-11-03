@@ -86,8 +86,9 @@ test('chooses the field layout, completes a personal inspection in steps and swi
   await expect(page).toHaveURL(/\/my-work$/);
   await expect(page.locator('.portal')).toHaveClass(/field-mode/);
   const nav = page.getByRole('navigation', { name: 'Principal' });
-  await expect(nav.getByRole('link')).toHaveCount(4);
-  await expect(page.getByRole('button', { name: /Notificações/ })).toBeVisible();
+  const pilot = process.env.PORTAL_PILOT === 'true';
+  await expect(nav.getByRole('link')).toHaveCount(pilot ? 3 : 4);
+  await expect(page.getByRole('button', { name: /Notificações/ })).toHaveCount(pilot ? 0 : 1);
   await expect(page.getByRole('link', { name: /Nova inspeção/ })).toBeVisible();
   expect(
     (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
@@ -96,22 +97,25 @@ test('chooses the field layout, completes a personal inspection in steps and swi
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `test-results/colaborador-inicio-${info.project.name}.png` });
 
-  await nav.getByRole('link', { name: 'Atribuídas a mim' }).click();
-  await expect(
-    page.getByText(`Ronda disponível ${info.project.name}`, { exact: true }),
-  ).toBeVisible();
+  if (!pilot) {
+    await nav.getByRole('link', { name: 'Atribuídas a mim' }).click();
+    await expect(
+      page.getByText(`Ronda disponível ${info.project.name}`, { exact: true }),
+    ).toBeVisible();
+  }
   for (const path of ['/dashboard', '/action-plans', '/users']) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/my-work$/);
   }
   expect((await page.request.get(`/api/inspections/${other.id}`)).status()).toBe(403);
   expect((await page.request.get('/api/analytics/summary')).status()).toBe(403);
-  expect((await page.request.get('/api/action-plans')).status()).toBe(403);
+  expect((await page.request.get('/api/action-plans')).status()).toBe(pilot ? 404 : 403);
   const created = await page.request.post('/api/inspections', { headers, data: input });
   expect(created.status()).toBe(201);
   const own = await created.json();
   await page.goto(`/inspections/${own.id}`);
   await expect(page.getByText('Etapa 1 de 2', { exact: true })).toBeVisible();
+  if (pilot) await expect(page.getByRole('region', { name: /^Evidências de/ })).toHaveCount(0);
   const observation = page.getByRole('textbox', { name: /^Observação de campo/ });
   await expect(observation).not.toBeVisible();
   await page.getByRole('button', { name: 'Próxima etapa' }).click();

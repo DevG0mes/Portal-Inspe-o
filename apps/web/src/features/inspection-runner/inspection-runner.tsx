@@ -1,5 +1,6 @@
 'use client';
 import { IdentificationSummary } from '../shared/identification-summary';
+import { usePilot } from '../auth/pilot';
 import { usePresentation } from '../auth/presentation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type {
@@ -137,7 +138,8 @@ function DraftRunner({
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(() => new Set());
   const [removing, setRemoving] = useState<EvidenceFile>();
   const [policyRevision, setPolicyRevision] = useState(0);
-  const policy = useResource<UploadPolicy>('files/policy', policyRevision);
+  const pilot = usePilot();
+  const policy = useResource<UploadPolicy>(pilot ? null : 'files/policy', policyRevision);
   const conflictRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string>();
   useEffect(() => {
@@ -444,37 +446,39 @@ function DraftRunner({
                             }
                           />
                         </Field>
-                        <EvidenceControls
-                          inspectionId={initial.id}
-                          questionId={question.id}
-                          questionLabel={question.label}
-                          files={files.filter((file) => file.questionId === question.id)}
-                          policy={policy.data}
-                          onBegin={beginEvidence}
-                          onEnd={() => setBusy(false)}
-                          onPending={(file) =>
-                            setFiles((current) => [
-                              ...current.filter((item) => item.id !== file.id),
-                              file,
-                            ])
-                          }
-                          onReceipt={receipt}
-                          onRemove={(file) => {
-                            setRemoving(file);
-                            setConfirm('detach');
-                            setError(undefined);
-                          }}
-                          onFailure={fileFailure}
-                          onSelection={(selected) =>
-                            setSelectedQuestions((current) => {
-                              if (current.has(question.id) === selected) return current;
-                              const next = new Set(current);
-                              if (selected) next.add(question.id);
-                              else next.delete(question.id);
-                              return next;
-                            })
-                          }
-                        />
+                        {!pilot && (
+                          <EvidenceControls
+                            inspectionId={initial.id}
+                            questionId={question.id}
+                            questionLabel={question.label}
+                            files={files.filter((file) => file.questionId === question.id)}
+                            policy={policy.data}
+                            onBegin={beginEvidence}
+                            onEnd={() => setBusy(false)}
+                            onPending={(file) =>
+                              setFiles((current) => [
+                                ...current.filter((item) => item.id !== file.id),
+                                file,
+                              ])
+                            }
+                            onReceipt={receipt}
+                            onRemove={(file) => {
+                              setRemoving(file);
+                              setConfirm('detach');
+                              setError(undefined);
+                            }}
+                            onFailure={fileFailure}
+                            onSelection={(selected) =>
+                              setSelectedQuestions((current) => {
+                                if (current.has(question.id) === selected) return current;
+                                const next = new Set(current);
+                                if (selected) next.add(question.id);
+                                else next.delete(question.id);
+                                return next;
+                              })
+                            }
+                          />
+                        )}
                       </div>
                     );
                   })}

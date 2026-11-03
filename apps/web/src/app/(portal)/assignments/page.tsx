@@ -1,7 +1,7 @@
 import { ScheduleList } from '../../../features/schedules/schedule-list';
-import { requireSession } from '../../../lib/session';
+import { requireFullPortal } from '../../../lib/session';
 export const metadata = { title: 'Inspeções atribuídas | Portal de Segurança' };
 export default async function Page() {
-  await requireSession();
+  await requireFullPortal();
   return <ScheduleList assignments />;
 }

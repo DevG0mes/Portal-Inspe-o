@@ -18,3 +18,8 @@ export async function requireManagementSession() {
   if (session.role === 'COLLABORATOR') redirect('/my-work');
   return session;
 }
+export async function requireFullPortal() {
+  const session = await requireSession();
+  if (process.env.PORTAL_PILOT === 'true') redirect(homeFor(session.role));
+  return session;
+}

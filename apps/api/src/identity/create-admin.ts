@@ -1,10 +1,10 @@
 import { MikroORM } from '@mikro-orm/postgresql';
-import { loadEnvironment } from '@portal/config';
+import { loadApiEnvironment } from '@portal/config';
 import { createDatabaseOptions } from '../database/mikro-orm.config.js';
 import { bootstrapAdministrator } from './bootstrap-administrator.js';
 
 async function createAdmin() {
-  const environment = loadEnvironment(process.env);
+  const environment = loadApiEnvironment(process.env);
   const database = await MikroORM.init(createDatabaseOptions(environment.DATABASE_URL));
   try {
     const administrator = await bootstrapAdministrator(database, {

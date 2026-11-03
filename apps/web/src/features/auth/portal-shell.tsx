@@ -7,12 +7,16 @@ import { api } from '../../lib/api-client';
 import { ErrorNotice } from '../shared/error-notice';
 import type { Principal } from '../../lib/session';
 import { roleLabels } from '../admin/config';
+import { usePilot } from './pilot';
 import { NotificationBell } from '../notifications/notification-bell';
 import { BrandLogo } from '../shared/brand-logo';
 import { usePresentation } from './presentation';
 import { homeFor } from '../../lib/presentation';
 export function PortalShell({ role, children }: { role: Principal['role']; children: ReactNode }) {
   const path = usePathname();
+  const pilot = usePilot();
+  const available = ([href]: string[]) =>
+    !pilot || !['/assignments', '/action-plans', '/reports', '/schedules'].includes(href!);
   const mode = usePresentation();
   const collaborator = role === 'COLLABORATOR';
   const fieldMode = collaborator && mode === 'mobile';
@@ -58,7 +62,9 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
     }
   }
   return (
-    <div className={`portal mode-${mode}${fieldMode ? ' field-mode' : ''}`}>
+    <div
+      className={`portal mode-${mode}${fieldMode ? ' field-mode' : ''}${pilot ? ' pilot-mode' : ''}`}
+    >
       <a className="skip-link" href="#main">
         Ir para o conteúdo
       </a>
@@ -81,7 +87,7 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
             Menu
           </button>
           <nav id="portal-nav" aria-label="Principal" className={expanded ? 'expanded' : ''}>
-            {links.map(([href, label]) => (
+            {links.filter(available).map(([href, label]) => (
               <Link
                 key={href}
                 href={href!}
@@ -110,16 +116,17 @@ export function PortalShell({ role, children }: { role: Principal['role']; child
             <span>SEGURANÇA DO TRABALHO</span>
           )}
           <span>{fieldMode ? 'Segurança em campo' : 'PSI Energy · Ambiente interno'}</span>
-          <NotificationBell key={path} />
+          {!pilot && <NotificationBell key={path} />}
         </header>
         <main id="main" tabIndex={-1}>
+          {pilot && <p className="muted">Ambiente de homologação · Use dados de demonstração.</p>}
           {error !== undefined && <ErrorNotice error={error} />}
           {children}
         </main>
       </div>
       {fieldMode && (
         <nav className="field-nav" aria-label="Principal">
-          {personalLinks.map(([href, label]) => (
+          {personalLinks.filter(available).map(([href, label]) => (
             <Link
               key={href}
               href={href!}

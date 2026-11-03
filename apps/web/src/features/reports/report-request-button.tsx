@@ -1,4 +1,5 @@
 'use client';
+import { usePilot } from '../auth/pilot';
 import { useState } from 'react';
 import { Button, Notice } from '@portal/ui';
 import type { ReportFilters, ReportView } from '@portal/contracts';
@@ -10,6 +11,7 @@ type Input =
   | { format: 'PDF'; inspectionId: string; submissionId: string }
   | { format: 'XLSX'; filters: ReportFilters };
 export function ReportRequestButton({ input, label }: { input: Input; label: string }) {
+  const pilot = usePilot();
   const [pending, setPending] = useState<Input & { requestId: string }>(),
     [busy, setBusy] = useState(false),
     [completed, setCompleted] = useState<string>(),
@@ -29,6 +31,7 @@ export function ReportRequestButton({ input, label }: { input: Input; label: str
       setBusy(false);
     }
   }
+  if (pilot) return null;
   return (
     <>
       <Button

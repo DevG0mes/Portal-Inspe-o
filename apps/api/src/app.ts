@@ -38,9 +38,9 @@ export async function createApplication(
     origin: process.env.APP_ORIGIN ?? 'http://127.0.0.1:3000',
   },
   storage?: StorageAdapter,
-  operations: { log?: OperationalLog; authLimit?: number } = {},
+  operations: { log?: OperationalLog; authLimit?: number; pilot?: boolean } = {},
 ) {
-  const environment = database ? loadEnvironment(process.env) : undefined;
+  const environment = database && !operations.pilot ? loadEnvironment(process.env) : undefined;
   @Module({
     imports: database
       ? [
@@ -50,16 +50,20 @@ export async function createApplication(
           IdentityModule,
           OrganizationModule,
           FormsModule,
-          SchedulesModule,
           InspectionsModule,
-          ActionPlansModule,
-          NotificationsModule,
           AnalyticsModule,
-          ReportsModule.register(storage ?? new MinioStorageAdapter(environment!)),
-          FilesModule.register(
-            storage ?? new MinioStorageAdapter(environment!),
-            environment!.EVIDENCE_MAX_BYTES,
-          ),
+          ...(environment
+            ? [
+                SchedulesModule,
+                ActionPlansModule,
+                NotificationsModule,
+                ReportsModule.register(storage ?? new MinioStorageAdapter(environment)),
+                FilesModule.register(
+                  storage ?? new MinioStorageAdapter(environment),
+                  environment.EVIDENCE_MAX_BYTES,
+                ),
+              ]
+            : []),
         ]
       : [],
     controllers: [HealthController],

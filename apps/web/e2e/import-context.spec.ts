@@ -42,58 +42,6 @@ test('registers two lodging addresses in the same city and keeps them out of sub
   await expect(page.getByRole('row').filter({ hasText: 'Rua Alfa' })).toHaveCount(0);
 });
 
-import { test, expect, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
-import type { FormQuestion } from '@portal/contracts';
-import { epcHeaders } from './fixtures/epc-headers';
-import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
-const origin = 'http://127.0.0.1:3100';
-async function post(page: Page, path: string, data: object) {
-  const response = await page.request.post(`/api/${path}`, { headers: { Origin: origin }, data });
-  expect(response.ok(), await response.text()).toBe(true);
-  return response.json();
-}
-async function accessible(page: Page) {
-  expect(
-    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
-      .violations,
-  ).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-}
-test('registers two lodging addresses in the same city and keeps them out of substations', async ({
-  page,
-}, info) => {
-  await post(page, 'auth/login', {
-    email: 'admin@example.test',
-    password: process.env.BROWSER_PASSWORD!,
-  });
-  const units = await (await page.request.get('/api/organization/units?q=Alojamento')).json();
-  const unit =
-    units.data.find((row: { name: string }) => row.name === 'Alojamento') ??
-    (await post(page, 'organization/units', { name: 'Alojamento' }));
-  const client = await post(page, 'organization/customers', {
-    name: `Cliente alojamentos ${info.project.name}`,
-    unitIds: [unit.id],
-  });
-  for (const street of [
-    `Rua Alfa, 10 (${info.project.name})`,
-    `Rua Alfa, 20 (${info.project.name})`,
-  ]) {
-    await page.goto('/addresses/new');
-    await page.getByLabel('Endereço completo', { exact: true }).fill(street);
-    await page.getByLabel('Cidade', { exact: true }).fill('Limeira');
-    await page.getByLabel('Selecionar cliente', { exact: true }).selectOption(client.id);
-    await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-    await expect(page).toHaveURL(/\/addresses\?saved=1$/);
-    await expect(page.getByRole('row').filter({ hasText: street })).toContainText('Limeira');
-  }
-  await accessible(page);
-  await page.goto('/locations');
-  await expect(page.getByRole('heading', { name: 'Subestações', exact: true })).toBeVisible();
-  await expect(page.getByRole('row').filter({ hasText: 'Rua Alfa' })).toHaveCount(0);
-});
-
 test('imports the real EPC headers, registers identification and completes a conditional inspection', async ({
   page,
 }, info) => {

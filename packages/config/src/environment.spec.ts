@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadEnvironment } from './index.js';
+import { loadApiEnvironment, loadEnvironment } from './index.js';
 
 const valid = {
   DATABASE_URL: 'postgresql://portal:secret@localhost:5432/portal',
@@ -10,6 +10,22 @@ const valid = {
 };
 
 describe('environment configuration', () => {
+  it('requires only PostgreSQL in the explicit pilot and still requires HTTPS in production', () => {
+    const pilot = {
+      PORTAL_PILOT: 'true',
+      NODE_ENV: 'production',
+      DATABASE_URL: valid.DATABASE_URL,
+      APP_ORIGIN: 'https://pilot.example.test',
+    };
+    expect(loadApiEnvironment(pilot)).toMatchObject({
+      pilot: true,
+      DATABASE_URL: valid.DATABASE_URL,
+    });
+    expect(() => loadApiEnvironment({ ...pilot, APP_ORIGIN: 'http://pilot.example.test' })).toThrow(
+      'APP_ORIGIN',
+    );
+    expect(() => loadApiEnvironment({ ...pilot, PORTAL_PILOT: 'false' })).toThrow('REDIS_URL');
+  });
   it('requires an external HTTPS storage origin in production and rejects credentials or path prefixes', () => {
     const production = { ...valid, NODE_ENV: 'production', APP_ORIGIN: 'https://portal.psi.test' };
     expect(() => loadEnvironment(production)).toThrow();

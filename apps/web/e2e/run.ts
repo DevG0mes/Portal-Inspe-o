@@ -210,7 +210,7 @@ try {
     resolve(root, 'apps/web'),
   );
   await ready('http://127.0.0.1:3100/login', web);
-  start(resolve(root, 'apps/worker/dist/main.js'), []);
+  if (env.PORTAL_PILOT !== 'true') start(resolve(root, 'apps/worker/dist/main.js'), []);
   const runner = start(
     resolve(root, 'apps/web/node_modules/@playwright/test/cli.js'),
     ['test', '--config', resolve(root, 'apps/web/playwright.config.ts'), ...process.argv.slice(2)],
@@ -227,6 +227,8 @@ try {
       await exited;
     }
   await database.close();
-  await cleanupBrowserQueue(queueName, process.env.REDIS_URL!);
-  await cleanupEvidenceTestBucket(loadEnvironment(env));
+  if (env.PORTAL_PILOT !== 'true') {
+    await cleanupBrowserQueue(queueName, process.env.REDIS_URL!);
+    await cleanupEvidenceTestBucket(loadEnvironment(env));
+  }
 }

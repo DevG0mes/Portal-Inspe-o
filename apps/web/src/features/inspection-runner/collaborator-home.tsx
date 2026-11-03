@@ -1,4 +1,7 @@
+'use client';
+import { usePilot } from '../auth/pilot';
 export function CollaboratorHome() {
+  const pilot = usePilot();
   return (
     <>
       <div className="page-heading">
@@ -18,11 +21,13 @@ export function CollaboratorHome() {
           <p>Continue um rascunho ou consulte suas conclusões.</p>
           <span aria-hidden="true">→</span>
         </a>
-        <a className="card work-shortcut" href="/assignments">
-          <h2>Atribuídas a mim</h2>
-          <p>Veja as inspeções e os prazos definidos para você.</p>
-          <span aria-hidden="true">→</span>
-        </a>
+        {!pilot && (
+          <a className="card work-shortcut" href="/assignments">
+            <h2>Atribuídas a mim</h2>
+            <p>Veja as inspeções e os prazos definidos para você.</p>
+            <span aria-hidden="true">→</span>
+          </a>
+        )}
       </div>
     </>
   );
