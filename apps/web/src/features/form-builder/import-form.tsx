@@ -276,21 +276,21 @@ export function ImportForm() {
             {prepared.snapshot.sections[0]!.questions.length} campos. A publicação será uma ação
             separada no editor.
           </p>
-          <ol>
+          <ul className="import-preview-list" role="list">
             {prepared.snapshot.sections[0]!.questions.map((q) => (
               <li key={q.id}>
                 <strong>{q.label}</strong>
                 <p>
                   {q.type === 'TEXT' ? 'Texto' : 'Sim / Não / Não Aplicável'}
                   {q.visibleWhen?.length
-                    ? ' · Obrigatória somente quando a referência for Não.'
+                    ? ' · Obrigatória quando a pergunta vinculada for respondida com Não.'
                     : q.required
                       ? ' · Obrigatória.'
                       : ' · Opcional.'}
                 </p>
               </li>
             ))}
-          </ol>
+          </ul>
           <Button disabled={busy} onClick={() => setConfirm(true)}>
             Criar rascunho importado
           </Button>
