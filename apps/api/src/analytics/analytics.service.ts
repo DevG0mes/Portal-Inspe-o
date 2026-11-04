@@ -24,11 +24,11 @@ export class AnalyticsService {
   }
 
   async qssma(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
-    const { q, em, sql } = await this.context(actor, raw, requestId);
+    const { q, em, sql, user } = await this.context(actor, raw, requestId);
     const unfiltered = await this.context(actor, {}, requestId);
     return em.transactional(async (tx) => {
       await tx.execute('set transaction isolation level repeatable read');
-      return qssmaDashboard(tx, sql, q, unfiltered.sql);
+      return qssmaDashboard(tx, sql, q, unfiltered.sql, user.role === 'ADMIN');
     });
   }
 

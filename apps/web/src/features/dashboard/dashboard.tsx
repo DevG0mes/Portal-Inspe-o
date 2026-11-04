@@ -22,7 +22,6 @@ import { priorityLabels } from '../form-builder/model';
 import { localInstant } from '../schedules/presentation';
 import { ReportRequestButton } from '../reports/report-request-button';
 import { QssmaCharts } from './qssma-charts';
-import { QssmaHistoryPanel } from './qssma-history';
 const number = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const groupLabels: Record<keyof AnalyticsGroups, string> = {
@@ -151,13 +150,13 @@ export function Dashboard({ role }: { role: UserRole }) {
           <>
             <h2>Inspeções no período</h2>
             <div className="summary-grid">
-              <Metric label="Inspeções realizadas" value={data.inspections.completed} />
+              <Metric label="Inspeções realizadas" value={qssma.data?.metrics.inspections ?? '—'} />
               <Metric label="Inspeções pendentes" value={data.inspections.pending}>
                 Inclui as vencidas ainda não concluídas.
               </Metric>
               <Metric label="Inspeções vencidas" value={data.inspections.overdue} />
               <Metric label="Rascunhos" value={data.inspections.drafts} />
-              <Metric label="Não conformidades" value={data.inspections.nonconformities} />
+              <Metric label="Não conformidades" value={qssma.data?.metrics.deviations ?? '—'} />
               <Metric
                 label="Índice de conformidade"
                 value={
@@ -224,6 +223,12 @@ export function Dashboard({ role }: { role: UserRole }) {
         {qssma.data && (
           <>
             <h2>Indicadores QSSMA</h2>
+            {role === 'ADMIN' && (
+              <p>
+                Os volumes incluem o histórico importado. A conformidade usa as inspeções avaliáveis
+                do portal.
+              </p>
+            )}
             <div className="summary-grid">
               <Metric
                 label="Desvios no escopo completo"
@@ -240,7 +245,7 @@ export function Dashboard({ role }: { role: UserRole }) {
                 value={qssma.data.metrics.nonconformingInspections}
               />
               <Metric label="Desvios tratados" value={qssma.data.metrics.treated}>
-                Plano concluído após aprovação.
+                Inclui desvios tratados na origem e planos aprovados no portal.
               </Metric>
               <Metric label="Desvios pendentes" value={qssma.data.metrics.pending}>
                 Inclui ocorrências sem plano e aguardando validação.
@@ -289,7 +294,6 @@ export function Dashboard({ role }: { role: UserRole }) {
           </>
         )}
       </Panel>
-      {role === 'ADMIN' && <QssmaHistoryPanel revision={revision} />}
       <details className="card">
         <summary>Como ler os indicadores</summary>
         <p>
