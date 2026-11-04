@@ -105,7 +105,12 @@ export interface QssmaHistoryRow {
 
 export interface QssmaHistory {
   totals: Omit<QssmaHistoryRow, 'label'>;
+  inspectionsWithDeviation: number;
   months: QssmaHistoryRow[];
   types: QssmaHistoryRow[];
   priorities: { label: string; count: number }[];
+  statuses: { label: string; count: number }[];
+  locations: { label: string; count: number }[];
+  inspectors: { label: string; count: number }[];
+  categories: { label: string; count: number }[];
 }

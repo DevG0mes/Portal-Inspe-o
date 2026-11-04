@@ -1,43 +1,9 @@
 'use client';
 
-import type { QssmaHistory, QssmaHistoryRow } from '@portal/contracts';
+import type { QssmaHistory } from '@portal/contracts';
 import { useResource } from '../shared/use-resource';
 
-function HistoryTable({
-  title,
-  dimension,
-  rows,
-}: {
-  title: string;
-  dimension: string;
-  rows: QssmaHistoryRow[];
-}) {
-  return (
-    <div className="table-scroll">
-      <table>
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{dimension}</th>
-            <th scope="col">Inspeções</th>
-            <th scope="col">Desvios</th>
-            <th scope="col">Tratados na origem</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label}>
-              <th scope="row">{row.label}</th>
-              <td>{row.inspections}</td>
-              <td>{row.deviations}</td>
-              <td>{row.treated}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { QssmaHistoryCharts } from './qssma-charts';
 
 export function QssmaHistoryPanel({ revision }: { revision: number }) {
   const { data, loading, error } = useResource<QssmaHistory>('analytics/qssma-history', revision);
@@ -54,23 +20,11 @@ export function QssmaHistoryPanel({ revision }: { revision: number }) {
               {data.totals.inspections} inspeções · {data.totals.deviations} desvios vinculados ·{' '}
               {data.totals.treated} tratados na origem
             </p>
-            <HistoryTable
-              title="Volume mensal"
-              dimension="Mês"
-              rows={data.months.map((row) => ({
-                ...row,
-                label: `${row.label.slice(5)}/${row.label.slice(0, 4)}`,
-              }))}
-            />
-            <HistoryTable title="Volume por tipo" dimension="Tipo de inspeção" rows={data.types} />
-            <h3>Criticidade dos desvios vinculados</h3>
-            <ul>
-              {data.priorities.map(({ label, count }) => (
-                <li key={label}>
-                  {label} · {count}
-                </li>
-              ))}
-            </ul>
+            <p>
+              {data.inspectionsWithDeviation} inspeções com desvio registrado ·{' '}
+              {data.totals.deviations - data.totals.treated} desvios sem status Tratado na origem
+            </p>
+            <QssmaHistoryCharts data={data} />
             <p>
               Os desvios exibidos refletem a cobertura da exportação. A conformidade por respostas
               exige a base de respostas avaliáveis.

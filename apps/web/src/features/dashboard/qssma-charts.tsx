@@ -1,6 +1,6 @@
 'use client';
 import { useId } from 'react';
-import type { QssmaDashboard } from '@portal/contracts';
+import type { QssmaDashboard, QssmaHistory } from '@portal/contracts';
 const fmt = (value: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value);
 const monthLabel = (month: string) =>
@@ -289,6 +289,76 @@ export function QssmaCharts({ data }: { data: QssmaDashboard }) {
       <Bars title="Inspeções por local" rows={data.rankings.locations} />
       <Bars title="Inspeções por colaborador" rows={data.rankings.inspectors} />
       <Bars title="Desvios por categoria" rows={data.rankings.categories} />
+    </div>
+  );
+}
+
+export function QssmaHistoryCharts({ data }: { data: QssmaHistory }) {
+  const months = data.months.map(({ label }) => label);
+  return (
+    <div className="qssma-chart-grid">
+      <Columns
+        title="Inspeções realizadas por mês"
+        months={months}
+        series={[
+          {
+            label: 'Inspeções',
+            values: data.months.map((row) => row.inspections),
+            tone: 'tone-brand',
+          },
+        ]}
+      />
+      <Columns
+        title="Desvios vinculados por mês"
+        months={months}
+        series={[
+          {
+            label: 'Desvios vinculados',
+            values: data.months.map((row) => row.deviations),
+            tone: 'tone-danger',
+          },
+        ]}
+      />
+      <Columns
+        title="Inspeções, desvios e tratativas por mês"
+        months={months}
+        series={[
+          {
+            label: 'Inspeções',
+            values: data.months.map((row) => row.inspections),
+            tone: 'tone-brand',
+          },
+          {
+            label: 'Desvios vinculados',
+            values: data.months.map((row) => row.deviations),
+            tone: 'tone-danger',
+          },
+          {
+            label: 'Tratados na origem',
+            values: data.months.map((row) => row.treated),
+            tone: 'tone-success',
+          },
+        ]}
+      />
+      <Donut
+        title="Situação das tratativas na origem"
+        rows={data.statuses}
+        tones={data.statuses.map(({ label }) =>
+          label === 'Tratado' ? 'tone-success' : 'tone-danger',
+        )}
+      />
+      <Bars
+        title="Inspeções por tipo"
+        rows={data.types.map(({ label, inspections }) => ({ label, count: inspections }))}
+      />
+      <Donut
+        title="Criticidade dos desvios vinculados"
+        rows={data.priorities}
+        tones={['tone-danger', 'tone-success', 'tone-notice', 'tone-brand']}
+      />
+      <Bars title="Inspeções por local" rows={data.locations} />
+      <Bars title="Inspeções por responsável" rows={data.inspectors} />
+      <Bars title="Desvios por categoria" rows={data.categories} />
     </div>
   );
 }
