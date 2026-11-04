@@ -15,7 +15,14 @@ import { Sector } from '../organization/sector.entity.js';
 import { parseAnalytics } from './analytics.dto.js';
 import { analyticsQuery } from './analytics.queries.js';
 import { qssmaDashboard, treatment } from './qssma.queries.js';
+import { qssmaHistory } from './qssma-history.queries.js';
 export class AnalyticsService {
+  async history(actor: AuthenticatedPrincipal) {
+    const em = this.em.fork();
+    await this.access.requireRoles(actor, ['ADMIN'], em);
+    return qssmaHistory(em);
+  }
+
   async qssma(actor: AuthenticatedPrincipal, raw: unknown, requestId: string) {
     const { q, em, sql } = await this.context(actor, raw, requestId);
     const unfiltered = await this.context(actor, {}, requestId);

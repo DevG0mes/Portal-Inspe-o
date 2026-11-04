@@ -22,6 +22,7 @@ import { priorityLabels } from '../form-builder/model';
 import { localInstant } from '../schedules/presentation';
 import { ReportRequestButton } from '../reports/report-request-button';
 import { QssmaCharts } from './qssma-charts';
+import { QssmaHistoryPanel } from './qssma-history';
 const number = (n: number) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(n);
 const groupLabels: Record<keyof AnalyticsGroups, string> = {
@@ -288,6 +289,7 @@ export function Dashboard({ role }: { role: UserRole }) {
           </>
         )}
       </Panel>
+      {role === 'ADMIN' && <QssmaHistoryPanel revision={revision} />}
       <details className="card">
         <summary>Como ler os indicadores</summary>
         <p>

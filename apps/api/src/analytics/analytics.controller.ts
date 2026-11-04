@@ -7,6 +7,9 @@ import { AnalyticsService } from './analytics.service.js';
 @JsonRequest()
 export class AnalyticsController {
   constructor(@Inject(AnalyticsService) private readonly service: AnalyticsService) {}
+  @Get('qssma-history') history(@Req() r: AuthenticatedRequest) {
+    return this.service.history(r.principal);
+  }
   @Get('qssma') qssma(@Req() r: AuthenticatedRequest, @Query() q: unknown) {
     return this.service.qssma(r.principal, q, r.requestId);
   }

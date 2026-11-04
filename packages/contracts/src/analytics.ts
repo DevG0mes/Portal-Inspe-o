@@ -96,3 +96,16 @@ export interface AnalyticsGroups {
   categories: { label: string; count: number }[];
   priorities: { label: string; count: number }[];
 }
+export interface QssmaHistoryRow {
+  label: string;
+  inspections: number;
+  deviations: number;
+  treated: number;
+}
+
+export interface QssmaHistory {
+  totals: Omit<QssmaHistoryRow, 'label'>;
+  months: QssmaHistoryRow[];
+  types: QssmaHistoryRow[];
+  priorities: { label: string; count: number }[];
+}

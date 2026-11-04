@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node --env-file=../../.env dist/main.js",
     "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts",
-    "admin:create": "tsx --env-file=../../.env src/identity/create-admin.ts"
+    "admin:create": "tsx --env-file=../../.env src/identity/create-admin.ts",
+    "qssma:import-history": "tsx --env-file=../../.env src/analytics/import-qssma-history.ts"
   },
   "dependencies": {
     "@mikro-orm/core": "7.2.5",
